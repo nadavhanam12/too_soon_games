@@ -1,0 +1,108 @@
+Only in .itch/last-upload: .version
+diff -ru .itch/last-upload/index.html dist-itch/index.html
+--- .itch/last-upload/index.html	2026-10-01 00:08:03
++++ dist-itch/index.html	2026-10-01 01:13:28
+@@ -27,22 +27,22 @@
+ #share{position:fixed;display:flex;gap:8px;justify-content:center;align-items:center;font-family:var(--font)}
+ #share a,#share button{flex:1;border:0;border-radius:999px;padding:0;height:100%;font:900 1em var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
+ #share a{background:#25d366;color:#0b2a1a}#share button{background:#ffb400;color:#111}#share #sh{background:#2f6fdd;color:#fff}
+-#grp{position:fixed;display:flex;gap:8px;box-sizing:border-box;font-family:var(--font)}
+-#grp a{display:flex;align-items:center;justify-content:center;gap:.55em;box-sizing:border-box;padding:0 .8em;border-radius:999px;text-decoration:none;min-width:0}
+-#grp .g{flex:1.55;background:#25d366;color:#06240f;box-shadow:0 0 0 .18em rgba(37,211,102,.35);animation:grpPulse 2s ease-in-out infinite}
+-#grp .m{flex:1;background:#12301f;color:#9be7b5;border:.14em solid #25d366}
++#grp{position:fixed;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;font-family:var(--font);pointer-events:none}
++#grp a{pointer-events:auto;height:3.85em;flex:none!important;display:flex;align-items:center;justify-content:center;gap:.55em;box-sizing:border-box;padding:0 .8em;border-radius:999px;text-decoration:none;min-width:0}
++#grp .g{position:absolute;top:0;width:100%;flex:1.55;background:#25d366;color:#06240f;box-shadow:0 0 0 .18em rgba(37,211,102,.35);animation:grpPulse 2s ease-in-out infinite}
++#grp .m{position:absolute;bottom:0;width:100%;flex:1;background:#12301f;color:#9be7b5;border:.14em solid #25d366}
+ #grp svg{flex:none;width:1.9em;height:1.9em}
+ #grp .t{display:flex;flex-direction:column;line-height:1.15;text-align:right}
+ #grp .t b{font-weight:900;font-size:1.1em}
+ #grp .t i{font-style:normal;font-weight:700;font-size:.8em;opacity:.8}
+ @keyframes grpPulse{50%{box-shadow:0 0 0 .5em rgba(37,211,102,.12)}}
+-@media (prefers-reduced-motion:reduce){#grp{animation:none}}
++@media (prefers-reduced-motion:reduce){#grp .g{animation:none}}
+ </style>
+ </head>
+ <body>
+ <div id="wrap"><canvas id="c" width="360" height="640"></canvas></div>
+ <div id="share" hidden><button id="sh" type="button" hidden>שתף…</button><a id="wa" target="_blank" rel="noopener">שיתוף בווצאפ</a><button id="cp" type="button">העתק</button></div>
+-<div id="grp" hidden><a id="grp1" class="g" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#06240f" d="M16 3C8.8 3 3 8.8 3 16c0 2.3.6 4.5 1.7 6.4L3 29l6.8-1.8A13 13 0 0 0 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 23.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4 1 1.1-3.9-.3-.4A10.7 10.7 0 1 1 16 26.700zm5.900-8c-.3-.2-1.900-1-2.200-1.100-.3-.1-.5-.2-.7.200-.2.300-.8 1.100-1 1.300-.2.200-.4.200-.7.100-1.900-.9-3.100-1.700-4.300-3.800-.3-.6.300-.5.900-1.700.1-.2 0-.4 0-.5l-1-2.300c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.100 1.100-1.100 2.600s1.100 3 1.300 3.200c.2.200 2.200 3.400 5.400 4.700 2 .8 2.800.9 3.800.7.600-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.3-.6-.4z"/></svg><span class="t"><b>הצטרף לקבוצה</b><i>רעיונות · פידבק</i></span></a><a id="grp2" class="m" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.8 3 16c0 2.3.6 4.5 1.7 6.4L3 29l6.8-1.8A13 13 0 0 0 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 23.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4 1 1.1-3.9-.3-.4A10.7 10.7 0 1 1 16 26.700zm5.900-8c-.3-.2-1.900-1-2.200-1.100-.3-.1-.5-.2-.7.200-.2.300-.8 1.100-1 1.300-.2.200-.4.200-.7.100-1.900-.9-3.100-1.700-4.300-3.800-.3-.6.300-.5.900-1.700.1-.2 0-.4 0-.5l-1-2.300c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.100 1.100-1.100 2.600s1.100 3 1.300 3.200c.2.200 2.200 3.400 5.400 4.700 2 .8 2.800.9 3.800.7.600-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.3-.6-.4z"/></svg><span class="t"><b>הודעה אליי</b><i>אישית, בוואטסאפ</i></span></a></div>
++<div id="grp" hidden><a id="grp1" class="g" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#06240f" d="M16 3C8.8 3 3 8.8 3 16c0 2.3.6 4.5 1.7 6.4L3 29l6.8-1.8A13 13 0 0 0 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 23.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4 1 1.1-3.9-.3-.4A10.7 10.7 0 1 1 16 26.700zm5.900-8c-.3-.2-1.900-1-2.200-1.100-.3-.1-.5-.2-.7.200-.2.300-.8 1.100-1 1.300-.2.200-.4.200-.7.100-1.900-.9-3.100-1.700-4.300-3.800-.3-.6.300-.5.900-1.700.1-.2 0-.4 0-.5l-1-2.300c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.100 1.100-1.100 2.600s1.100 3 1.300 3.200c.2.200 2.200 3.400 5.400 4.700 2 .8 2.800.9 3.800.7.600-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.3-.6-.4z"/></svg><span class="t"><b>אני רוצה את המשחק הבא</b><i>משחקים חדשים והצבעות על רעיונות</i></span></a><a id="grp2" class="m" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.8 3 16c0 2.3.6 4.5 1.7 6.4L3 29l6.8-1.8A13 13 0 0 0 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 23.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4 1 1.1-3.9-.3-.4A10.7 10.7 0 1 1 16 26.700zm5.900-8c-.3-.2-1.900-1-2.200-1.100-.3-.1-.5-.2-.7.200-.2.300-.8 1.100-1 1.300-.2.200-.4.200-.7.100-1.900-.9-3.100-1.700-4.300-3.800-.3-.6.300-.5.900-1.700.1-.2 0-.4 0-.5l-1-2.300c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.100 1.100-1.100 2.600s1.100 3 1.300 3.200c.2.200 2.200 3.400 5.400 4.700 2 .8 2.800.9 3.800.7.600-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.3-.6-.4z"/></svg><span class="t"><b>יש לך רעיון? שלח לי הודעה</b><i>אישית, בוואטסאפ</i></span></a></div>
+ <script>
+ (()=>{
+ // ---------- publish config ----------
+@@ -167,7 +167,7 @@
+ let toast=null;function say(s,life=1.6,col='#fff'){toast={s,life,col,t:0};}
+ let banner=null;function showBanner(title,lines,dur=2.6){banner={title,lines,t:0,dur};}
+ let trans=null,pending=null,sceneT=0;
+-function goNow(s){if(s!=='facts'){shareEl.hidden=true;grpEl.hidden=true;}scene=s;st=0;sceneT=0;S.init=false;tapQueue.length=0;S.altEntry=ALT;}
++function goNow(s){if(s!=='community'){shareEl.hidden=true;grpEl.hidden=true;}scene=s;st=0;sceneT=0;S.init=false;tapQueue.length=0;S.altEntry=ALT;}
+ const wsh=()=>shake>0?rnd(-5,5):0;
+ function go(s){if(pending===s||(trans&&trans.t<.5))return;pending=s;trans={t:0};}
+ const easeIO=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,easeO=x=>1-Math.pow(1-x,3);
+@@ -722,10 +722,10 @@
+ };
+ const shareEl=document.getElementById('share'),shEl=document.getElementById('sh'),waEl=document.getElementById('wa'),cpEl=document.getElementById('cp'),grpEl=document.getElementById('grp');
+ if(navigator.share)shEl.hidden=false; // system share sheet (phones: WhatsApp/Instagram/Telegram/SMS...). Desktop browsers mostly lack it.
+-// DOM overlays over the canvas, in canvas units: share row 20..340 x 480..526, group button 16..344 x 534..580
++// Community overlays in canvas units: invite y=310..360, share y=444..490, personal y=504..554.
+ function placeShare(){const r=cv.getBoundingClientRect();const px=v=>(v*scale)+'px';
+-  shareEl.style.left=px(20+r.left/scale);shareEl.style.top=px(480+r.top/scale);shareEl.style.width=px(W-40);shareEl.style.height=px(46);shareEl.style.fontSize=px(14);
+-  grpEl.style.left=px(16+r.left/scale);grpEl.style.top=px(534+r.top/scale);grpEl.style.width=px(W-32);grpEl.style.height=px(46);grpEl.style.fontSize=px(12);}
++  shareEl.style.left=px(20+r.left/scale);shareEl.style.top=px(444+r.top/scale);shareEl.style.width=px(W-40);shareEl.style.height=px(46);shareEl.style.fontSize=px(14);
++  grpEl.style.left=px(16+r.left/scale);grpEl.style.top=px(310+r.top/scale);grpEl.style.width=px(W-32);grpEl.style.height=px(244);grpEl.style.fontSize=px(13);}
+ // navigator.share can exist but reject (itch's cross-origin iframe has no web-share permission) -> fall back to the WhatsApp link. AbortError = user closed the sheet.
+ shEl.addEventListener('click',()=>{const t=shEl.dataset.text||'';navigator.share({title:'חופשה בטוחה',text:t}).catch(e=>{if(!e||e.name!=='AbortError')window.open(waEl.href,'_blank','noopener');});});
+ cpEl.addEventListener('click',()=>{const s=cpEl.dataset.text||'';
+@@ -737,12 +737,6 @@
+ scenes.facts={
+   draw(dt){
+     st+=dt;
+-    if(!S.init){S.init=true;const rank=rankFor(score);
+-      const mm=Math.floor(PLAYT/60),ss=Math.floor(PLAYT%60);
+-      const text=`חופשה בטוחה ✈️ הצלתי 174 נוסעים בטיסה מדובאי ב-${mm}:${String(ss).padStart(2,'0')} דקות. ניקוד ${score}, דרגה "${rank}". תנסה אתה: ${PUBLIC_URL||location.href}`;
+-      waEl.href='https://wa.me/?text='+encodeURIComponent(text);cpEl.dataset.text=text;shEl.dataset.text=text;cpEl.textContent='העתק';shareEl.hidden=false;
+-      if(WA_GROUP||WA_ME){document.getElementById('grp1').hidden=!WA_GROUP;document.getElementById('grp2').hidden=!WA_ME;if(WA_GROUP)document.getElementById('grp1').href=WA_GROUP;if(WA_ME)document.getElementById('grp2').href='https://wa.me/'+WA_ME+'?text='+encodeURIComponent('היי, שיחקתי ב״חופשה בטוחה״ ');grpEl.hidden=false;}placeShare();}
+-    placeShare();
+     ctx.fillStyle='#0f1a2b';ctx.fillRect(0,0,W,H);
+     for(let i=0;i<6;i++)flag(22+i*56,46,34,22,st*5+i);
+     txt('מה קרה באמת',W/2,92,28,'#ffb400','center',900);
+@@ -751,9 +745,36 @@
+     const L=[['• שעה וחצי אחרי ההמראה, מעל ירדן, טייס המשנה דקר',0],['  את הקברניט וניסה לרסק את המטוס.',0],['• נוסעים ישראלים פרצו לקוקפיט, הפילו אותו',0],['  וקשרו אותו עם אוזניות המולטימדיה של המטוס.',1],['• רופא שיניים מהנוסעים עצר את הדימום של הקברניט.',0],['• המטוס צלל מ-34,000 רגל, שידר קוד חטיפה 7500,',1],['  ונחת בשלום בטבוק, סעודיה, בליווי מטוסי קרב.',0],['• 174 נוסעים, 27 ילדים. כולם חזרו לבן-גוריון',1],['  באותו ערב, בשירה ומחיאות כפיים.',0],['• החקירה עדיין נמשכת. השמות במשחק בדויים.',0]];
+     L.forEach(([l,b],i)=>txt(l,W-32,160+i*29,12,b?'#ffe08a':'#cfd8e6','right',b?900:400));
+     txt('במציאות לא הייתה שם משפחת בוזגלו-שטרנליכט. היו 174 כאלה.',W/2,468,11,'#ffe08a','center',400);
+-    btn('התחל מחדש',W/2,606,200,46,'#2b3648','#fff',16);
++    btn('המשך',W/2,606,180,46,'#ffb400','#111');
+     hud();
+-    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;if(p.key||inBtn(p,W/2,606,240,60)){shareEl.hidden=true;grpEl.hidden=true;go('title');}}
++    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;if(p.key||inBtn(p,W/2,606,220,60)){sfx.ok();go('community');}}
++  }
++};
++
++
++scenes.community={
++  draw(dt){
++    if(!S.init){S.init=true;const rank=rankFor(score);
++      const mm=Math.floor(PLAYT/60),ss=Math.floor(PLAYT%60);
++      const text=`חופשה בטוחה ✈️ הצלתי 174 נוסעים בטיסה מדובאי ב-${mm}:${String(ss).padStart(2,'0')} דקות. ניקוד ${score}, דרגה "${rank}". תנסה אתה: ${PUBLIC_URL||location.href}`;
++      waEl.href='https://wa.me/?text='+encodeURIComponent(text);cpEl.dataset.text=text;shEl.dataset.text=text;cpEl.textContent='העתק';shareEl.hidden=false;
++      if(WA_GROUP||WA_ME){document.getElementById('grp1').hidden=!WA_GROUP;document.getElementById('grp2').hidden=!WA_ME;if(WA_GROUP)document.getElementById('grp1').href=WA_GROUP;if(WA_ME)document.getElementById('grp2').href='https://wa.me/'+WA_ME+'?text='+encodeURIComponent('היי, שיחקתי ב״חופשה בטוחה״ ');grpEl.hidden=false;}placeShare();}
++    placeShare();
++    ctx.fillStyle='#0f1a2b';ctx.fillRect(0,0,W,H);
++    txt('חופשה בטוחה ✈',24,30,13,'#cfd8e6','left',700);
++    txt('מאת נדב חנם',W-24,30,12,'#cfd8e6','right',400);
++    plane(W/2,85,.5);
++    txt('ההרפתקה לא נגמרת כאן',W/2,140,25,'#ffb400','center',900);
++    txt('נהנית? בוא להיות חלק מהמשחק הבא.',W/2,174,14,'#cfd8e6','center',400);
++    rr(16,202,W-32,190,15,'#172b36');
++    txt('הקבוצה של נדב · יוצר המשחק',W/2,225,12,'#8de5b1','center',700);
++    txt('קבל ראשון את המשחק הבא',W/2,256,22,'#fff','center',900);
++    txt('הצטרף אליי בוואטסאפ למשחקים חדשים,',W/2,281,14,'#cfd8e6','center',400);
++    txt('והצבע על מה אבנה בפעם הבאה.',W/2,302,14,'#cfd8e6','center',400);
++    txt('מי מהחברים שלך יציל יותר מהר?',W/2,414,16,'#fff','center',900);
++    txt('שתף את הניקוד והדרגה שלך ואתגר חבר',W/2,434,12,'#cfd8e6','center',400);
++    btn('התחל מחדש',W/2,606,200,46,'#2b3648','#fff',16);
++    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;if(p.key||inBtn(p,W/2,606,240,60)){go('title');}}
+   }
+ };
+ 

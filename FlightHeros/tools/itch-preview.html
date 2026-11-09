@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- Dev-only: the game the way itch.io embeds it — a fixed-size PORTRAIT iframe on a page taller
+     than the window, so iframe focus and scroll-key behaviour match the real page.
+     Serve the project root (python3 -m http.server 5311) and open /tools/itch-preview.html.
+     ?w=360&h=640 sets the embed size (default = the viewport size to set on the itch page). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>itch preview (portrait)</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 200vh; background: #1d1d1f; color: #c9c9cf; font: 14px/1.4 system-ui, sans-serif; }
+    header { max-width: 900px; margin: 0 auto; padding: 16px 20px 10px; display: flex; gap: 12px; align-items: baseline; }
+    header h1 { margin: 0; font-size: 18px; color: #fff; } header span { opacity: .7; }
+    header button { margin-left: auto; font: inherit; padding: 4px 12px; cursor: pointer; }
+    #frame-wrap { display: flex; justify-content: center; padding: 0 20px; }
+    iframe { border: 0; background: #000; display: block; flex: none; }
+    p { max-width: 900px; margin: 12px auto; padding: 0 20px; opacity: .6; }
+  </style>
+</head>
+<body>
+  <header><h1>itch.io embed preview</h1><span id="size"></span><button id="fs" type="button">Fullscreen</button></header>
+  <div id="frame-wrap"><iframe id="game" allowfullscreen></iframe></div>
+  <p>This page is taller than the window on purpose: Space and the arrow keys inside the game must not scroll it.</p>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const w = Number(q.get('w')) || 360, h = Number(q.get('h')) || 640;
+    const game = document.getElementById('game');
+    game.width = w; game.height = h;
+    game.src = '/index.html' + (q.get('scene') ? '#' + q.get('scene') : '');
+    document.getElementById('size').textContent = `${w} × ${h}`;
+    document.getElementById('fs').onclick = () => game.requestFullscreen?.();
+  </script>
+</body>
+</html>

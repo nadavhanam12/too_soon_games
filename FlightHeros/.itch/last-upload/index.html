@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f1a2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>חופשה בטוחה</title>
+<!-- Open Graph: only used when this file is hosted directly. On itch.io the PAGE's cover image + short description are the preview card. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="חופשה בטוחה ✈️ - משחק">
+<meta property="og:description" content="174 נוסעים, קוקפיט פרוץ, גובה שיורד. כמה מהר אתה מציל את הטיסה?">
+<meta name="description" content="משחק ארקייד מהיר בחמישה שלבים על טיסה FZ1073 מדובאי לתל אביב: ריצה במעבר, דלת הקוקפיט, קרב, קשירה באוזניות וייצוב המטוס.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700;900&display=swap">
+<style>
+/* Layout: one portrait canvas (360x640 logical) letterboxed into the viewport; all UI drawn in-canvas. */
+:root{
+  --bg:#0f1a2b; --fg:#f6f1e6; --sky:#8fd3ff; --accent:#ffb400; --danger:#ff3b3b; --ok:#3ddc84;
+  --font:'Rubik',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidden;direction:rtl}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding-inline:0}
+canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:6px}
+#share[hidden],#share [hidden],#grp[hidden],#grp [hidden]{display:none}
+#share{position:fixed;display:flex;gap:8px;justify-content:center;align-items:center;font-family:var(--font)}
+#share a,#share button{flex:1;border:0;border-radius:999px;padding:0;height:100%;font:900 1em var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
+#share a{background:#25d366;color:#0b2a1a}#share button{background:#ffb400;color:#111}#share #sh{background:#2f6fdd;color:#fff}
+#grp{position:fixed;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;font-family:var(--font);pointer-events:none}
+#grp a{pointer-events:auto;height:3.85em;flex:none!important;display:flex;align-items:center;justify-content:center;gap:.55em;box-sizing:border-box;padding:0 .8em;border-radius:999px;text-decoration:none;min-width:0}
+#grp .g{position:absolute;top:0;width:100%;flex:1.55;background:#25d366;color:#06240f;box-shadow:0 0 0 .18em rgba(37,211,102,.35);animation:grpPulse 2s ease-in-out infinite}
+#grp .m{position:absolute;bottom:0;width:100%;flex:1;background:#12301f;color:#9be7b5;border:.14em solid #25d366}
+#grp svg{flex:none;width:1.9em;height:1.9em}
+#grp .t{display:flex;flex-direction:column;line-height:1.15;text-align:right}
+#grp .t b{font-weight:900;font-size:1.1em}
+#grp .t i{font-style:normal;font-weight:700;font-size:.8em;opacity:.8}
+@keyframes grpPulse{50%{box-shadow:0 0 0 .5em rgba(37,211,102,.12)}}
+@media (prefers-reduced-motion:reduce){#grp .g{animation:none}}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="360" height="640"></canvas></div>
+<div id="share" hidden><button id="sh" type="button" hidden>שתף…</button><a id="wa" target="_blank" rel="noopener">שיתוף בווצאפ</a><button id="cp" type="button">העתק</button></div>
+<div id="grp" hidden><a id="grp1" class="g" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#06240f" d="M16 3C8.8 3 3 8.8 3 16c0 2.3.6 4.5 1.7 6.4L3 29l6.8-1.8A13 13 0 0 0 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 23.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4 1 1.1-3.9-.3-.4A10.7 10.7 0 1 1 16 26.700zm5.900-8c-.3-.2-1.900-1-2.200-1.100-.3-.1-.5-.2-.7.200-.2.300-.8 1.100-1 1.300-.2.200-.4.200-.7.100-1.900-.9-3.100-1.700-4.300-3.800-.3-.6.300-.5.900-1.700.1-.2 0-.4 0-.5l-1-2.300c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.100 1.100-1.100 2.600s1.100 3 1.300 3.200c.2.200 2.200 3.400 5.400 4.700 2 .8 2.800.9 3.800.7.600-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.3-.6-.4z"/></svg><span class="t"><b>אני רוצה את המשחק הבא</b><i>משחקים חדשים והצבעות על רעיונות</i></span></a><a id="grp2" class="m" target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.8 3 16c0 2.3.6 4.5 1.7 6.4L3 29l6.8-1.8A13 13 0 0 0 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 23.7c-2 0-3.9-.6-5.5-1.6l-.4-.2-4 1 1.1-3.9-.3-.4A10.7 10.7 0 1 1 16 26.700zm5.900-8c-.3-.2-1.900-1-2.200-1.100-.3-.1-.5-.2-.7.200-.2.300-.8 1.100-1 1.300-.2.200-.4.200-.7.100-1.900-.9-3.100-1.700-4.300-3.800-.3-.6.300-.5.900-1.700.1-.2 0-.4 0-.5l-1-2.300c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.100 1.100-1.100 2.600s1.100 3 1.300 3.200c.2.200 2.200 3.400 5.400 4.700 2 .8 2.800.9 3.800.7.600-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.3-.6-.4z"/></svg><span class="t"><b>יש לך רעיון? שלח לי הודעה</b><i>אישית, בוואטסאפ</i></span></a></div>
+<script>
+(()=>{
+// ---------- publish config ----------
+// PUBLIC_URL: the public game page (the itch.io page). Inside itch's iframe location.href is an
+//   itch.zone address nobody should share, so the share text uses this instead.
+//   Empty = fall back to location.href (fine when the file is hosted directly).
+// WA_GROUP: WhatsApp group invite link (https://chat.whatsapp.com/...). Empty = the "join the group" line stays hidden.
+const PUBLIC_URL='https://hanam.itch.io/plesentflight';
+// WA_ME: personal WhatsApp number in international format without + (Israel: 972 + number without the leading 0). Empty hides the personal button.
+const WA_ME='972547691089';
+const WA_GROUP='https://chat.whatsapp.com/IS2YOSN4tLSByqjF0z9e86?mode=gi_t';
+const W=360,H=640;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let scale=1,ox=0,oy=0;
+function fit(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const vw=window.innerWidth,vh=window.innerHeight;
+  scale=Math.min(vw/W,vh/H);
+  cv.style.width=(W*scale)+'px';cv.style.height=(H*scale)+'px';
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  const r=cv.getBoundingClientRect();ox=r.left;oy=r.top;
+}
+window.addEventListener('resize',()=>{fit();if(typeof placeShare==='function'&&!shareEl.hidden)placeShare();});fit();
+
+// ---------- helpers ----------
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function font(sz,w=700){ctx.font=`${w} ${sz}px Rubik,system-ui,Arial`;}
+function txt(s,x,y,sz=16,col='#f6f1e6',al='center',w=700){font(sz,w);ctx.fillStyle=col;ctx.textAlign=al;ctx.textBaseline='middle';ctx.direction='rtl';ctx.fillText(s,x,y);}
+function rr(x,y,w,h,r,col){ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
+function circ(x,y,r,col){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function wrap(s,sz,maxW){font(sz,700);const words=s.split(' ');const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;}if(cur)lines.push(cur);return lines;}
+// speech bubble: box at (x,y) with a tail pointing to (tx,ty)
+function bubble(s,x,y,sz=13,bg='#fff',fg='#111',tx=null,ty=null,nc=null){
+  const lines=wrap(s,sz,290);let w=0;lines.forEach(l=>{w=Math.max(w,ctx.measureText(l).width);});w+=22;const lh=sz+5,h=lines.length*lh+12;
+  x=clamp(x,w/2+6,W-w/2-6);
+  rr(x-w/2,y-h/2,w,h,12,bg);
+  if(tx!==null){const ax=clamp(tx,x-w/2+14,x+w/2-14);const dir=(ty??y+40)>y?1:-1;const by=y+dir*h/2;ctx.fillStyle=bg;ctx.beginPath();ctx.moveTo(ax-7,by);ctx.lineTo(ax+7,by);ctx.lineTo(tx,ty??(y+h/2+16));ctx.fill();}
+  lines.forEach((l,i)=>{const ly=y-h/2+6+lh*i+lh/2;const ci=nc?l.indexOf(':'):-1;
+    if(i===0&&ci>0)rich([[l.slice(0,ci+1),nc],[l.slice(ci+1),fg]],x,ly,sz);else txt(l,x,ly,sz,fg);});
+}
+function btn(s,x,y,w,h,col='#ffb400',fg='#111',sz=18){rr(x-w/2,y-h/2,w,h,h/2,col);txt(s,x,y+1,sz,fg,'center',900);}
+function inBtn(p,x,y,w,h){return Math.abs(p.x-x)<w/2&&Math.abs(p.y-y)<h/2;}
+
+// ---------- audio ----------
+// Three layers: synth SFX (WebAudio, no files), a procedural engine-drone ambience, and looped music tracks from audio/*.mp3.
+// Everything is created lazily on the first user gesture (autoplay policy) and fails silently if audio is unavailable.
+let AC=null,MASTER=null,SFXBUS=null,NOISE=null;
+function ac(){if(AC)return AC;AC=new (window.AudioContext||window.webkitAudioContext)();MASTER=AC.createGain();MASTER.gain.value=.9;MASTER.connect(AC.destination);SFXBUS=AC.createGain();SFXBUS.connect(MASTER);
+  const b=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;NOISE=b;return AC;}
+const vary=(v,p=.05)=>v*(1+rnd(-p,p)); // small random pitch drift so repeated sounds never land identical
+function tone(f,d,type='square',g=.06,o={}){try{const c=ac(),t0=c.currentTime,os=c.createOscillator(),v=c.createGain();os.type=type;os.frequency.setValueAtTime(vary(f),t0);
+  if(o.slide)os.frequency.exponentialRampToValueAtTime(Math.max(20,o.slide),t0+d);
+  v.gain.setValueAtTime(.0001,t0);v.gain.linearRampToValueAtTime(g,t0+(o.attack||.004));v.gain.exponentialRampToValueAtTime(.0001,t0+d);
+  let n=os;if(o.lp){const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.value=o.lp;os.connect(fl);n=fl;}n.connect(v);v.connect(SFXBUS);os.start(t0);os.stop(t0+d+.03);}catch(e){}}
+function noise(d,g=.1,o={}){try{const c=ac(),t0=c.currentTime,s=c.createBufferSource(),v=c.createGain();s.buffer=NOISE;s.loop=true;s.playbackRate.value=vary(1,.08);
+  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(o.lp||20000,t0);if(o.lpEnd)lp.frequency.exponentialRampToValueAtTime(o.lpEnd,t0+d);lp.Q.value=o.q||.7;
+  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=o.hp||20;
+  v.gain.setValueAtTime(.0001,t0);v.gain.linearRampToValueAtTime(g,t0+(o.attack||.005));v.gain.exponentialRampToValueAtTime(.0001,t0+d);
+  s.connect(hp);hp.connect(lp);lp.connect(v);v.connect(SFXBUS);s.start(t0);s.stop(t0+d+.03);}catch(e){}}
+const after=(ms,fn)=>setTimeout(fn,ms);
+const sfx={
+  // body bump into a passenger / suitcase: soft low thud with a little cloth rustle
+  hit:()=>{noise(.16,.16,{lp:700,lpEnd:150});tone(120,.14,'sine',.12,{slide:55});},
+  // fist landing: thud + bony crack
+  punch:()=>{noise(.1,.2,{lp:2200,lpEnd:250});tone(95,.12,'triangle',.16,{slide:40});after(10,()=>noise(.03,.1,{hp:3500}));},
+  // knife swish + stab impact
+  stab:()=>{noise(.14,.12,{hp:1200,lp:7000,lpEnd:900});after(60,()=>{tone(160,.12,'sine',.12,{slide:60});noise(.08,.1,{lp:500});});},
+  // failure / got hurt: a sour falling buzz with low knock
+  bad:()=>{tone(230,.3,'sawtooth',.07,{slide:70,lp:900});noise(.18,.07,{lp:400});},
+  // success: bright two-note pluck
+  ok:()=>{tone(660,.1,'triangle',.07);tone(1320,.08,'sine',.02);after(80,()=>{tone(990,.16,'triangle',.07);tone(1980,.1,'sine',.02);});},
+  // UI tap / counter: tiny soft click
+  tick:()=>{noise(.025,.07,{hp:2500});tone(1400,.03,'sine',.03);},
+  // lane change: air whoosh
+  whoosh:()=>noise(.22,.09,{hp:300,lp:900,lpEnd:3800,attack:.05}),
+  // door lock ring: metallic click
+  click:()=>{tone(2300,.05,'square',.045);tone(3450,.04,'sine',.02);noise(.04,.1,{hp:4000});},
+  // turbulence: long low rumble (plus a hit so the player feels it)
+  rumble:()=>{noise(1.1,.16,{lp:220,attack:.08});tone(45,.9,'sine',.1,{attack:.1});},
+  win:()=>{[523,659,784,1046].forEach((f,i)=>after(i*110,()=>{tone(f,.22,'triangle',.08);tone(f*2,.12,'sine',.02);}));after(440,()=>noise(.5,.05,{hp:5000,attack:.1}));},
+  lose:()=>{[400,300,200,120].forEach((f,i)=>after(i*160,()=>tone(f,.28,'sawtooth',.07,{lp:1200})));noise(.9,.1,{lp:180,attack:.2});}
+};
+
+// engine-drone ambience: two detuned saws + brown-ish noise, level follows the scene (0..1)
+const amb={on:false,level:-1,g:null,lp:null};
+function ambStart(){if(amb.on)return;try{const c=ac();amb.g=c.createGain();amb.g.gain.value=0;amb.lp=c.createBiquadFilter();amb.lp.type='lowpass';amb.lp.frequency.value=260;amb.lp.connect(amb.g);amb.g.connect(MASTER);
+  [52,55.5].forEach(f=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const v=c.createGain();v.gain.value=.5;o.connect(v);v.connect(amb.lp);o.start();});
+  const s=c.createBufferSource();s.buffer=NOISE;s.loop=true;const v=c.createGain();v.gain.value=.35;s.connect(v);v.connect(amb.lp);s.start();amb.on=true;}catch(e){}}
+function ambSet(l){if(!amb.on||Math.abs(l-amb.level)<.01)return;amb.level=l;const t0=AC.currentTime;amb.g.gain.setTargetAtTime(l*.22,t0,.6);amb.lp.frequency.setTargetAtTime(180+l*700,t0,.6);}
+const AMB_SCENE={title:0,facts:0,intro:.3,door:.35,cockpit:.35,tie:.3,tied:.3,run:.45,fly:.6,end:.15,lose:.2};
+function ambLevel(){let l=AMB_SCENE[scene]??.3;if(scene==='door'&&S.turb>0)l+=.3;if(scene==='fly')l+=.25*Math.min(1,Math.max(0,-(S.pitch||0)));return Math.min(1,l);}
+
+// music: looped mp3 tracks, crossfaded by volume; a missing file just means silence for that mood
+const MUSIC_SCENE={title:'calm',intro:'calm',facts:'calm',run:'tense',door:'tense',cockpit:'tense',tie:'tense',tied:'tense',fly:'tense',end:'win',lose:null};
+const MUSIC_VOL={calm:.32,tense:.38,win:.4};
+const music={tracks:{},cur:null,unlocked:false};
+['calm','tense','win'].forEach(n=>{const a=new Audio('audio/'+n+'.mp3');a.loop=true;a.preload='auto';a.volume=0;a.addEventListener('error',()=>{a.dataset.missing='1';});music.tracks[n]=a;});
+function musicTick(dt){if(!music.unlocked)return;const want=MUSIC_SCENE[scene]===undefined?music.cur:MUSIC_SCENE[scene];
+  if(want!==music.cur){music.cur=want;const a=want&&music.tracks[want];if(a&&!a.dataset.missing&&a.paused){a.currentTime=0;const p=a.play();if(p&&p.catch)p.catch(()=>{});}}
+  for(const n in music.tracks){const a=music.tracks[n],target=n===music.cur?MUSIC_VOL[n]:0,v=a.volume+clamp(target-a.volume,-dt*1.2,dt*1.2);a.volume=clamp(v,0,1);if(target===0&&a.volume<.005&&!a.paused)a.pause();}}
+function audioUnlock(){try{ac().resume();ambStart();}catch(e){}music.unlocked=true;}
+window.addEventListener('pointerdown',audioUnlock,{once:true});window.addEventListener('keydown',audioUnlock,{once:true});
+function audioTick(dt){musicTick(dt);if(amb.on)ambSet(ambLevel());}
+
+// ---------- input ----------
+const keys={};let pDown=false,pX=0,pY=0,pStartX=0,pStartY=0,tapQueue=[];
+function toL(e){const r=cv.getBoundingClientRect();const sc=r.width/W||scale||1;return {x:(e.clientX-r.left)/sc,y:(e.clientY-r.top)/sc};}
+cv.addEventListener('pointerdown',e=>{const p=toL(e);pDown=true;pX=pStartX=p.x;pY=pStartY=p.y;tapQueue.push(p);cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{const p=toL(e);pX=p.x;pY=p.y;});
+cv.addEventListener('pointerup',()=>{pDown=false;});
+cv.addEventListener('pointercancel',()=>{pDown=false;});
+window.addEventListener('keydown',e=>{keys[e.key]=true;if([' ','Enter'].includes(e.key)){tapQueue.push({x:W/2,y:H/2,key:true});}if(e.key==='ArrowLeft')tapQueue.push({x:60,y:H/2,key:true,side:-1});if(e.key==='ArrowRight')tapQueue.push({x:W-60,y:H/2,key:true,side:1});if(e.key==='ArrowDown')tapQueue.push({x:W/2,y:H-60,key:true,block:true});if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault();});
+window.addEventListener('keyup',e=>{keys[e.key]=false;});
+const keyL=()=>keys['ArrowLeft']||keys['a'],keyR=()=>keys['ArrowRight']||keys['d'],keyU=()=>keys['ArrowUp']||keys['w'],keyD=()=>keys['ArrowDown']||keys['s'];
+
+// ---------- game state ----------
+let scene='title',t=0,st=0,shake=0,flash=0,score=0,stageScore={},ALT=34000,ALT_UP=null,DROP=false,altAnim=null;
+const S={};
+let toast=null;function say(s,life=1.6,col='#fff'){toast={s,life,col,t:0};}
+let banner=null;function showBanner(title,lines,dur=2.6){banner={title,lines,t:0,dur};}
+let trans=null,pending=null,sceneT=0;
+function goNow(s){if(s!=='community'){shareEl.hidden=true;grpEl.hidden=true;}scene=s;st=0;sceneT=0;S.init=false;tapQueue.length=0;S.altEntry=ALT;}
+const wsh=()=>shake>0?rnd(-5,5):0;
+function go(s){if(pending===s||(trans&&trans.t<.5))return;pending=s;trans={t:0};}
+const easeIO=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,easeO=x=>1-Math.pow(1-x,3);
+function drawTrans(){if(!trans)return;const p=trans.t;let x,w;
+  if(p<.5){w=W*easeIO(p*2);x=W-w;}else{w=W*(1-easeIO((p-.5)*2));x=0;}
+  ctx.fillStyle='#ffb400';ctx.fillRect(x-4,0,w+8,H);ctx.fillStyle='#0f1a2b';ctx.fillRect(p<.5?x-14:x+w-4,0,14,H);}
+window.__go=goNow;window.__dbg=()=>({ox,oy,scale,rect:cv.getBoundingClientRect()});window.__S=S;window.__state=()=>({scene,score,stageScore,ALT});window.__skipBanner=()=>{banner=null;};
+
+const FAM={dad:'שמשון בוזגלו-שטרנליכט',mom:'פנינה-רוז',boy:'אוריאל-ג׳קי',girl:'מזל-טוב'};
+const FC={dad:'#6aa5ff',mom:'#c98bff',boy:'#ffa23a',girl:'#ff7cb8'};
+// centered rich text: parts = [[text,color],...] laid out right-to-left
+function rich(parts,x,y,sz,w=700){font(sz,w);const ws=parts.map(p=>ctx.measureText(p[0]).width);const tot=ws.reduce((a,b)=>a+b,0);let cx=x+tot/2;parts.forEach((p,i)=>{txt(p[0],cx,y,sz,p[1],'right',w);cx-=ws[i];});}
+let PLAYT=0;
+const LINES={
+  hit:['אמרתי לך לא לקנות מזוודה ביריד','מי הביא 3 מזוודות לטיסה של 3 שעות?','זה מהדיוטי פרי? נו באמת','טרולי! למה לא שמו אותו למטה?!','אח שלי, זה הדואר של כל המשפחה','23 קילו בדיוק. שקלתי במטבח','זה הטרולי של הדודה. היא תהרוג אותי','בפנים יש חומוס. היה חומוס','הטרולי הזה עלה יותר מהכרטיס','מי ארז מגהץ לדובאי?!','אוי, זה של הדיילת','סמסונייט! לפחות זה איכותי'],
+  pass:['שמע ישראל!!','מישהו פה רופא?','אני רופא שיניים!','מה קורה?!','אמא, אני לא רוצה למות','תשתמש בחגורה!','למה לא טסתי אל על','הביאו מים!','וואלה זה טרור','יש פה טייס?','אני מרוסיה, אני טייס!','תצלם תצלם','אני בשידור חי, תזוז!','הדיוטי פרי שלי!!','תגידו למיכל שאהבתי אותה','יש לי מיילים! בוא נדבר','מי מטיס? הדייל?!','אני עדיין לא אכלתי','הסנדוויץ׳ 40 שקל ועכשיו זה?','אמא שלי צדקה על הטיסה הזאת','אל על היו עושים את זה יותר יקר','אני רק הולך לשירותים!','איפה היציאה? יש יציאה?','תירגעו, זה רק טורבולנציה. נכון?','בעלי ישן. איך הוא ישן?!','מישהו ראה את הנעל שלי?'],
+  punch:['אחד בשביל הסנדוויץ׳!','זה על ה-40 שקל של הכיסא!','קומבו ישראלי!','תחזיק אותו!','עוד אחת!'],
+  stew:[['אדוני! לשבת! המגש למצב ישר!','אדוני, המטוס צולל. לא אתה!'],['אדוני, הכיסא למצב זקוף!','אני קוראת לקברניט!','...הקברניט בדיוק נדקר.'],['אדוני, יש תור לשירותים!','טוב, תעבור. אבל בלי תיק יד.']],
+  trolley:['רגע, אני רק מוציא את הפלאפל מהטרולי','אח שלי, יש תור. גם אני רוצה לקוקפיט','טוב טוב, עובר. אבל זה טרולי של 400 שקל','יאללה, הוא זז!'],
+  door:['הדלת נעולה! מי יודע את הקוד?','לא, זה לא 1234, בדקנו','הדיילת: תסובב עד הקליק!']
+};
+
+// ---------- drawing bits ----------
+function person(x,y,o={}){
+  const sc=o.sc||1,shirt=o.shirt||'#2f6fdd',skin=o.skin||'#f2c9a0';
+  ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);
+  rr(-12,-8,24,26,8,shirt);
+  circ(0,-18,10,skin);
+  if(o.hair!==false)rr(-10,-28,20,7,4,o.hair||'#2a1a0a');
+  if(o.glasses){ctx.strokeStyle='#222';ctx.lineWidth=1.5;ctx.strokeRect(-9,-21,7,5);ctx.strokeRect(2,-21,7,5);}
+  if(o.cap){rr(-12,-30,24,8,3,'#0d2a5a');}
+  if(o.blood){circ(6,-12,4,'#c8102e');circ(-8,4,3,'#c8102e');}
+  ctx.restore();
+}
+function walker(x,y,o,tm){ctx.save();ctx.translate(x,y);ctx.scale(o.sc||1,o.sc||1);const lg=o.walk?Math.sin(tm*12+x)*5:0;rr(-9,8,7,14+lg,3,o.pants||'#1b2a44');rr(2,8,7,14-lg,3,o.pants||'#1b2a44');person(0,0,o);
+  if(o.longhair){rr(-13,-26,26,8,4,o.hairCol||'#3a2a1a');rr(-13,-24,6,22,3,o.hairCol||'#3a2a1a');rr(7,-24,6,22,3,o.hairCol||'#3a2a1a');}
+  if(o.bow){circ(8,-28,4,'#ff5fa2');}ctx.restore();}
+function suitcase(x,y,w,h,col){rr(x,y,w,h,5,col);rr(x+w/2-8,y-5,16,7,3,'#222');ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=2;ctx.strokeRect(x+6,y+4,w-12,h-8);}
+function altChip(x,y,sc=1){const a=Math.max(0,Math.round(ALT/100)*100);const ground=ALT<=0&&!DROP;const low=ALT<10000&&!ground;
+  const bg=ALT_UP===null?(low?'rgba(255,59,59,.45)':'rgba(255,255,255,.1)'):(ALT_UP?'rgba(61,220,132,.3)':'rgba(255,59,59,.45)');const fg=ALT_UP===null?(low?'#ff8a8a':'#ffe08a'):(ALT_UP?'#3ddc84':'#ff6a6a');
+  ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);rr(-58,-12,116,24,12,bg);txt((ground?'':ALT_UP?'▲ ':ALT_UP===null&&!DROP?'':'▼ ')+a.toLocaleString('en')+' רגל',0,0,13,fg,'center',900);ctx.restore();}
+function hud(){rr(0,0,W,34,0,'rgba(0,0,0,.35)');txt('ניקוד '+score,10,17,14,'#ffb400','left',900);if(!altAnim)altChip(W-63,17);}
+function hzn(cx,cy,r,pitch,bank,mask=true){
+  ctx.save();if(mask){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();}
+  ctx.translate(cx,cy);ctx.rotate(-bank);const off=pitch*r*0.9;
+  ctx.fillStyle='#4aa8ff';ctx.fillRect(-r*2,-r*2+off,r*4,r*2);
+  ctx.fillStyle='#8b5a2b';ctx.fillRect(-r*2,off,r*4,r*2);
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;for(let i=-3;i<=3;i++){if(!i)continue;const y=off+i*r*0.22;ctx.beginPath();ctx.moveTo(-18,y);ctx.lineTo(18,y);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(-r*2,off);ctx.lineTo(r*2,off);ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='#ffb400';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx-r*0.6,cy);ctx.lineTo(cx-r*0.2,cy);ctx.lineTo(cx,cy+8);ctx.lineTo(cx+r*0.2,cy);ctx.lineTo(cx+r*0.6,cy);ctx.stroke();
+  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+}
+// a proper airliner, side view, nose to the right
+function plane(x,y,sc=1){ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);
+  ctx.fillStyle='#ff6a00';ctx.beginPath();ctx.moveTo(-120,-6);ctx.lineTo(-150,-52);ctx.lineTo(-118,-52);ctx.lineTo(-86,-6);ctx.fill();
+  ctx.fillStyle='#d7dfe8';ctx.beginPath();ctx.moveTo(-124,0);ctx.lineTo(-150,-14);ctx.lineTo(-100,-10);ctx.fill();
+  ctx.fillStyle='#eef2f7';ctx.beginPath();ctx.moveTo(-130,-16);ctx.lineTo(110,-16);ctx.quadraticCurveTo(150,-14,160,2);ctx.quadraticCurveTo(150,18,110,18);ctx.lineTo(-120,18);ctx.quadraticCurveTo(-140,10,-130,-16);ctx.fill();
+  ctx.fillStyle='#c9d4e2';ctx.fillRect(-120,8,260,8);
+  ctx.fillStyle='#1b2a44';ctx.beginPath();ctx.moveTo(118,-10);ctx.lineTo(146,-6);ctx.lineTo(140,2);ctx.lineTo(116,0);ctx.fill();
+  for(let i=0;i<13;i++)rr(-104+i*16,-7,8,9,3,'#4aa8ff');
+  rr(-116,-10,10,22,3,'#9aa8ba');
+  ctx.fillStyle='#d7dfe8';ctx.beginPath();ctx.moveTo(-20,4);ctx.lineTo(-70,42);ctx.lineTo(-48,42);ctx.lineTo(20,4);ctx.fill();
+  rr(-40,22,34,16,8,'#2b3648');rr(-40,25,8,10,4,'#ffb400');
+  rr(-60,-3,70,10,5,'#ff6a00');txt('flydubai',-25,2,9,'#fff','center',900);
+  ctx.restore();}
+
+// ---------- scenes ----------
+const scenes={};
+
+scenes.title={
+  draw(dt){
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0f1a2b');g.addColorStop(1,'#1c2c48');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,.08)';for(let i=0;i<7;i++){const cx=((i*83+t*18)%(W+120))-60,cy=90+(i%3)*70;ctx.beginPath();ctx.ellipse(cx,cy,46,14,0,0,Math.PI*2);ctx.fill();}
+    plane(W/2,190+Math.sin(t*2)*5,1);
+    txt('חופשה בטוחה',W/2,300,56,'#ffb400','center',900);
+    rich([['אתה ','#fff'],[FAM.dad,FC.dad],[', אבא.','#fff']],W/2,372,16,900);
+    rich([['חוזרים מחופשה עם אשתך ','#cfd8e6'],[FAM.mom,FC.mom]],W/2,398,14,400);
+    rich([['ועם הילדים ','#cfd8e6'],[FAM.boy+' (8)',FC.boy],[' ו','#cfd8e6'],[FAM.girl+' (6)',FC.girl],['.','#cfd8e6']],W/2,420,14,400);
+    txt('אין לך מושג מה עומד לקרות.',W/2,462,18,'#ffe08a','center',900);
+    txt('מבוסס על אירועים אמיתיים',W/2,520,13,'#8093ad','center',400);
+    if(Math.sin(t*4)>-.2)txt('הקש כדי להתחיל',W/2,585,15,'#fff','center',700);
+    if(tapQueue.length){tapQueue.length=0;score=0;stageScore={};ALT=0;ALT_UP=null;DROP=false;PLAYT=0;sfx.ok();go('intro');}
+  }
+};
+
+// intro: apron -> button -> family boards (dad last) -> seated dialogue, one bubble at a time -> button
+const KID_Q=[
+  {q:'אבא, למה לטייס יש שפם כמו של סבא?',a:['כי כל הטייסים חברים של סבא','ששש, הוא שומע הכל. גם מחשבות.']},
+  {q:'אבא, באל על גם הטייס צועק ככה?',a:['באל על רק הנוסעים צועקים','באל על צועקים רק על המחיר']},
+  {q:'אבא, למה לא טסנו אל על?',a:['כי פה הסנדוויץ׳ רק 40 שקל','כי אבא אוהב הרפתקאות']}
+];
+scenes.intro={
+  draw(dt){
+    if(!S.init){S.init=true;S.step='walk';S.t=0;S.q=KID_Q.find(q=>q.q.includes('לא טסנו'))||KID_Q[0];S.ans=null;S.btnT=0;}
+    st+=dt;S.t+=dt;
+    const p=tapQueue.length?tapQueue.shift():null;tapQueue.length=0;
+    if(S.step==='walk'||S.step==='board'){
+      const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#ff9a3c');g.addColorStop(.55,'#ffd08a');g.addColorStop(.56,'#8a8f99');g.addColorStop(1,'#6e737c');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+      circ(80,120,34,'#ffe9a8');
+      ctx.fillStyle='rgba(120,60,20,.35)';[[20,60,300],[70,30,270],[110,22,240],[150,50,220],[210,18,200],[240,40,250],[290,26,280],[330,50,260]].forEach(([x,w,top])=>ctx.fillRect(x,top,w,360-top));
+      rr(0,350,W,10,0,'#4f545c');
+      plane(330,250,1.6);
+      ctx.fillStyle='#8a939e';ctx.beginPath();ctx.moveTo(110,352);ctx.lineTo(150,262);ctx.lineTo(182,262);ctx.lineTo(160,352);ctx.fill();
+      rr(146,228,22,40,4,'#1b2a44');
+      const q=[[120,338,{shirt:'#c8102e',hair:'#222'}],[135,312,{shirt:'#ffffff',hair:'#c9a15a',longhair:true}],[150,286,{shirt:'#3ddc84',hair:'#111'}]];
+      const DOOR={x:158,y:262};
+      q.forEach(([x,y,o],i)=>{let px=x,py=y,walk=false;if(S.step==='board'){const k=clamp((S.t-i*.45)/1.1,0,1);if(k>=1)return;px=lerp(x,DOOR.x,k);py=lerp(y,DOOR.y,k);walk=true;}walker(px,py,{...o,sc:1.05,walk},st);});
+      const order=[{dx:-88,dy:8,o:{shirt:'#ff5fa2',hair:'#3a2a1a',bow:true,sc:.75,pants:'#ff5fa2'}},{dx:-66,dy:8,o:{shirt:'#ff8c00',hair:'#222',sc:.8}},{dx:-38,dy:0,o:{shirt:'#a64dff',longhair:true,hairCol:'#3a2a1a',hair:false,sc:1.2,pants:'#a64dff'}},{dx:0,dy:0,o:{shirt:'#2f6fdd',glasses:true,hair:false,sc:1.25}}];
+      const base=Math.min(90,-40+st*42);const FAM0=1.5;
+      const famPos=[];
+      order.forEach((m,i)=>{let x=base+m.dx,y=338+m.dy,walk=base<90;
+        if(S.step==='board'){const k=clamp((S.t-FAM0-i*.9)/1.6,0,1);if(k>=1){famPos.push(null);return;}const sx=base+m.dx,sy=338+m.dy;x=lerp(sx,DOOR.x,k);y=lerp(sy,DOOR.y,k)+Math.sin(k*Math.PI)*-8;walk=true;if(i===3)suitcase(x-22,y-8,20,26,'#222');}
+        else if(i===3)suitcase(x-22,y-8,20,26,'#222');
+        famPos.push([x,y]);walker(x,y,{...m.o,walk},st);});
+      if(S.step==='walk'){const line=[[1,'אבא, עוד יום אחד בדובאי?',0.8],[2,'לקחת את הדרכונים?',3.4],[3,'כן כן, הכל אצלי.',6.0]];
+        for(const [who,s2,tt] of line){if(st>tt&&st<tt+2.4&&famPos[who]){const [fx,fy]=famPos[who];const hy=fy-(who<2?26:34);bubble(s2,fx,hy-34,12,'#fff','#111',fx,hy-4);}}}
+      else if(S.t<2.4&&famPos[3]){const [fx,fy]=famPos[3];bubble('תעלו, אני אחרון עם המזוודה. יאלה הביתה!',fx,fy-72,12,'#2f6fdd','#fff',fx,fy-40);}
+      rr(16,392,W-32,96,14,'rgba(15,26,43,.82)');
+      txt('דובאי, 06:40. סוף החופשה.',W/2,418,17,'#ffb400','center',900);
+      txt('המשפחה בתור. הילדים כבר רבים על החלון.',W/2,446,13,'#e6ecf3','center',400);
+      if(S.step==='walk'){
+        if(st>8.6){btn('תעלו למטוס ויאלה הביתה',W/2,560,290,54,'#0f1a2b','#ffb400',17);
+          if(p&&(p.key||inBtn(p,W/2,560,310,70))){S.step='board';S.t=0;sfx.ok();}}}
+      else{if(S.t>6.2){S.step='calm';S.t=0;flash=.3;}}
+    }else{
+      const chaos=['scream1','scream2','girl','boy','button'].includes(S.step);const heavy=S.step!=='scream1';
+      ctx.save();if(chaos&&heavy)ctx.translate(rnd(-6,6)+wsh(),rnd(-6,6)+wsh());
+      ctx.fillStyle='#e9eef3';ctx.fillRect(-10,-10,W+20,H+20);
+      rr(-10,60,W+20,90,0,'#cfd8e2');for(let i=0;i<4;i++){rr(i*95-5,70,88,70,8,'#dfe6ee');}
+      for(let i=0;i<4;i++){rr(i*95+20,180,50,66,22,'#8fd3ff');ctx.strokeStyle='#b8c4d0';ctx.lineWidth=4;ctx.strokeRect(i*95+20,180,50,66);}
+      for(let i=0;i<3;i++){const x=40+i*110;rr(x+6,250,68,70,10,'#223055');}
+      person(75,262,{sc:.9,shirt:'#c8102e',hair:'#222'});person(190,262,{sc:.9,shirt:'#ffffff',hair:'#c9a15a'});person(300,262,{sc:.9,shirt:'#ffb400',hair:false});
+      for(let i=0;i<3;i++){const x=40+i*110;rr(x,330,80,140,12,'#2c3e68');rr(x-6,400,92,60,10,'#243357');rr(x+10,460,60,30,6,'#1a2540');}
+      person(70,400,{sc:1.1,shirt:'#ff8c00',hair:'#222'});person(100,402,{sc:1.0,shirt:'#ff5fa2',hair:'#3a2a1a'});circ(108,372,4,'#ff5fa2');
+      person(190,395,{sc:1.6,shirt:'#2f6fdd',glasses:true,hair:false});
+      walker(300,395,{sc:1.5,shirt:'#a64dff',longhair:true,hair:false},0);
+      rr(160,455,60,8,3,'#8a6d3b');rr(172,447,36,9,4,'#f1d38b');
+      ctx.restore();
+      if(chaos){ctx.fillStyle=`rgba(255,40,40,${(heavy?0.22:0.12)+Math.sin(st*20)*0.06})`;ctx.fillRect(0,0,W,H);}
+      const BY=300;
+      const seq={calm:1.8,answer:2.6,pause:1.2,scream1:2.2,scream2:2.2,girl:2.0,boy:2.0};
+      if(S.step==='calm')bubble('סוף סוף יושבים. עוד שעתיים בבית.',190,BY,13,'#2f6fdd','#fff',190,360);
+      if(S.step==='question'){bubble(FAM.boy+': '+S.q.q,120,BY,13,'#fff','#111',75,365,FC.boy);
+        rr(16,500,W-32,124,14,'rgba(15,26,43,.85)');txt('מה אתה עונה?',W/2,520,14,'#ffb400','center',900);
+        btn(S.q.a[0],W/2,552,300,40,'#ffb400','#111',15);btn(S.q.a[1],W/2,598,300,40,'#2f6fdd','#fff',15);
+        if(p){let c=-1;if(p.key)c=p.side===1?1:0;else if(inBtn(p,W/2,552,320,44))c=0;else if(inBtn(p,W/2,598,320,44))c=1;
+          if(c>=0){S.ans=S.q.a[c];S.step='answer';S.t=0;sfx.tick();}}}
+      if(S.step==='answer')bubble('אתה: '+S.ans,190,BY,13,'#2f6fdd','#fff',190,360);
+      if(S.step==='scream1')bubble('יש צעקות מתא הטייס!!',W-100,BY,14,'#ff3b3b','#fff',W-8,330);
+      if(S.step==='scream2')bubble('המטוס בדרך להתרסקות, הצילו!',100,BY,14,'#ff3b3b','#fff',8,330);
+      if(S.step==='girl')bubble(FAM.girl+': אבא... אנחנו נמות?',110,BY,13,'#fff','#c8102e',100,368,FC.girl);
+      if(S.step==='boy')bubble(FAM.boy+': אבא תעשה משהו!!',110,BY,13,'#fff','#c8102e',70,365,FC.boy);
+      if(seq[S.step]&&S.t>seq[S.step]){const next={calm:'question',answer:'pause',pause:'scream1',scream1:'scream2',scream2:'girl',girl:'boy',boy:'button'}[S.step];S.step=next;S.t=0;
+        if(next==='scream1'){sfx.hit();DROP=true;}if(next==='scream2'){sfx.bad();flash=.5;}}
+      if(S.step==='button'){
+        txt('הילדים מסתכלים עליך.',W/2,520,17,'#fff','center',900);
+        S.btnT+=dt;const bs=1+Math.sin(S.btnT*6)*.04;
+        ctx.save();ctx.translate(W/2,585);ctx.scale(bs,bs);btn('לא במשמרת שלי!',0,0,250,60,'#ffb400','#111');ctx.restore();
+        if(p){if(p.key||inBtn(p,W/2,585,280,90)){sfx.ok();flash=.3;altAnim={t:0};go('run');}else say('תלחץ על הכפתור!',1,'#ffe08a');}
+      }
+      if(!chaos&&S.step!=='question'){rr(16,540,W-32,70,14,'rgba(15,26,43,.82)');txt('32C. שקט. הבן של השכן משחק ברוקס.',W/2,565,14,'#e6ecf3','center',400);txt('08:35, מעל ירדן',W/2,590,13,'#8fa3c0','center',400);}
+    }
+    hud();
+  }
+};
+
+// stage 1: aisle run
+scenes.run={
+  draw(dt){
+    const ROWS=32,RH=110;
+    if(!S.init){S.init=true;S.lane=1;S.x=W/2;S.dist=0;S.total=ROWS*RH;S.obs=[];S.spawn=1.2;S.stun=0;S.hits=0;S.time=0;S.lastRow=0;S.runners=[];S.rspawn=2.2;S.lastSpawn=-9;S.stews=[];S.stewAt=[6,14,22];
+      showBanner('שלב 1: רוץ לקוקפיט',['32 שורות עד הדלת.','החלק ימינה / שמאלה כדי לעקוף','מזוודות שנופלות ואנשים בפאניקה.']);}
+    S.time+=dt;
+    const lanes=[W/2-64,W/2,W/2+64];
+    tapQueue.forEach(p=>{const side=p.side||(p.x<W/2?-1:1);S.lane=clamp(S.lane+side,0,2);sfx.whoosh();});tapQueue.length=0;
+    if(pDown){const dx=pX-pStartX;if(Math.abs(dx)>40){S.lane=clamp(S.lane+(dx>0?1:-1),0,2);pStartX=pX;sfx.whoosh();}}
+    S.x=lerp(S.x,lanes[S.lane],Math.min(1,dt*14));
+    const speed=S.stun>0?50:178;S.dist+=speed*dt;
+    S.stun=Math.max(0,S.stun-dt);
+    const py=H-150;
+    // obstacles: spaced out, wide ones rare and never back to back
+    S.spawn-=dt;
+    if(S.spawn<=0&&S.dist<S.total-420){const sinceLast=S.time-S.lastSpawn;const wide=Math.random()<.35&&sinceLast>1.6;S.spawn=rnd(.72,1.05);S.lastSpawn=S.time;const side=Math.random()<.5?-1:1;
+      S.obs.push({side,wide,y:-60,t:0,col:pick(['#c8102e','#222','#0d6efd','#8a2be2','#ff8c00','#00a86b'])});}
+    S.rspawn-=dt;if(S.rspawn<=0&&S.dist<S.total-500){S.rspawn=rnd(1.7,2.6);const lane=Math.floor(rnd(0,3));S.runners.push({lane,y:-70,x:lanes[lane],shirt:pick(['#ff8c00','#c8102e','#ffffff','#8a2be2','#3ddc84','#ffb400']),hair:pick(['#222','#3a2a1a','#c9a15a',false]),s:pick(LINES.pass),bt:rnd(0,.5),v:rnd(90,140)});}
+    for(const r of S.runners){r.y+=(speed+r.v)*dt;r.bt-=dt;if(r.bt<=0){r.bt=rnd(1.4,2.4);r.s=pick(LINES.pass);}
+      if(!r.hit&&Math.abs(r.y-py)<26&&Math.abs(r.x-S.x)<30){r.hit=true;S.stun=.4;shake=.2;sfx.hit();say(pick(['סליחה סליחה!','לאן אתה רץ?!','אאוץ׳, אח שלי']),1.2,'#ffe08a');}}
+    S.runners=S.runners.filter(r=>r.y<H+80);
+    // the stewardess: appears three times along the aisle, doing the safety speech while the plane dives
+    if(S.stewAt.length&&S.dist>S.stewAt[0]*RH){const i=3-S.stewAt.length;S.stewAt.shift();S.stews.push({x:i%2?W/2+88:W/2-88,y:-70,seq:LINES.stew[i],k:0,bt:1.5});}
+    for(const w of S.stews){w.y+=speed*dt;if(w.y>-20){w.bt-=dt;if(w.bt<=0&&w.k<w.seq.length-1){w.k++;w.bt=1.5;}}}
+    S.stews=S.stews.filter(w=>w.y<H+80);
+    ctx.save();ctx.translate(rnd(-2,2)+Math.sin(S.time*7)*2+wsh(),rnd(-1,1)+wsh());
+    ctx.fillStyle='#d9dee5';ctx.fillRect(-10,-10,W+20,H+20);
+    ctx.fillStyle='#b9c2cc';ctx.fillRect(W/2-100,-10,200,H+20);
+    for(let k=0;k<ROWS;k++){const y=py+S.dist-k*RH;if(y<-80||y>H+40)continue;const rowNo=ROWS-k;
+      for(const sx of [14,58,W-54,W-98]){rr(sx,y-26,40,52,8,'#2c3e68');rr(sx+4,y+14,32,10,4,'#1a2540');}
+      const r=Math.abs(Math.sin(k*13.7));
+      if(r>.35)person(34,y+4,{sc:.7,shirt:['#ff8c00','#3ddc84','#c8102e','#ffffff','#ffb400'][k%5],hair:'#222'});
+      if(r>.15)person(W-34,y+4,{sc:.7,shirt:['#ffffff','#c8102e','#2f6fdd','#3ddc84','#8a2be2'][(k*3)%5]});
+      ctx.fillStyle='rgba(255,255,255,.35)';ctx.fillRect(W/2-100,y+38,200,3);
+      if(rowNo%5===0||rowNo===1){rr(W/2-34,y-12,68,24,12,'rgba(15,26,43,.85)');txt('שורה '+rowNo,W/2,y+1,13,'#ffb400','center',900);}
+    }
+    const dy=py+S.dist-ROWS*RH;
+    if(dy>-260){rr(-10,dy-260,W+20,260,0,'#c4ccd6');rr(0,dy-40,W,40,0,'#aab5c2');
+      rr(W/2-80,dy-200,160,150,12,'#5b6b7d');rr(W/2-66,dy-186,132,122,10,'#6f7f92');rr(W/2-40,dy-170,80,36,8,'#aeb9c6');txt('COCKPIT',W/2,dy-152,13,'#1b2a44','center',900);
+      circ(W/2+40,dy-110,6,'#ffb400');
+      person(W/2-120,dy-120,{sc:1.1,shirt:'#ff6a00',hair:'#3a2a1a'});bubble('מהר! פה!',W/2-120,dy-170,12,'#fff','#111',W/2-120,dy-150);
+    }
+    for(const o of S.obs){o.t+=dt;o.y+=speed*dt;
+      const w=o.wide?128:64,x=o.side<0?W/2-100:W/2+100-w;
+      if(o.t<.45){ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x+w/2,o.y+22,w/2,12,0,0,Math.PI*2);ctx.fill();const fy=o.y-160+o.t/.45*160;suitcase(x,fy,w,40,o.col);}
+      else{suitcase(x,o.y,w,40,o.col);
+        if(!o.hit&&o.y<py+18&&o.y+40>py-30&&S.x>x-14&&S.x<x+w+14){o.hit=true;S.stun=.75;S.hits++;shake=.3;sfx.hit();say(pick(LINES.hit),1.4,'#ffe08a');}
+      }
+    }
+    S.obs=S.obs.filter(o=>o.y<H+60);
+    for(const w of S.stews){ctx.save();ctx.translate(w.x,w.y);ctx.scale(1.2,1.2);person(0,0,{shirt:'#1b2a44',hair:'#3a2a1a',longhair:true});rr(-5,-9,10,14,3,'#c8102e');rr(-14,-32,28,5,2,'#1b2a44');ctx.restore();}
+    for(const r of S.runners){ctx.save();ctx.translate(r.x,r.y);ctx.scale(1.2,1.2);const lg=Math.sin(S.time*20+r.x)*6;rr(-9,8,7,14+lg,3,'#333');rr(2,8,7,14-lg,3,'#333');person(0,0,{shirt:r.shirt,hair:r.hair});ctx.restore();
+    }
+    ctx.save();if(S.stun>0)ctx.globalAlpha=.6+Math.sin(S.time*40)*.3;
+    ctx.translate(S.x,py);ctx.scale(1.3,1.3);
+    const lg=Math.sin(S.time*22)*6;rr(-9,8,7,14+lg,3,'#1b2a44');rr(2,8,7,14-lg,3,'#1b2a44');
+    person(0,0,{shirt:'#2f6fdd',glasses:true,hair:false});
+    ctx.restore();
+    ctx.restore();
+    for(const r of S.runners){if(r.y>60&&r.y<H-60)bubble(r.s,r.x,r.y-56,12,'#fff','#111',r.x,r.y-30);}
+    for(const w of S.stews){if(w.y>60&&w.y<H-60)bubble('הדיילת: '+w.seq[w.k],w.x,w.y-60,12,'#fff','#111',w.x,w.y-32,'#c8102e');}
+    const curRow=Math.max(1,ROWS-Math.floor(S.dist/RH));
+    if(curRow!==S.lastRow){S.lastRow=curRow;if(curRow%5===0)sfx.tick();}
+    rr(20,H-40,W-40,12,6,'rgba(0,0,0,.35)');rr(20,H-40,(W-40)*clamp(S.dist/S.total,0,1),12,6,'#ffb400');
+    txt('שורה '+curRow,20,H-52,12,'#243357','left',900);txt('קוקפיט',W-20,H-52,11,'#243357','right',400);
+    hud();
+    if(S.dist>=S.total-70){const sc=Math.max(300,1800-S.hits*90-Math.floor(S.time*8));stageScore.run=sc;score+=sc;sfx.ok();say('הגעת לדלת! '+(S.hits?S.hits+' מזוודות בראש':'בלי שריטה!')+' +'+sc,2);go('door');}
+  }
+};
+
+// stage 2: lock-timing puzzle with turbulence
+scenes.door={
+  draw(dt){
+    if(!S.init){S.init=true;S.ring=0;S.N=5;S.ang=0;S.dir=1;S.speed=2.6;S.zones=[0,1,2,3,4].map(()=>rnd(0,Math.PI*2));S.fails=0;S.time=0;S.fx=0;S.msg=LINES.door[0];S.turb=0;S.turbT=rnd(2,3.5);S.jit=0;S.block=3;S.bx=0;S.bline=0;S.bfx=0;
+      showBanner('שלב 2: הדלת נעולה',['קודם: מישהו עם טרולי חוסם את הדלת.','הקש עליו 3 פעמים כדי לדחוף אותו.','ואז: המחוג מסתובב. הקש כשהוא בירוק.']);}
+    S.time+=dt;S.fx=Math.max(0,S.fx-dt);
+    S.turbT-=dt;if(S.turbT<=0&&S.turb<=0){S.turb=rnd(.9,1.5);S.turbT=rnd(2.2,3.8);sfx.rumble();say(pick(['טורבולנציה!!','המטוס צולל, תחזיק!','אוי, הבטן שלי']),1,'#ffb4b4');}
+    if(S.turb>0){S.turb-=dt;S.jit=rnd(-.9,.9);if(Math.random()<dt*6)S.ang+=rnd(-.5,.5);}else S.jit=0;
+    const tsh=S.turb>0?7:1.5;
+    ctx.save();ctx.translate(rnd(-tsh,tsh)+wsh(),rnd(-tsh,tsh)+wsh());
+    ctx.fillStyle='#5b6b7d';ctx.fillRect(-10,-10,W+20,H+20);
+    rr(40,60,280,540,18,'#8593a5');rr(52,72,256,516,14,'#6f7f92');
+    rr(140,100,80,60,8,'#aeb9c6');txt('COCKPIT',180,130,13,'#1b2a44','center',900);
+    const cx=W/2,cy=390,R=100,SP=18;
+    circ(cx,cy,R+14,'#2c3e68');circ(cx,cy,R+8,'#0f1a2b');
+    for(let i=0;i<S.N;i++){const r=R-i*SP;const done=i<S.ring;const zone=S.zones[i];
+      ctx.lineWidth=14;ctx.strokeStyle=done?'#3ddc84':'#3a4a66';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+      if(!done){ctx.strokeStyle=i===S.ring?'#3ddc84':'#27593f';ctx.beginPath();ctx.arc(cx,cy,r,zone-.3,zone+.3);ctx.stroke();}
+    }
+    const r=R-S.ring*SP;S.ang+=S.speed*S.dir*dt*(S.turb>0?1.6:1);
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(S.ang+S.jit*.15);rr(r-11,-5,22,10,4,'#ffb400');ctx.restore();
+    circ(cx,cy,16,'#ffb400');
+    if(S.fx>0){ctx.fillStyle=`rgba(255,59,59,${S.fx})`;ctx.fillRect(0,0,W,H);}
+    // phase 0: the trolley guy. He stands over the lock; taps push him, 3 pushes and he slides off to the right.
+    S.bfx=Math.max(0,S.bfx-dt);
+    if(S.block>0||S.bx<W){
+      if(S.block<=0)S.bx+=260*dt;
+      const bx=W/2+S.bx,by=cy-20;
+      ctx.save();ctx.translate(bx,by);if(S.bfx>0)ctx.translate(rnd(-3,3),0);
+      suitcase(-62,-10,44,54,'#8a2be2');rr(-46,-40,12,32,4,'#444');
+      ctx.scale(1.7,1.7);person(0,0,{shirt:'#ff8c00',hair:'#222',glasses:true});ctx.restore();
+      if(S.block>0){bubble(LINES.trolley[S.bline],bx,by-92,12,'#fff','#111',bx,by-62);
+        if(tapQueue.length){tapQueue.length=0;S.block--;S.bfx=.25;shake=.15;sfx.hit();S.bline=Math.min(S.bline+1,LINES.trolley.length-1);if(S.block<=0){S.msg=LINES.door[0];say(LINES.trolley[3],1.2);}}
+        ctx.restore();
+        txt('הדלת נעולה',W/2,190,26,'#fff','center',900);txt('...וגם חסומה.',W/2,222,13,'#e6ecf3','center',400);
+        rr(16,520,W-32,60,14,'rgba(15,26,43,.82)');txt('הקש עליו כדי לדחוף ('+S.block+')',W/2,541,17,'#fff','center',900);txt('הדיילת צועקת מאחוריך. הילדים בוכים.',W/2,565,12,'#cfd8e6','center',400);
+        hud();return;}
+    }
+    if(tapQueue.length){tapQueue.length=0;
+      const z=S.zones[S.ring];let d=Math.atan2(Math.sin(S.ang-z),Math.cos(S.ang-z));
+      if(Math.abs(d)<.32){S.ring++;S.dir*=-1;S.speed+=.55;sfx.click();say(['קליק!','עוד אחד!','שלוש!','כמעט!','נפתח!!'][S.ring-1],1);if(S.ring<3)S.msg=LINES.door[S.ring];}
+      else{S.fails++;S.fx=.4;shake=.2;sfx.bad();if(S.fails%3===0&&S.ring>0){S.ring--;say('נתקע! טבעת אחורה',1.1,'#ffb4b4');}else say(pick(['לא! זה לא הקוד!','הדיילת: יותר מדויק!','תנשום, ואז תלחץ']),1.1,'#ffb4b4');}
+    }
+    ctx.restore();
+    txt('הדלת נעולה',W/2,190,26,'#fff','center',900);txt(S.msg,W/2,222,13,'#e6ecf3','center',400);txt(String(S.ring)+'/'+S.N,cx,cy+1,12,'#111','center',900);if(S.turb>0){txt('טורבולנציה!',cx,cy+R+34,16,'#ff8a8a','center',900);}
+    rr(16,520,W-32,60,14,'rgba(15,26,43,.82)');txt('הקש כשהמחוג בירוק',W/2,541,17,'#fff','center',900);txt('הדיילת צועקת מאחוריך. הילדים בוכים.',W/2,565,12,'#cfd8e6','center',400);
+    hud();
+    if(S.ring>=S.N){const sc=Math.max(200,1400-S.fails*60-Math.floor(S.time*10));stageScore.door=sc;score+=sc;say('הדלת נפתחה! +'+sc,1.8);go('cockpit');}
+  }
+};
+
+// stage 3: first-person cockpit. Simple loop: tap hands to punch; every 4 hits he winds up (red), tap the shield.
+function hand(x,y,label,col,active,sc=1){ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);
+  rr(-40,-34,80,80,30,col);rr(-36,-30,72,36,16,'#f2c9a0');ctx.strokeStyle='rgba(0,0,0,.2)';ctx.lineWidth=2;for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(-24+k*16,-30);ctx.lineTo(-24+k*16,-8);ctx.stroke();}
+  rr(-42,36,84,30,10,'#2f6fdd');
+  if(active){ctx.strokeStyle='#ffb400';ctx.lineWidth=4;ctx.beginPath();ctx.roundRect(-46,-40,92,110,34);ctx.stroke();}
+  txt(label,0,84,13,'#fff','center',900);ctx.restore();}
+const CAPT=['אם זה בגלל הקפה, סליחה','תגיד לאשתי שנחתתי בסדר','נתתי לו את החלון, ועדיין...','תזכור: המגן באמצע','למה כולם רצים? זה רק שלב 3'];
+scenes.cockpit={
+  draw(dt){
+    if(!S.init){S.init=true;S.hp=16;S.time=0;S.punch=[0,0];S.hitFx=0;S.lines=[];S.hitsSince=0;S.mode='opening';S.mT=0;S.block=0;S.hurt=0;S.blocks=0;S.taken=0;S.stabs=0;S.stabT=.7;S.enemyX=-40;S.cap=pick(CAPT);S.capT=0;
+      showBanner('שלב 3: הקוקפיט',['הקש על הידיים = מכות.','כשהוא מרים סכין והמסך מאדים:','הקש על המגן. זה הכל.']);}
+    S.time+=dt;S.hitFx=Math.max(0,S.hitFx-dt);S.block=Math.max(0,S.block-dt);S.hurt=Math.max(0,S.hurt-dt);S.capT+=dt;if(S.capT>4){S.capT=0;S.cap=pick(CAPT);}
+    if(S.mode==='opening'){S.stabT-=dt;if(S.stabT<=0){S.stabs++;S.stabT=.7;shake=.3;sfx.stab();flash=.15;S.lines.push({s:'דקירה '+S.stabs+'/3',x:100,y:330,life:.7,big:true});
+        if(S.stabs>=3){S.mode='turn';S.mT=1.2;say('עכשיו הוא בא אליך!',1.4,'#ffb4b4');}}}
+    else if(S.mode==='turn'){S.mT-=dt;if(S.mT<=0)S.mode='open';}
+    else{S.mT-=dt;
+      if(S.mode==='open'&&S.hitsSince>=4){S.mode='windup';S.mT=1.1;S.hitsSince=0;sfx.tick();}
+      else if(S.mode==='windup'&&S.mT<=0){
+        if(S.block>0){S.blocks++;S.lines.push({s:'חסמת!',x:235,y:150,life:.8,big:true});sfx.ok();shake=.15;S.mode='stun';S.mT=.9;say(pick(['חסימה! עכשיו תן לו!','הידיים של אבא!','בדיוק ככה']),1.1);}
+        else{S.taken++;S.hurt=.7;flash=.35;shake=.4;sfx.bad();say('נדקרת! בפעם הבאה הקש על המגן',1.5,'#ffb4b4');S.mode='open';}}
+      else if(S.mode==='stun'&&S.mT<=0){S.mode='open';}
+    }
+    S.enemyX=lerp(S.enemyX,S.mode==='opening'?-40:0,Math.min(1,dt*5));
+    const warn=S.mode==='windup';
+    ctx.save();ctx.translate(rnd(-3,3)+Math.sin(S.time*9)*3+wsh(),rnd(-3,3)+Math.sin(S.time*5)*4+wsh());
+    ctx.fillStyle='#4aa8ff';ctx.fillRect(-10,-10,W+20,H+20);
+    ctx.fillStyle='#8b5a2b';ctx.beginPath();ctx.moveTo(-10,170+Math.sin(S.time*2)*30);ctx.lineTo(W+10,110+Math.sin(S.time*2)*30);ctx.lineTo(W+10,H+10);ctx.lineTo(-10,H+10);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.7)';for(let i=0;i<6;i++){ctx.beginPath();ctx.ellipse((i*97+S.time*60)%(W+80)-40,80+i*14,40,10,0,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#1f2937';ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(W+10,0);ctx.lineTo(W+10,60);ctx.lineTo(W/2,95);ctx.lineTo(-10,60);ctx.fill();
+    ctx.fillRect(-10,250,W+20,H);ctx.fillRect(-10,0,36,H);ctx.fillRect(W-26,0,36,H);
+    rr(26,250,W-52,60,0,'#2b3648');for(let i=0;i<5;i++){circ(70+i*55,280,15,'#111');circ(70+i*55,280,12,'#3ddc84');ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(70+i*55,280);ctx.lineTo(70+i*55+Math.cos(S.time*3+i)*9,280+Math.sin(S.time*3+i)*9);ctx.stroke();}
+    hzn(180,280,22,Math.sin(S.time)*.4,Math.sin(S.time*1.3)*.3);
+    ctx.fillStyle='#303a4c';ctx.fillRect(-10,310,W+20,H);
+    // wounded captain on the floor, one eye looking at you
+    ctx.fillStyle='rgba(200,16,46,.75)';ctx.beginPath();ctx.ellipse(95,392,66+Math.min(30,S.time*3),16,0,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.translate(95,372);ctx.rotate(Math.PI/2);person(0,0,{sc:2.2,shirt:'#f6f1e6',cap:true,blood:true,skin:'#e6b48c'});ctx.restore();
+    circ(60,364,7,'#fff');circ(63,365,3.5,'#111');
+    if(warn){ctx.fillStyle=`rgba(255,0,0,${.18+Math.sin(S.time*20)*.08})`;ctx.fillRect(-10,-10,W+20,H+20);}
+    // attacker: big, close, to the right of the captain, facing you
+    const ex=235+S.enemyX;const lunge=warn?-(1-S.mT/1.1)*16:0;
+    const stabAnim=S.mode==='opening'?Math.max(0,1-S.stabT/.7):0;
+    ctx.save();ctx.translate(ex,250+lunge+(S.mode==='opening'?stabAnim*18:0));if(S.hitFx>0)ctx.rotate(Math.sin(S.time*60)*.15);if(S.mode==='stun')ctx.rotate(Math.sin(S.time*20)*.1);
+    ctx.scale(3.3,3.3);
+    person(0,0,{sc:1,shirt:'#f6f1e6',cap:true,skin:'#d9a374',hair:'#111'});
+    ctx.strokeStyle='#111';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-7,-22);ctx.lineTo(-2,-19.5);ctx.moveTo(7,-22);ctx.lineTo(2,-19.5);ctx.stroke();
+    if(S.mode==='opening'){ctx.save();ctx.rotate(.9+stabAnim*.9);rr(9,-19,2.6,19,1,'#eee');rr(8.4,-1,4.2,4.2,1,'#333');ctx.restore();}
+    else if(warn){ctx.save();ctx.rotate(-1.3);rr(9,-25,3,25,1,'#eee');rr(8.4,-1,4.6,4.6,1,'#333');ctx.restore();}
+    else if(S.mode==='stun'){txt('★ ★',0,-30,7,'#ffb400');}
+    else{ctx.save();ctx.rotate(-.6+Math.sin(S.time*10)*.3);rr(9,-15,2.3,15,1,'#ddd');rr(8.4,-1,3.8,3.8,1,'#333');ctx.restore();}
+    ctx.restore();
+    ctx.restore();
+    // ---- UI layer (never shakes) ----
+    bubble(S.cap,95,318,11,'#fff','#111',75,352);
+    for(const l of S.lines){l.life-=dt;ctx.globalAlpha=Math.max(0,l.life*3);txt(l.s,l.x,l.y-(1-l.life)*30,l.big?26:14,l.big?'#ffb400':'#fff','center',900);ctx.globalAlpha=1;}S.lines=S.lines.filter(l=>l.life>0);
+    if(S.hitFx>0){ctx.fillStyle=`rgba(255,255,255,${S.hitFx*.6})`;ctx.fillRect(0,0,W,H);}
+    if(S.hurt>0){ctx.fillStyle=`rgba(255,0,0,${S.hurt*.4})`;ctx.fillRect(0,0,W,H);}
+    // status + hp at the very top, under the HUD
+    const lab=S.mode==='opening'?['דוקר את הקברניט!','#ff3b3b']:S.mode==='turn'?['מסתובב אליך...','#ffb400']:warn?['⚠ מרים סכין! הקש על המגן!','#ff3b3b']:S.mode==='stun'?['מסוחרר! תן לו!','#3ddc84']:['תן מכות!','#3ddc84'];
+    rr(16,92,W-32,54,12,'rgba(0,0,0,.7)');txt(lab[0],W/2,108,16,lab[1],'center',900);
+    rr(60,126,240,12,6,'rgba(255,255,255,.15)');rr(60,126,240*S.hp/16,12,6,'#ff3b3b');txt('טייס המשנה',W-24,132,10,'#cfd8e6','right',400);
+    const fight=!['opening','turn'].includes(S.mode);
+    rr(0,H-200,W,200,0,'rgba(15,26,43,.9)');
+    const bl=S.block>0;
+    for(const i of [0,1]){const p=S.punch[i];S.punch[i]=Math.max(0,p-dt*5);const sx=i?1:-1;const hx=i?W-80:80,hy=H-105-p*40;
+      hand(bl?W/2+sx*44:hx,bl?H-150:hy,'מכה',S.hurt>0&&i===1?'#c8102e':'#e6b48c',fight&&!bl&&!warn,bl?.8:1);}
+    const bs=warn?1+Math.sin(S.time*25)*.1:1;
+    ctx.save();ctx.translate(W/2,H-110);ctx.scale(bs,bs);circ(0,0,48,warn?'#ff3b3b':bl?'#3ddc84':'#2b3648');ctx.strokeStyle=warn?'#fff':'#ffb400';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,48,0,Math.PI*2);ctx.stroke();txt('🛡',0,-6,32,'#fff');txt('מגן',0,26,13,'#fff','center',900);ctx.restore();
+    // countdown ring around the shield while he winds up
+    if(warn){ctx.strokeStyle='#fff';ctx.lineWidth=6;ctx.beginPath();ctx.arc(W/2,H-110,58,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-S.mT/1.1));ctx.stroke();}
+    txt(!fight?'תסתכל: הוא דוקר את הקברניט. עוד רגע הוא שלך.':warn?'עכשיו! הקש על המגן!':'הקש על הידיים. 4 מכות ואז הוא תוקף.',W/2,H-22,14,warn?'#ff8a8a':fight?'#cfd8e6':'#ffe08a','center',900);
+    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;
+      if(fight){const isBlock=p.block||(!p.side&&p.key)||(!p.side&&Math.abs(p.x-W/2)<62&&p.y>H-170);
+        if(isBlock){S.block=warn?S.mT+.1:.5;S.punch=[0,0];sfx.tick();}
+        else if(S.hurt<=0&&!warn){const side=p.side||(p.x<W/2?-1:1);S.punch[side<0?0:1]=1;
+          S.hp--;S.hitsSince++;S.hitFx=.25;shake=.25;sfx.punch();S.lines.push({s:pick(['בום!','טראח!','פאק!','בבבום!']),x:ex+rnd(-30,30),y:160,life:.6,big:true});if(S.hp%4===0)say(pick(LINES.punch),1.2);}
+        else if(warn){S.lines.push({s:'לא! המגן!',x:180,y:230,life:.6});sfx.tick();}}
+    }
+    hud();
+    if(S.hp<=0){const sc=Math.max(300,1800+S.blocks*120-S.taken*150-Math.floor(S.time*10));stageScore.cockpit=sc;score+=sc;sfx.ok();go('tie');}
+  }
+};
+
+// stage 4: wrap the headphone cable around him. 10 loops, rare rages, hold 0.7s.
+function drawHeadphones(x,y,sc){ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=11;ctx.beginPath();ctx.arc(0,0,34,Math.PI,0);ctx.stroke();ctx.strokeStyle='#666';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,34,Math.PI*1.1,-Math.PI*.1);ctx.stroke();
+  for(const sx of [-34,34]){rr(sx-14,-6,28,36,11,'#1a1a1a');rr(sx-10,-2,20,28,9,'#ff6a00');rr(sx-5,3,10,18,5,'#b84400');}
+  ctx.restore();}
+function drawTiedGuy(loops,struggle,rage){
+  ctx.save();ctx.translate(180,310);ctx.rotate(1.5+(rage?Math.sin(struggle*40)*.14:Math.sin(struggle*30)*0.08*(struggle>0?1:0)));person(0,0,{sc:2.6,shirt:'#f6f1e6',cap:true,skin:'#d9a374'});
+  if(rage){ctx.strokeStyle='#111';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-18,-28);ctx.lineTo(-6,-22);ctx.moveTo(18,-28);ctx.lineTo(6,-22);ctx.stroke();}
+  ctx.restore();
+  // cable coils around the lying body: narrow vertical loops stepping along it, right to left
+  const X0=228,STEP=4.4;
+  for(let i=0;i<loops;i++){const cx=X0-i*STEP,ry=34+Math.sin(i*1.3)*2;ctx.strokeStyle='#7a3300';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(cx,310,8,ry,0,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#ff6a00';ctx.lineWidth=3.5;ctx.beginPath();ctx.ellipse(cx,310,8,ry,0,0,Math.PI*2);ctx.stroke();}
+  drawHeadphones(78,232,1);
+  const endX=loops>0?X0-(loops-1)*STEP:X0;
+  ctx.strokeStyle='#7a3300';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(112,262);ctx.quadraticCurveTo(140,300,Math.min(endX,228),276);ctx.stroke();ctx.strokeStyle='#ff6a00';ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(112,262);ctx.quadraticCurveTo(140,300,Math.min(endX,228),276);ctx.stroke();
+  if(loops>0){rr(endX-14,338,14,8,2,'#999');rr(endX-20,339,6,6,1,'#ccc');}
+  rr(36,180,84,24,12,'rgba(0,0,0,.6)');txt('🎧 אוזניות',78,192,12,'#ffb400','center',900);
+}
+scenes.tie={
+  draw(dt){
+    if(!S.init){S.init=true;S.loops=0;S.need=24;S.time=0;S.rage=0;S.rageT=rnd(3,4.2);S.hold=0;S.str=0;S.calm=0;S.lost=0;S.lastCalm=0;S.pop=0;S.lastTap=-9;S.jam=0;
+      showBanner('שלב 4: קשור אותו',['הקש על "לפף!" בקצב, לא מהר מדי:','כל הקשה כורכת לולאה אחת של כבל.','כשהוא משתולל: לחץ והחזק "תחזיק".']);}
+    S.time+=dt;S.str=Math.max(0,S.str-dt);S.pop=Math.max(0,S.pop-dt*6);S.jam=Math.max(0,S.jam-dt);
+    const B={x:W/2,y:500,w:260,h:70};
+    const holding=(pDown&&Math.abs(pX-B.x)<B.w/2&&Math.abs(pY-B.y)<B.h/2+12)||keys['ArrowDown']||keys[' '];
+    if(S.rage>0){S.rage-=dt;S.str=.3;
+      if(holding){S.hold+=dt;if(S.hold>=.9){S.rage=0;S.calm++;S.hold=0;S.rageT=rnd(3.2,4.5);sfx.ok();say(pick(['נרגע. תמשיך ללפף!','תפסת אותו! מהר!','ככה. עכשיו הכבל.']),1.1);}}
+      if(S.rage<=0&&S.calm===S.lastCalm){S.loops=Math.max(0,S.loops-4);S.lost++;shake=.3;sfx.bad();say('הוא השתחרר מ-4 לולאות!',1.2,'#ffb4b4');S.rageT=rnd(3,4.2);}
+      S.lastCalm=S.calm;
+    }else{S.rageT-=dt;if(S.rageT<=0&&S.loops<S.need-2){S.rage=2.8;S.hold=0;S.lastCalm=S.calm;sfx.hit();shake=.3;}}
+    const rg=S.rage>0;
+    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;
+      if(!rg&&(p.key||inBtn(p,B.x,B.y,B.w+30,B.h+30))){
+        if(S.time-S.lastTap<.22){S.jam=.5;if(S.loops>0&&Math.random()<.5)S.loops--;sfx.bad();say('לאט! הכבל מסתבך',.8,'#ffb4b4');}
+        else{S.loops++;S.pop=1;sfx.tick();shake=.06;if(S.loops%6===0)say(pick(['סיבוב!','עוד לולאה!','ככה!','מאיפה יש למטוס אוזניות עם כבל?']),1);}
+        S.lastTap=S.time;}
+      else if(rg&&!p.block){say('הוא משתולל! לחץ והחזק',.9,'#ffb4b4');}}
+    ctx.fillStyle='#1f2937';ctx.fillRect(-10,-10,W+20,H+20);
+    ctx.save();ctx.translate(rnd(-1.5,1.5)*(rg?4:1)+wsh(),rnd(-1.5,1.5)*(rg?4:1)+wsh());
+    rr(30,110,300,330,20,rg?'#4a2b35':'#2b3648');
+    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=10;ctx.beginPath();ctx.ellipse(180,310,125,75,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle=rg?'#ff3b3b':S.jam>0?'#ffb400':'#3ddc84';ctx.beginPath();ctx.ellipse(180,310,125,75,0,-Math.PI/2,-Math.PI/2+Math.PI*2*S.loops/S.need);ctx.stroke();
+    drawTiedGuy(Math.min(16,Math.floor(S.loops*16/S.need)),S.str,rg);
+    person(290,340,{sc:1.6,shirt:'#3ddc84'});
+    ctx.restore();
+    // ---- UI layer ----
+    if(rg)bubble('הוא משתולל!! תחזיק אותו!',180,150,14,'#ff3b3b','#fff',180,230);
+    const pulse=rg?1+Math.sin(S.time*22)*.05:1+S.pop*.08;
+    ctx.save();ctx.translate(B.x,B.y);ctx.scale(pulse,pulse);
+    if(rg)btn(holding?'מחזיק...':'תחזיק! (לחץ והחזק)',0,0,B.w,B.h,holding?'#3ddc84':'#ff3b3b',holding?'#111':'#fff',22);
+    else btn(S.jam>0?'לאט...':'לפף! 🎧',0,0,B.w,B.h,S.jam>0?'#8a6d3b':'#ffb400','#111',26);ctx.restore();
+    if(rg){rr(B.x-130,B.y+46,260,8,4,'rgba(255,255,255,.2)');rr(B.x-130,B.y+46,260*clamp(S.hold/.9,0,1),8,4,'#3ddc84');}
+    txt(S.loops+' / '+S.need+' לולאות',W/2,566,14,'#cfd8e6','center',900);
+    txt(rg?'החזק את הכפתור (או רווח) עד שיירגע':'הקש בקצב קבוע. מהר מדי = הכבל מסתבך',W/2,606,14,'#fff','center',900);
+    hud();
+    if(S.loops>=S.need){const sc=Math.max(200,1500+S.calm*80-S.lost*120-Math.floor(S.time*10));stageScore.tie=sc;score+=sc;sfx.ok();go('tied');}
+  }
+};
+scenes.tied={
+  draw(dt){
+    st+=dt;
+    ctx.fillStyle='#1f2937';ctx.fillRect(0,0,W,H);
+    rr(30,110,300,330,20,'#2b3648');
+    drawTiedGuy(16,0,false);
+    person(290,340,{sc:1.6,shirt:'#3ddc84'});
+    bubble('קשרנו אותו עם אוזניות המולטימדיה',180,140,13,'#fff','#111',180,215);
+    rr(16,460,W-32,120,14,'rgba(15,26,43,.85)');
+    txt('הוא נוטרל.',W/2,486,26,'#ffb400','center',900);
+    txt('רופא השיניים משורה 9 חוסם את הדימום של הקברניט.',W/2,520,12,'#cfd8e6','center',400);
+    txt('אבל המטוס עדיין צולל. '+(Math.round(ALT/100)*100).toLocaleString('en')+' רגל.',W/2,545,13,'#fff','center',700);
+    txt('הקש כדי לתפוס את ההגה',W/2,605,15,'#ffe08a','center',900);
+    hud();
+    if(tapQueue.length||st>6){tapQueue.length=0;go('fly');}
+  }
+};
+
+// stage 5: stabilize
+scenes.fly={
+  draw(dt){
+    if(!S.init){S.init=true;S.pitch=-.75;S.bank=.5;S.stable=0;S.need=8;S.time=0;S.wind=0;S.jx=0;S.jy=0;
+      showBanner('שלב 5: תייצב את המטוס',['המטוס צולל. העיגול הגדול הוא האופק.','גרור למעלה = האף עולה. גרור לצדדים = מיישר.','תכניס את הקו למסגרת ותחזיק 8 שניות.']);}
+    S.time+=dt;
+    let ix=0,iy=0;
+    if(keyL())ix-=1;if(keyR())ix+=1;if(keyU())iy+=1;if(keyD())iy-=1;
+    if(pDown){ix+=clamp((pX-pStartX)/60,-1,1);iy+=clamp(-(pY-pStartY)/60,-1,1);}
+    ix=clamp(ix,-1,1);iy=clamp(iy,-1,1);S.jx=ix;S.jy=iy;
+    S.wind+=rnd(-1,1)*dt*1.4;S.wind=clamp(S.wind,-.6,.6);
+    S.pitch+=(iy*1.3-0.22+Math.sin(S.time*1.3)*.15)*dt;
+    S.bank+=(ix*1.1+S.wind*.15)*dt;
+    S.pitch=clamp(S.pitch,-1,1);S.bank=clamp(S.bank,-1.2,1.2);
+    const ok=Math.abs(S.pitch)<.18&&Math.abs(S.bank)<.32;
+    if(ok)S.stable+=dt;else S.stable=Math.max(0,S.stable-dt*.5);
+    const prevAlt=ALT;ALT-=(Math.max(0,-S.pitch)*380+Math.abs(S.bank)*80+20)*dt*(ok?0:1);if(ok||S.pitch>.05)ALT+=Math.max(0,S.pitch+.02)*260*dt;ALT=Math.min(ALT,34000);
+    S.up=(ALT-prevAlt)>=-0.01;ALT_UP=S.up;const ac=S.up?'#3ddc84':'#ff3b3b';
+    const shk=ok?1:4;
+    ctx.fillStyle='#1f2937';ctx.fillRect(-10,-10,W+20,H+20);
+    ctx.save();ctx.translate(rnd(-shk,shk)+wsh(),rnd(-shk,shk)+wsh());
+    hzn(W/2,250,150,S.pitch,S.bank);
+    ctx.strokeStyle=S.up?'#3ddc84':'#ff3b3b';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.strokeRect(W/2-40,250-26,80,52);ctx.setLineDash([]);
+    ctx.restore();
+    rr(20,60,70,380,10,'rgba(0,0,0,.45)');txt('גובה',55,80,12,'#cfd8e6');
+    txt(Math.max(0,Math.round(ALT/100)*100).toLocaleString('en'),55,110,18,ac,'center',900);
+    txt('רגל',55,130,11,'#cfd8e6');if(ALT<8000)txt('נמוך!',55,452,12,'#ff6a6a','center',900);
+    const altH=(clamp(ALT,0,34000)/34000)*300;rr(45,140+300-altH,20,altH,6,ac);txt(S.up?'▲ עולה':'▼ יורד',55,470,12,ac,'center',900);
+    rr(W-90,60,70,380,10,'rgba(0,0,0,.45)');txt('יציבות',W-55,80,12,'#cfd8e6');const sh=(S.stable/S.need)*300;rr(W-65,140+300-sh,20,sh,6,'#3ddc84');
+    txt(Math.round(S.stable/S.need*100)+'%',W-55,110,18,'#fff','center',900);txt(Math.ceil(Math.max(0,S.need-S.stable))+' שנ׳',W-55,455,11,'#cfd8e6','center',400);
+    person(W/2,470,{sc:1.8,shirt:'#2f6fdd',glasses:true,hair:false});
+    const coach=ok?'ככה! תחזיק ככה!':Math.abs(S.pitch)>=.18?(S.pitch<0?'האף למטה! גרור למעלה ⬆':'האף גבוה מדי! גרור למטה ⬇'):(S.bank>0?'מוטה ימינה! גרור שמאלה ⬅':'מוטה שמאלה! גרור ימינה ⮕');bubble(coach,W/2,412,14,ok?'#3ddc84':'#fff',ok?'#111':'#c8102e',W/2,440);
+    circ(W/2,570,40,'rgba(255,255,255,.12)');circ(W/2+S.jx*26,570-S.jy*26,14,'#ffb400');
+    rr(16,598,W-32,36,12,'rgba(15,26,43,.85)');txt('המטרה: להכניס את קו האופק למסגרת ולהחזיק 8 שנ׳',W/2,616,13,'#fff','center',900);
+    if(S.time<6){const k=Math.sin(S.time*4)*10;rr(W/2-150,500,300,56,14,'rgba(255,180,0,.95)');txt('⬆ גרור למעלה כדי להרים את האף',W/2,518,16,'#111','center',900);txt('⬅ ⮕ גרור לצדדים כדי ליישר כנפיים',W/2,542,13,'#111','center',700);
+      txt('☝',W/2+60,575+k,26,'#fff');}
+    if(!ok&&S.time>1&&Math.random()<dt*.3)say(pick(['טייס אוקראיני משורה 12: תמשוך!!','ילדה בת 8: אמא, נופלים?','אות 7500 נשלח. ה-F-15 הסעודיים בדרך.','הרוסי: דאוואי דאוואי!']),1.6);
+    hud();
+    if(S.stable>=S.need){const sc=Math.max(300,1600-Math.floor(S.time*12));stageScore.fly=sc;score+=sc;sfx.win();ALT_UP=null;go('end');}
+  }
+};
+
+scenes.lose={
+  draw(dt){
+    st+=dt;
+    ctx.fillStyle='#2a0b0b';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=`rgba(255,60,60,${.15+Math.sin(st*6)*.08})`;ctx.fillRect(0,0,W,H);
+    txt('גובה 0.',W/2,200,54,'#ff6a6a','center',900);
+    txt('לא הספקת. המטוס הגיע לקרקע.',W/2,260,16,'#fff','center',700);
+    txt('(במציאות הם הצליחו. גם אתה תצליח.)',W/2,290,13,'#ffb4b4','center',400);
+    txt('ניקוד עד כאן: '+score,W/2,350,18,'#ffb400','center',900);
+    btn('נסה שוב מהשלב הזה',W/2,440,250,54,'#ffb400','#111',17);
+    btn('מההתחלה',W/2,510,180,46,'#3a1a1a','#fff',15);
+    hud();
+    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;
+      if(p.key||inBtn(p,W/2,440,270,64)){ALT=S.retryAlt;ALT_UP=null;score=S.retryScore;go(S.retryScene);}
+      else if(inBtn(p,W/2,510,200,56)){go('title');}}
+  }
+};
+
+function flag(x,y,w,h,ph){ctx.save();ctx.translate(x,y);ctx.fillStyle='#fff';ctx.beginPath();for(let i=0;i<=w;i+=4){const yy=Math.sin(ph+i*.08)*3;if(i===0)ctx.moveTo(i,yy);else ctx.lineTo(i,yy);}for(let i=w;i>=0;i-=4){ctx.lineTo(i,h+Math.sin(ph+i*.08)*3);}ctx.fill();
+  ctx.fillStyle='#0038b8';ctx.fillRect(0,h*.15,w,h*.12);ctx.fillRect(0,h*.73,w,h*.12);
+  ctx.strokeStyle='#0038b8';ctx.lineWidth=2.2;const cx=w/2,cy=h/2,r=h*.2;for(const rot of [0,Math.PI]){ctx.beginPath();for(let i=0;i<3;i++){const a=rot-Math.PI/2+i*Math.PI*2/3;const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.closePath();ctx.stroke();}
+  ctx.fillStyle='#8a6d3b';ctx.fillRect(-3,-4,3,h+40);ctx.restore();}
+function cheer(x,y,o,tm){const j=Math.abs(Math.sin(tm*6+x))*10;ctx.save();ctx.translate(x,y-j);person(0,0,o);ctx.strokeStyle=o.skin||'#f2c9a0';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-12,-4);ctx.lineTo(-22,-26);ctx.moveTo(12,-4);ctx.lineTo(22,-26);ctx.stroke();ctx.restore();}
+// 10 ranks by score (run+door+cockpit+tie+fly, roughly 1300..8500). Shown on the end screen and in the share text.
+const RANKS=[[8000,'צביקה של הטיסה'],[7400,'יניב מהשורה הראשונה'],[6800,'המילואימניק עם הכיסא במעבר'],[6200,'האבא של טיסת הצ׳ארטר'],[5600,'רופא השיניים'],[5000,'השכן שלימד את הטייס'],[4300,'הנוסע שקם לפני שהמטוס עצר'],[3600,'הדוד מהבת מצווה שלא קורא קודים'],[2800,'סבתא עם הקוגל של גיל 90'],[-1,'שרת שמע ישראל']];
+function rankFor(sc){return RANKS.find(r=>sc>r[0])[1];}
+const BIBI=['הטיסה הזאת היא ניצחון מוחלט. גם שלי קצת.','אני מודיע: מהיום כל טיסה לדובאי תכלול אוזניות.','שמשון, יש לי כיסא פנוי בממשלה. בלי מחויבות.'];
+scenes.end={
+  draw(dt){
+    st+=dt;
+    if(!S.init){S.init=true;S.bibi=pick(BIBI);}
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#4aa8ff');g.addColorStop(1,'#cfe8ff');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    // confetti
+    for(let i=0;i<40;i++){const cx=(i*53+st*30*(1+i%3))%(W+20)-10,cy=(i*97+st*(60+i%5*20))%(H+20)-10;ctx.fillStyle=['#0038b8','#fff','#ffb400'][i%3];ctx.fillRect(cx,cy,6,10);}
+    // flags
+    for(let i=0;i<5;i++)flag(20+i*70,70+(i%2)*12,44,30,st*5+i);
+    // crowd rows
+    const cols=['#ffffff','#0038b8','#ffb400','#c8102e','#3ddc84','#8a2be2'];
+    for(let r=0;r<3;r++)for(let c=0;c<7;c++){const x=28+c*52+(r%2)*26,y=430-r*44;if(Math.abs(x-W/2)<40&&r<2)continue;cheer(x,y,{sc:1,shirt:cols[(r*7+c)%6],hair:['#222','#3a2a1a','#c9a15a',false][(c+r)%4]},st+r);}
+    // you, carried high in the middle
+    const lift=Math.abs(Math.sin(st*6))*10;
+    ctx.save();ctx.translate(W/2,350-lift);person(0,0,{sc:2.2,shirt:'#2f6fdd',glasses:true,hair:false});ctx.strokeStyle='#f2c9a0';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-26,-6);ctx.lineTo(-50,-50);ctx.moveTo(26,-6);ctx.lineTo(50,-50);ctx.stroke();ctx.restore();
+    // the family on the left, waving
+    cheer(60,470,{sc:1.2,shirt:'#a64dff',hair:false,longhair:true},st);cheer(100,478,{sc:.8,shirt:'#ff8c00',hair:'#222'},st+1);cheer(128,480,{sc:.75,shirt:'#ff5fa2',hair:'#3a2a1a'},st+2);
+    // Bibi on the right: grey hair, suit
+    ctx.save();ctx.translate(300,470);person(0,0,{sc:1.3,shirt:'#1b2a44',hair:'#bfbfbf',skin:'#f0c9a8'});rr(-3,-8,6,16,2,'#c8102e');ctx.restore();
+    bubble('ביבי: '+S.bibi,250,395,11,'#fff','#111',300,440,'#1b2a44');
+    // headline panel
+    rr(16,120,W-32,96,14,'rgba(15,26,43,.86)');
+    txt('גיבור ישראל',W/2,150,34,'#ffb400','center',900);
+    txt('174 אנשים ניצלו. 27 ילדים. משפחה אחת שלמה.',W/2,186,13,'#fff','center',700);
+    txt('פרטי המקרה עוד מתוחקרים, אבל מה שבטוח: אתה גיבור ישראל.',W/2,206,11,'#cfd8e6','center',400);
+    // score + time
+    const mm=Math.floor(PLAYT/60),ss=Math.floor(PLAYT%60);
+    rr(16,504,W-32,72,14,'rgba(15,26,43,.86)');
+    txt('דרגה: „'+rankFor(score)+'”',W/2,522,14,'#ffe08a','center',900);
+    txt('ניקוד '+score,W/2+80,546,16,'#ffb400','center',900);txt('זמן '+mm+':'+String(ss).padStart(2,'0'),W/2-80,546,16,'#fff','center',900);
+    txt('מהצעקה הראשונה ועד שהמטוס התיישר',W/2,566,11,'#cfd8e6','center',400);
+    btn('המשך',W/2,606,180,46,'#ffb400','#111');
+    hud();
+    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;if(p.key||inBtn(p,W/2,606,220,60)){sfx.ok();go('facts');}}
+  }
+};
+const shareEl=document.getElementById('share'),shEl=document.getElementById('sh'),waEl=document.getElementById('wa'),cpEl=document.getElementById('cp'),grpEl=document.getElementById('grp');
+if(navigator.share)shEl.hidden=false; // system share sheet (phones: WhatsApp/Instagram/Telegram/SMS...). Desktop browsers mostly lack it.
+// Community overlays in canvas units: invite y=310..360, share y=444..490, personal y=504..554.
+function placeShare(){const r=cv.getBoundingClientRect();const px=v=>(v*scale)+'px';
+  shareEl.style.left=px(20+r.left/scale);shareEl.style.top=px(444+r.top/scale);shareEl.style.width=px(W-40);shareEl.style.height=px(46);shareEl.style.fontSize=px(14);
+  grpEl.style.left=px(16+r.left/scale);grpEl.style.top=px(310+r.top/scale);grpEl.style.width=px(W-32);grpEl.style.height=px(244);grpEl.style.fontSize=px(13);}
+// navigator.share can exist but reject (itch's cross-origin iframe has no web-share permission) -> fall back to the WhatsApp link. AbortError = user closed the sheet.
+shEl.addEventListener('click',()=>{const t=shEl.dataset.text||'';navigator.share({title:'חופשה בטוחה',text:t}).catch(e=>{if(!e||e.name!=='AbortError')window.open(waEl.href,'_blank','noopener');});});
+cpEl.addEventListener('click',()=>{const s=cpEl.dataset.text||'';
+  const ok=()=>{cpEl.textContent='הועתק ✓';setTimeout(()=>{cpEl.textContent='העתק';},2200);};
+  const fail=()=>{cpEl.textContent='לא הועתק';setTimeout(()=>{cpEl.textContent='העתק';},2200);};
+  // some iframes (itch, claude.ai) block navigator.clipboard: fall back to a hidden textarea + execCommand, and only say "copied" when it really was
+  const legacy=()=>{try{const ta=document.createElement('textarea');ta.value=s;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,s.length);const r=document.execCommand('copy');document.body.removeChild(ta);r?ok():fail();}catch(e){fail();}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(ok).catch(legacy);else legacy();});
+scenes.facts={
+  draw(dt){
+    st+=dt;
+    ctx.fillStyle='#0f1a2b';ctx.fillRect(0,0,W,H);
+    for(let i=0;i<6;i++)flag(22+i*56,46,34,22,st*5+i);
+    txt('מה קרה באמת',W/2,92,28,'#ffb400','center',900);
+    txt('טיסת פליי-דובאי FZ1073, 30.9.2026',W/2,118,12,'#cfd8e6','center',400);
+    rr(16,130,W-32,320,14,'rgba(255,255,255,.06)');
+    const L=[['• שעה וחצי אחרי ההמראה, מעל ירדן, טייס המשנה דקר',0],['  את הקברניט וניסה לרסק את המטוס.',0],['• נוסעים ישראלים פרצו לקוקפיט, הפילו אותו',0],['  וקשרו אותו עם אוזניות המולטימדיה של המטוס.',1],['• רופא שיניים מהנוסעים עצר את הדימום של הקברניט.',0],['• המטוס צלל מ-34,000 רגל, שידר קוד חטיפה 7500,',1],['  ונחת בשלום בטבוק, סעודיה, בליווי מטוסי קרב.',0],['• 174 נוסעים, 27 ילדים. כולם חזרו לבן-גוריון',1],['  באותו ערב, בשירה ומחיאות כפיים.',0],['• החקירה עדיין נמשכת. השמות במשחק בדויים.',0]];
+    L.forEach(([l,b],i)=>txt(l,W-32,160+i*29,12,b?'#ffe08a':'#cfd8e6','right',b?900:400));
+    txt('במציאות לא הייתה שם משפחת בוזגלו-שטרנליכט. היו 174 כאלה.',W/2,468,11,'#ffe08a','center',400);
+    btn('המשך',W/2,606,180,46,'#ffb400','#111');
+    hud();
+    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;if(p.key||inBtn(p,W/2,606,220,60)){sfx.ok();go('community');}}
+  }
+};
+
+
+scenes.community={
+  draw(dt){
+    if(!S.init){S.init=true;const rank=rankFor(score);
+      const mm=Math.floor(PLAYT/60),ss=Math.floor(PLAYT%60);
+      const text=`חופשה בטוחה ✈️ הצלתי 174 נוסעים בטיסה מדובאי ב-${mm}:${String(ss).padStart(2,'0')} דקות. ניקוד ${score}, דרגה "${rank}". תנסה אתה: ${PUBLIC_URL||location.href}`;
+      waEl.href='https://wa.me/?text='+encodeURIComponent(text);cpEl.dataset.text=text;shEl.dataset.text=text;cpEl.textContent='העתק';shareEl.hidden=false;
+      if(WA_GROUP||WA_ME){document.getElementById('grp1').hidden=!WA_GROUP;document.getElementById('grp2').hidden=!WA_ME;if(WA_GROUP)document.getElementById('grp1').href=WA_GROUP;if(WA_ME)document.getElementById('grp2').href='https://wa.me/'+WA_ME+'?text='+encodeURIComponent('היי, שיחקתי ב״חופשה בטוחה״ ');grpEl.hidden=false;}placeShare();}
+    placeShare();
+    ctx.fillStyle='#0f1a2b';ctx.fillRect(0,0,W,H);
+    txt('חופשה בטוחה ✈',24,30,13,'#cfd8e6','left',700);
+    txt('מאת נדב חנם',W-24,30,12,'#cfd8e6','right',400);
+    plane(W/2,85,.5);
+    txt('ההרפתקה לא נגמרת כאן',W/2,140,25,'#ffb400','center',900);
+    txt('נהנית? בוא להיות חלק מהמשחק הבא.',W/2,174,14,'#cfd8e6','center',400);
+    rr(16,202,W-32,190,15,'#172b36');
+    txt('הקבוצה של נדב · יוצר המשחק',W/2,225,12,'#8de5b1','center',700);
+    txt('קבל ראשון את המשחק הבא',W/2,256,22,'#fff','center',900);
+    txt('הצטרף אליי בוואטסאפ למשחקים חדשים,',W/2,281,14,'#cfd8e6','center',400);
+    txt('והצבע על מה אבנה בפעם הבאה.',W/2,302,14,'#cfd8e6','center',400);
+    txt('מי מהחברים שלך יציל יותר מהר?',W/2,414,16,'#fff','center',900);
+    txt('שתף את הניקוד והדרגה שלך ואתגר חבר',W/2,434,12,'#cfd8e6','center',400);
+    btn('התחל מחדש',W/2,606,200,46,'#2b3648','#fff',16);
+    if(tapQueue.length){const p=tapQueue.shift();tapQueue.length=0;if(p.key||inBtn(p,W/2,606,240,60)){go('title');}}
+  }
+};
+
+// ---------- main loop ----------
+let last=performance.now();
+const DROP_SCENES=['intro','run','door','cockpit','tie','tied'];
+let stepping=false;
+function frame(now){
+  const rawDt=clamp((now-last)/1000,0,.05);last=now;t+=rawDt;
+  const paused=!!banner;const dt=paused?0:rawDt;
+  if(trans){trans.t+=rawDt/.6;if(trans.t>=.5&&pending){goNow(pending);pending=null;}if(trans.t>=1)trans=null;}
+  if(!paused)sceneT+=rawDt;const e=easeO(Math.min(1,sceneT/.4));
+  ctx.save();
+  if(shake>0)shake-=rawDt;
+  ctx.translate(W/2,H/2);ctx.scale(1+(1-e)*.06,1+(1-e)*.06);ctx.translate(-W/2,-H/2+(1-e)*24);
+  // altitude always bleeds once the chaos started; at 0 you lose
+  if(DROP&&DROP_SCENES.includes(scene))ALT-=70*dt;
+  if(DROP&&(DROP_SCENES.includes(scene)||scene==='fly'))PLAYT+=dt;
+  // on the ground until the family is seated, then the plane is already cruising: climb to 34,000 during the calm bubble
+  if(scene==='intro'&&!DROP){if(S.step==='walk'||S.step==='board'){ALT=0;ALT_UP=null;}else if(ALT<34000){ALT_UP=true;ALT=Math.min(34000,ALT+34000*dt/1.8);}else ALT_UP=null;}
+  if(DROP&&ALT<=0&&scene!=='lose'&&scene!=='end'&&scene!=='title'){ALT=0;S.retryScene=scene;S.retryAlt=Math.max(4000,S.altEntry);S.retryScore=score-(stageScore[scene]||0);sfx.lose();goNow('lose');}
+  if(banner){if(tapQueue.length&&banner.t>.5){banner=null;sfx.tick();}tapQueue.length=0;}
+  audioTick(rawDt);
+  scenes[scene].draw(dt);
+  ctx.restore();
+  if(altAnim){altAnim.t+=rawDt;const k=altAnim.t;const hold=1.6,fl=.6;if(k<hold){altChip(W/2,H/2-40,2.2);txt('הגובה יורד. תמהר.',W/2,H/2+10,16,'#fff','center',900);}else{const q=easeIO(Math.min(1,(k-hold)/fl));altChip(lerp(W/2,W-63,q),lerp(H/2-40,17,q),lerp(2.2,1,q));if(q>=1)altAnim=null;}}
+  drawTrans();
+  if(flash>0){flash-=rawDt;ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(0,0,W,H);}
+  if(toast){toast.t+=rawDt;const a=Math.min(1,(toast.life-toast.t)*2);if(a<=0)toast=null;else{ctx.globalAlpha=a;rr(24,44,W-48,36,18,'rgba(0,0,0,.65)');txt(toast.s,W/2,62,14,toast.col,'center',900);ctx.globalAlpha=1;}}
+  if(banner){banner.t+=rawDt;const a=Math.min(1,banner.t*4);ctx.globalAlpha=a;ctx.fillStyle='rgba(10,16,28,.9)';ctx.fillRect(0,0,W,H);
+    rr(24,200,W-48,240,18,'#1c2c48');txt(banner.title,W/2,246,26,'#ffb400','center',900);
+    banner.lines.forEach((l,i)=>txt(l,W/2,296+i*28,16,'#fff','center',700));
+    if(Math.sin(t*5)>-.2)txt('הקש כדי להתחיל',W/2,412,13,'#cfd8e6','center',400);ctx.globalAlpha=1;
+    }
+  if(!stepping)requestAnimationFrame(frame);
+}
+window.__advance=(sec)=>{stepping=true;const n=Math.round(sec*60);for(let i=0;i<n;i++)frame(last+1000/60);stepping=false;};window.__setAlt=v=>{ALT=v;};
+const start=()=>{const h=location.hash.slice(1);if(scenes[h]&&h!=='title'){goNow(h);}requestAnimationFrame(frame);};
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(start);else start();
+})();
+</script>
+</body>
+</html>
