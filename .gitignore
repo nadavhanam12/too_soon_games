@@ -24,3 +24,11 @@ __pycache__/
 
 # itch.io local upload cache
 .itch/
+
+# Local video production dependencies and intermediates
+.video-tools/
+Video/Coldplay/build/
+Video/Arcade/build/
+Video/Arcade/build-energy/
+Video/Arcade/build-youthful/
+Video/CreativeProcess/build/
