@@ -1,0 +1,222 @@
+/* ============================================================
+   Drop the Chip - itch.io custom CSS
+   Matches the game: near-black paper, Nvidia-green marker boxes,
+   cream ink, hard offset shadows, red resignation stamp.
+
+   itch.io applies custom CSS only after you request access once:
+   Dashboard -> Settings -> "Custom CSS". Until then use the
+   Theme editor values in THEME.md (they also act as fallback).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Rubik:wght@400;700;900&display=swap');
+
+:root{
+  --bg:#0f0f0f;
+  --paper:#161616;
+  --card:#222;
+  --ink:#f3ead6;
+  --muted:#9a9a9a;
+  --nv:#76b900;
+  --gold:#ffcf4a;
+  --stamp:#c9403a;
+  --line:#0b0b0b;
+  --font:'Rubik',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  --hand:'Patrick Hand','Rubik',cursive;
+}
+
+/* ---------- page ---------- */
+body, .view_game_page{
+  background:var(--bg) !important;
+  color:var(--ink) !important;
+  font-family:var(--font) !important;
+}
+/* faint grid, like the stock chart behind the game */
+body{
+  background-image:
+    linear-gradient(rgba(118,185,0,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(118,185,0,.06) 1px, transparent 1px) !important;
+  background-size:32px 32px !important;
+}
+.view_game_page .inner_column{
+  background:var(--paper) !important;
+  border:3px solid var(--line) !important;
+  box-shadow:6px 8px 0 var(--line) !important;
+  border-radius:8px;
+}
+
+/* ---------- header / title ---------- */
+.view_game_page .header{ background:transparent !important; position:relative; }
+.view_game_page h1.game_title, .game_title{
+  display:inline-block;
+  font-family:var(--font) !important;
+  font-weight:900 !important;
+  font-size:2.3em !important;
+  letter-spacing:.5px;
+  color:var(--line) !important;
+  background:var(--nv);
+  padding:.15em .55em;
+  margin:.4em 0 .3em;
+  border:3px solid var(--line);
+  box-shadow:4px 5px 0 var(--line);
+  transform:rotate(-2deg);
+}
+.view_game_page .game_short_text, .game_short_text{
+  font-family:var(--hand) !important;
+  font-size:1.35em !important;
+  color:var(--ink) !important;
+}
+/* red "TOO SOON" stamp in the corner, like the resignation stamp */
+.view_game_page .header::after{
+  content:'TOO SOON';
+  position:absolute;
+  right:24px; top:18px;
+  font:900 1.1em var(--font);
+  letter-spacing:2px;
+  color:var(--stamp);
+  border:4px double var(--stamp);
+  padding:.25em .6em;
+  transform:rotate(-12deg);
+  opacity:.85;
+  pointer-events:none;
+}
+@media (max-width:640px){ .view_game_page .header::after{ display:none; } }
+
+/* ---------- game frame ---------- */
+.game_frame, .iframe_placeholder{
+  background:var(--bg) !important;
+  border:3px solid var(--line) !important;
+  box-shadow:6px 8px 0 var(--line) !important;
+  border-radius:8px;
+}
+.iframe_placeholder .button, .load_iframe_btn{
+  background:var(--nv) !important;
+  color:var(--line) !important;
+  font-family:var(--font) !important;
+  font-weight:900 !important;
+  text-transform:uppercase;
+  border:3px solid var(--line) !important;
+  border-radius:999px !important;
+  box-shadow:3px 4px 0 var(--line) !important;
+  padding:.7em 1.6em !important;
+}
+.iframe_placeholder .button:hover{ transform:translate(-1px,-1px); box-shadow:4px 5px 0 var(--line) !important; }
+
+/* ---------- description ---------- */
+.formatted_description{
+  color:var(--ink) !important;
+  font-size:1.05em;
+  line-height:1.6;
+}
+.formatted_description h1,
+.formatted_description h2,
+.formatted_description h3{
+  font-family:var(--font) !important;
+  font-weight:900 !important;
+  color:var(--nv) !important;
+  border:none !important;
+  margin-top:1.6em;
+}
+.formatted_description h1{ font-size:1.8em !important; }
+.formatted_description h2{
+  display:inline-block;
+  font-size:1.25em !important;
+  color:var(--line) !important;
+  background:var(--nv);
+  padding:.1em .5em;
+  border:2.5px solid var(--line);
+  box-shadow:3px 3px 0 var(--line);
+  transform:rotate(-1.2deg);
+}
+.formatted_description strong{ color:#fff; }
+.formatted_description em{ font-family:var(--hand); font-size:1.08em; color:var(--gold); font-style:normal; }
+.formatted_description a{ color:var(--nv) !important; text-decoration:underline; text-decoration-thickness:2px; }
+.formatted_description a:hover{ color:var(--gold) !important; }
+.formatted_description hr{ border:0; border-top:2px dashed var(--muted); opacity:.5; margin:2em 0; }
+
+/* disclaimer card, like the intro panels */
+.formatted_description blockquote{
+  background:var(--card);
+  color:var(--muted);
+  border:2.5px solid var(--nv) !important;
+  box-shadow:4px 4px 0 var(--line);
+  padding:.8em 1.1em;
+  margin:1.2em 0;
+  font-size:.92em;
+  border-radius:4px;
+}
+
+/* "Watch out for" table rendered as card rows */
+.formatted_description table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0 8px;
+}
+.formatted_description th{
+  text-align:left;
+  color:var(--nv);
+  font-weight:900;
+  padding:0 .8em;
+  text-transform:uppercase;
+  font-size:.8em;
+  letter-spacing:1px;
+}
+.formatted_description td{
+  background:var(--card);
+  color:var(--ink);
+  border-top:2.5px solid var(--nv);
+  border-bottom:2.5px solid var(--nv);
+  padding:.7em .8em;
+  vertical-align:top;
+}
+.formatted_description td:first-child{ border-left:2.5px solid var(--nv); border-radius:6px 0 0 6px; font-weight:700; }
+.formatted_description td:last-child{ border-right:2.5px solid var(--nv); border-radius:0 6px 6px 0; box-shadow:4px 4px 0 var(--line); }
+
+.formatted_description ul li{ margin:.35em 0; }
+.formatted_description ul li::marker{ color:var(--nv); }
+
+/* ---------- sidebar info panel ---------- */
+.game_info_panel_widget{
+  background:var(--card) !important;
+  color:var(--ink) !important;
+  border:2.5px solid var(--nv) !important;
+  box-shadow:4px 4px 0 var(--line);
+  border-radius:6px;
+  font-family:var(--font) !important;
+}
+.game_info_panel_widget td{ color:var(--ink) !important; border-color:rgba(255,255,255,.08) !important; }
+.game_info_panel_widget a{ color:var(--nv) !important; }
+.game_info_panel_widget tr td:first-child{ color:var(--muted) !important; }
+
+/* ---------- buttons (follow, share, comments) ---------- */
+.button, .button:visited, .buy_btn, .follow_button, .user_tools .button{
+  background:var(--nv) !important;
+  color:var(--line) !important;
+  font-family:var(--font) !important;
+  font-weight:900 !important;
+  border:2.5px solid var(--line) !important;
+  border-radius:999px !important;
+  box-shadow:2px 3px 0 var(--line) !important;
+  text-shadow:none !important;
+}
+.button:hover{ background:#8ad60c !important; }
+.button.outline, .button.forward_link{ background:var(--gold) !important; }
+
+/* ---------- comments ---------- */
+.community_topic_widget, .game_comments_widget, .community_post{
+  background:var(--card) !important;
+  color:var(--ink) !important;
+  border:2px solid var(--line) !important;
+}
+.game_comments_widget .post_body, .community_post .post_body{ color:var(--ink) !important; }
+.game_comments_widget textarea{
+  background:#fff8e0 !important;
+  color:var(--line) !important;
+  font-family:var(--hand) !important;
+  font-size:1.1em !important;
+  border:2.5px solid var(--line) !important;
+}
+.game_comments_widget h2, .community_topic_widget h2{ color:var(--nv) !important; font-weight:900; }
+
+/* ---------- footer ---------- */
+.footer, .footer a{ color:var(--muted) !important; }
+.footer a:hover{ color:var(--nv) !important; }
