@@ -1,0 +1,19 @@
+{
+  "name": "toosoon-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "typecheck": "tsc --noEmit",
+    "migrate:local": "wrangler d1 migrations apply toosoon --local",
+    "migrate:remote": "wrangler d1 migrations apply toosoon --remote",
+    "deploy": "wrangler deploy",
+    "smoke": "node test/smoke.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261113.1",
+    "typescript": "^5.6.0",
+    "wrangler": "~4.80.0"
+  }
+}

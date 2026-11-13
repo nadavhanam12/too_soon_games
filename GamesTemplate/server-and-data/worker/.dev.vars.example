@@ -1,0 +1,4 @@
+# Copy to .dev.vars (git-ignored) and fill in. Production: `wrangler secret put <NAME>`.
+ADMIN_KEY=change-me
+CF_ACCOUNT_ID=
+CF_API_TOKEN=

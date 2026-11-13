@@ -36,3 +36,10 @@ Video/CreativeProcess/build/
 # itch.io staging output (from the itch-upload skill)
 dist-itch/
 dist-itch.changes.diff
+
+# Cloudflare / template build outputs and local secrets
+.dev.vars
+.wrangler/
+dist/
+backups/
+GamesTemplate/other-services/bugcheck/out/

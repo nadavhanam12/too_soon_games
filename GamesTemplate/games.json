@@ -1,0 +1,4 @@
+{
+  "$comment": "Registry of published games. Source of truth for the portal build and for /publish-game (which also registers the game in the API). Fields: docs/FRONTEND.md.",
+  "games": []
+}
