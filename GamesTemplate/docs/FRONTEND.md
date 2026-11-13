@@ -80,3 +80,9 @@ frontend/
 ## מה האתר מצפה מכל משחק (ב־`games.json`)
 `slug, title, tagline, cover (1200x900), ogImage (1200x630), audience, lang, eventDate, publishedAt,
 status (live|archived), featured?`. ה־build נכשל אם חסר שדה.
+
+## מצב מימוש (2026-11-14)
+נבנה ב־`frontend/` (README שם): build ל־`dist/` עם עמוד הבית, שישה עמודי החובה, `_headers`, `robots.txt`,
+`sitemap.xml`, `manifest.webmanifest`, `security.txt`, אייקונים ו־`og.svg`, ו־`_worker.js` לקישורי אתגר (עם
+בדיקות). נבדק בדפדפן במובייל (375px, בלי גלילה אופקית) ובדסקטופ, כולל 404 ועמוד הפרטיות. פתוח: `og.png`
+ואייקוני PNG (אין כלי רינדור ב־Node טהור), מייל הסטודיו, קישורי הרשתות, `apiBase`.

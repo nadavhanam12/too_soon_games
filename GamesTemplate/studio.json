@@ -1,8 +1,13 @@
 {
   "name": "Too Soon Games",
+  "tagline": "Short web games about whatever everyone is talking about right now. Built in a day, gone too soon.",
+  "email": "",
   "instagram": "",
   "tiktok": "",
   "x": "",
   "facebook": "",
-  "youtube": ""
+  "youtube": "",
+  "cfWebAnalyticsToken": "",
+  "publicBase": "https://toosoon-games.pages.dev",
+  "apiBase": ""
 }

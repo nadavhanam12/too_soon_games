@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4fd8"/><stop offset="1" stop-color="#8a3cff"/></linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#140b24"/><stop offset="1" stop-color="#2a1552"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="330" cy="300" r="130" fill="url(#g)" stroke="#1a0f2e" stroke-width="14"/>
+  <circle cx="530" cy="300" r="130" fill="url(#g)" stroke="#1a0f2e" stroke-width="14"/>
+  <rect x="300" y="288" width="60" height="22" rx="11" fill="#fff"/><rect x="319" y="269" width="22" height="60" rx="11" fill="#fff"/>
+  <circle cx="530" cy="262" r="17" fill="#ffc400"/><circle cx="568" cy="300" r="17" fill="#ff5c7a"/><circle cx="530" cy="338" r="17" fill="#3ddc84"/><circle cx="492" cy="300" r="17" fill="#4fc3ff"/>
+  <path d="M690 150l40-70M740 190l70-50M760 250l80-10" stroke="#ffc400" stroke-width="22" stroke-linecap="round"/>
+  <text x="700" y="330" font-family="Fredoka, Rubik, Arial, sans-serif" font-size="88" font-weight="700" fill="#fff">Too Soon</text>
+  <text x="700" y="420" font-family="Fredoka, Rubik, Arial, sans-serif" font-size="88" font-weight="700" fill="#ffc400">Games</text>
+  <text x="80" y="560" font-family="Rubik, Arial, sans-serif" font-size="34" fill="#b9a9d9">Short web games about what everyone is talking about right now.</text>
+</svg>

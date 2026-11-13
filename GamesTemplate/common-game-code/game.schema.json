@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Too Soon Games game.json",
+  "type": "object",
+  "required": ["id", "slug", "title", "tagline", "audience", "lang", "version", "event", "score", "share", "screens", "showPlayerCountFrom"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]+$" },
+    "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,39}$" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "tagline": { "type": "string", "minLength": 1, "maxLength": 140 },
+    "audience": { "enum": ["il", "us"] },
+    "lang": { "enum": ["he", "en"] },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "event": {
+      "type": "object", "required": ["title", "date", "sourceUrl"], "additionalProperties": false,
+      "properties": { "title": { "type": "string" }, "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }, "sourceUrl": { "type": "string", "format": "uri" }, "sourceLabel": { "type": "string" } }
+    },
+    "score": {
+      "type": "object", "required": ["label", "max", "minDurationS", "higherIsBetter"], "additionalProperties": false,
+      "properties": { "label": { "type": "string" }, "max": { "type": "integer", "minimum": 1 }, "minDurationS": { "type": "integer", "minimum": 0 }, "higherIsBetter": { "type": "boolean" } }
+    },
+    "share": { "type": "object", "required": ["text"], "additionalProperties": false, "properties": { "text": { "type": "string", "pattern": "\\{url\\}" } } },
+    "screens": {
+      "type": "object", "required": ["cutscene", "board", "facts"], "additionalProperties": false,
+      "properties": { "cutscene": { "type": "boolean" }, "board": { "type": "boolean" }, "facts": { "type": "boolean" }, "lose": { "type": "boolean" } }
+    },
+    "showPlayerCountFrom": { "type": "integer", "minimum": 0 },
+    "cover": { "type": "string" },
+    "ogImage": { "type": "string" },
+    "ogTitle": { "type": "string" },
+    "ogDescription": { "type": "string" },
+    "publishedAt": { "type": "string" },
+    "status": { "enum": ["live", "archived", "draft"] },
+    "music": { "type": "boolean" },
+    "fonts": { "type": "array", "items": { "type": "string" } },
+    "themeColor": { "type": "string" }
+  }
+}

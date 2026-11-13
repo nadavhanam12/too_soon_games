@@ -1,0 +1,5 @@
+{
+  "extends": "../../GamesTemplate/common-game-code/tsconfig.base.json",
+  "compilerOptions": { "paths": { "@tsg/*": ["../../GamesTemplate/common-game-code/src/*"] } },
+  "include": ["src/**/*.ts", "../../GamesTemplate/common-game-code/src/**/*.ts"]
+}

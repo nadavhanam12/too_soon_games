@@ -53,3 +53,15 @@
 | גישה ל־Gal ו־Or ל־Cloudflare ול־GitHub | עבודת צוות | הצעה 2 למעלה |
 | מפתח אדמין חזק יותר לפני שהאתר ציבורי | המפתח הנוכחי קצר; מגן על מחיקת ניקודים וקריאת דאטה | `wrangler secret put ADMIN_KEY` |
 | שדרוג Node.js ל־22 LTS (היום 20.13, שתמיכתו הסתיימה באפריל 2026) | wrangler החדש דורש Node 22; בינתיים נעוץ wrangler 4.80 שעובד על Node 20 | `package.json` של השרת |
+
+## נפתח בבנייה (2026-11-14, אחרי שהקוד נכתב)
+
+| מה | למה | איפה |
+|---|---|---|
+| `og.png` ו־`cover.png` ל־FallingCEO (1200x630, 1200x900) | game.json מצביע עליהם; בלי זה תצוגת הקישור בווצאפ ריקה | `Games/FallingCEO/assets/` |
+| תמונות OG ואייקונים כ־PNG לאתר (היום SVG) | WhatsApp/iMessage לא תמיד מציגים SVG | `frontend/src/assets/`, דורש sharp/resvg |
+| סינון כינויים בשרת | עדיין הצעה 1 למעלה | `worker/src/util.ts nick()` |
+| `studio.json.email` | עמוד contact ו־security.txt מציגים placeholder | `studio.json` |
+| מסך lose לא נבדק עם משחק רב־שלבי אמיתי (FallingCEO חסר שלבים) | ייבדק במשחק הבא עם שלבים (או בהעברת "טיסה נעימה") | `common-game-code/src/screens/lose.ts` |
+| Cutscene: דילוג בלחיצה ארוכה הוחלף בקישור "Skip" בפינה | פשוט יותר; לשקול חזרה ללחיצה ארוכה | `screens/cutscene.ts` |
+| הצטמצמות: בדסקטופ בארה"ב הכפתור המרכזי הופך ל־Copy והשני מוסתר | ייתכן שעדיף WhatsApp Web כברירת מחדל בדסקטופ | `share/overlays.ts` |

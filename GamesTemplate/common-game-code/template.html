@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="{{themeColor}}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{url}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Too Soon Games">
+<meta property="og:title" content="{{ogTitle}}">
+<meta property="og:description" content="{{ogDescription}}">
+<meta property="og:url" content="{{url}}">
+<meta property="og:image" content="{{ogImage}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ogTitle}}">
+<meta name="twitter:description" content="{{ogDescription}}">
+<meta name="twitter:image" content="{{ogImage}}">
+<link rel="icon" href="{{home}}assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700;900{{extraFonts}}&display=swap">
+<style>
+:root{--bg:{{bg}};--ink:#fff;--font:'Rubik',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;color-scheme:dark}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;overscroll-behavior:none}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.tsg-ov{position:fixed;inset:0;pointer-events:none;font-family:var(--font)}
+.tsg-ov>*{pointer-events:auto}
+.tsg-ov [hidden],.tsg-ov [hidden] *{display:none!important}
+.tsg-share{position:fixed;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:50fr 44fr;gap:.6em .55em;box-sizing:border-box}
+.tsg-share .tsg-central{grid-column:1/-1}
+.tsg-share .tsg-sys[hidden]~.tsg-copy{grid-column:1/-1}
+.tsg-share:has(.tsg-copy[hidden]) .tsg-sys{grid-column:1/-1}
+.tsg-btn{display:flex;align-items:center;justify-content:center;border:0;border-radius:999px;padding:0 .8em;font:900 1em var(--font);cursor:pointer;text-decoration:none;white-space:nowrap;min-height:0;box-sizing:border-box;box-shadow:0 .25em .7em rgba(0,0,0,.35)}
+.tsg-central{font-size:1.15em}
+.tsg-sys{background:#2f6fdd;color:#fff}
+.tsg-copy{background:rgba(255,255,255,.14);color:#fff;border:.1em solid rgba(255,255,255,.35);box-shadow:none}
+.tsg-follow{position:fixed;display:flex;justify-content:center;gap:1.15em;box-sizing:border-box}
+.tsg-net{width:4em;height:4em;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff4fd8,#8a3cff);color:#fff;box-shadow:0 .25em .7em rgba(0,0,0,.35)}
+.tsg-net svg{width:2.1em;height:2.1em}
+.tsg-net-off{opacity:.45;pointer-events:none;background:rgba(255,255,255,.15)}
+.tsg-nick{position:fixed;display:grid;grid-template-rows:46fr 48fr 18fr;gap:.4em;box-sizing:border-box}
+.tsg-input{box-sizing:border-box;width:100%;border-radius:999px;border:.12em solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font:700 1.05em var(--font);text-align:center;padding:0 1em;outline:none}
+.tsg-input:focus{border-color:#ffc400}
+.tsg-input::placeholder{color:rgba(255,255,255,.55);font-weight:400}
+.tsg-save{background:#ffc400;color:#1a1200}
+.tsg-link{background:none;border:0;color:rgba(255,255,255,.7);font:700 .85em var(--font);text-decoration:underline;cursor:pointer;padding:0;text-align:center}
+.tsg-src{position:fixed;background:rgba(255,255,255,.14);color:#fff;border:.1em solid rgba(255,255,255,.35);box-shadow:none;font-weight:700}
+.tsg-report{position:fixed;display:flex;align-items:center;justify-content:center}
+.tsg-footer{position:fixed;display:flex;justify-content:space-between;align-items:center;font:700 13px var(--font);color:rgba(255,255,255,.6)}
+.tsg-footer a{color:#ffc400;text-decoration:none}
+.tsg-footer[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="360" height="640" aria-label="{{title}}" role="img"></canvas></div>
+<script>{{script}}</script>
+</body>
+</html>

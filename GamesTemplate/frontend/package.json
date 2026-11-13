@@ -1,0 +1,18 @@
+{
+  "name": "toosoon-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node run.mjs",
+    "build:sample": "node run.mjs --games test/games.sample.json",
+    "check": "tsc --noEmit",
+    "test": "node test/worker.test.mjs",
+    "serve": "node run.mjs --serve"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2",
+    "typescript": "^5.9.3",
+    "@types/node": "^20.19.43"
+  }
+}

@@ -1,0 +1,108 @@
+/* Too Soon Games studio site. Tokens from docs/FRONTEND.md. Dark always. Mobile first. */
+:root{
+  --bg:#140b24;--surface:#221440;--surface-2:#1b1036;--ink:#fff;--muted:#b9a9d9;
+  --magenta:#ff4fd8;--violet:#8a3cff;--accent:#ffc400;--line:#2e1f52;
+  --grad:linear-gradient(135deg,var(--magenta),var(--violet));
+  --r:20px;--gut:16px;--max:1100px;
+  --font-h:Fredoka,"Rubik",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --font:Rubik,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);overflow-x:hidden;min-height:100dvh;display:flex;flex-direction:column}
+img,svg{max-width:100%;display:block}
+a{color:var(--magenta)}
+a:focus-visible,button:focus-visible,.net:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
+h1,h2,h3{font-family:var(--font-h);font-weight:700;line-height:1.15;margin:0 0 .4em;letter-spacing:.01em}
+h1{font-size:clamp(28px,6vw,44px)}h2{font-size:clamp(20px,4vw,26px)}h3{font-size:18px}
+p{margin:0 0 .8em}
+.muted{color:var(--muted)}.small{font-size:13px}.center{text-align:center}
+.wrap{width:100%;max-width:var(--max);margin-inline:auto;padding-inline:var(--gut)}
+main.wrap{flex:1;display:grid;gap:20px;padding-block:8px 32px}
+.skip{position:absolute;left:-9999px;top:8px;background:var(--accent);color:#1a1200;padding:8px 14px;border-radius:999px;z-index:10}
+.skip:focus{left:8px}
+.card{background:var(--surface);border-radius:var(--r);padding:20px}
+.eyebrow{color:var(--accent);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 6px}
+.lead{font-size:18px;color:#e8e0f7}
+.tag{display:inline-block;background:var(--surface-2);color:var(--muted);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}
+.todo{background:var(--accent);color:#1a1200;border-radius:6px;padding:0 6px;font-size:13px}
+
+/* header */
+.site-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px}
+.brand{display:inline-flex;align-items:center;text-decoration:none}
+.logo{width:auto;height:64px;margin:-6px 0}
+.site-nav{display:flex;gap:18px;font-weight:700}
+.site-nav a{color:var(--ink);text-decoration:none;opacity:.85}.site-nav a:hover{opacity:1;color:var(--magenta)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:12px 24px;font-weight:700;text-decoration:none;font-family:var(--font-h);font-size:18px;line-height:1;min-height:44px}
+.btn-play{background:var(--accent);color:#1a1200;box-shadow:0 8px 24px rgba(255,196,0,.25)}
+.btn-play:hover{filter:brightness(1.06)}
+.btn svg{width:20px;height:20px}
+
+/* hero */
+.hero{display:grid;gap:16px;padding:0;overflow:hidden;position:relative}
+.hero::before{content:"";position:absolute;inset:0;background:var(--grad);opacity:.14;pointer-events:none}
+.hero-cover{display:block;position:relative}
+.hero .cover{width:100%;aspect-ratio:4/3;object-fit:cover}
+.hero-text{position:relative;padding:4px 20px 22px}
+.hero h1{margin-bottom:6px}
+.players{color:var(--muted);font-size:14px;margin:0 0 14px}.players b{color:var(--ink);font-family:var(--font-h);font-size:16px}
+.cover-fallback{aspect-ratio:4/3;display:grid;place-items:center;background:var(--grad);font:700 clamp(64px,20vw,140px)/1 var(--font-h);color:#fff;text-shadow:0 6px 0 rgba(0,0,0,.25)}
+
+/* leaderboard */
+.board-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.board-list li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--surface-2);font-size:15px}
+.board-list .rank{font-family:var(--font-h);color:var(--accent);font-weight:700}
+.board-list .nick{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-list .score{font-family:var(--font-h);font-weight:700}
+.board-list li:nth-child(-n+3) .rank{font-size:18px}
+.board-more{margin:10px 0 0;font-size:14px}
+
+/* studio line */
+.studio-line{font-family:var(--font-h);font-size:clamp(18px,3.5vw,24px);color:#e8e0f7;text-align:center;padding:4px 8px;margin:0}
+
+/* grid */
+.grid{list-style:none;margin:0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.game-card{padding:0;overflow:hidden}
+.game-card-link{color:inherit;text-decoration:none;display:block;height:100%}
+.game-card .cover{width:100%;aspect-ratio:4/3;object-fit:cover}
+.game-card .cover-fallback{font-size:clamp(40px,12vw,80px)}
+.game-card-body{padding:12px 12px 14px}
+.game-card h3{margin-bottom:4px}
+.game-card .muted{font-size:13px;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin:0}
+.meta .players{margin:0;font-size:12px}.meta .players b{font-size:12px}
+.is-archived{opacity:.75}
+
+/* follow */
+.follow{text-align:center;padding:26px 20px}
+.follow h2{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+.nets{display:flex;justify-content:center;gap:16px;margin-top:14px}
+.net{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--ink);text-decoration:none;border:2px solid var(--line);transition:transform .15s,border-color .15s}
+.net svg{width:26px;height:26px}
+.net:hover{transform:translateY(-2px);border-color:var(--magenta)}
+.net.is-empty{opacity:.45;pointer-events:none}
+
+/* footer */
+.site-footer{padding-block:20px 28px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:8px}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:6px 18px;margin-bottom:8px}
+.site-footer a{color:var(--muted);text-decoration:none}.site-footer a:hover{color:var(--ink)}
+
+/* text pages */
+.prose{max-width:760px;margin-inline:auto;padding:24px 20px}
+.prose h2{margin-top:1.3em;font-size:20px}
+.prose ul{padding-inline-start:20px}.prose li{margin-bottom:.4em}
+.prose.center{text-align:center}
+
+@media (min-width:700px){
+  .logo{height:80px;margin:-10px 0}
+  main.wrap{gap:28px;padding-block:12px 48px}
+  .hero{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:center}
+  .hero .cover{aspect-ratio:4/3;height:100%}
+  .hero-text{padding:28px 28px 28px 8px}
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+}
+@media (min-width:1000px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

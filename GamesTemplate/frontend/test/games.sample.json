@@ -1,0 +1,31 @@
+{
+  "$comment": "Sample registry for previewing the home page (npm run build:sample). Not the real games.json.",
+  "games": [
+    {
+      "id": "FallingCEO",
+      "slug": "chip-drop",
+      "title": "Drop the Chip",
+      "tagline": "Icy Tower in reverse. How long can a CEO keep falling before the board catches up?",
+      "audience": "us",
+      "lang": "en",
+      "version": "1.0.0",
+      "event": { "title": "Nvidia CEO scandal", "date": "2026-11-12", "sourceUrl": "https://example.com/story" },
+      "publishedAt": "2026-11-15",
+      "status": "live",
+      "showPlayerCountFrom": 0
+    },
+    {
+      "id": "FlightHeros",
+      "slug": "plesentflight",
+      "title": "חופשה בטוחה",
+      "tagline": "174 נוסעים, קוקפיט פרוץ, גובה שיורד. כמה מהר אתה מציל את הטיסה?",
+      "audience": "il",
+      "lang": "he",
+      "version": "0.1.4",
+      "event": { "title": "Flight FZ1073", "date": "2026-09-30", "sourceUrl": "https://example.com/flight" },
+      "publishedAt": "2026-10-01",
+      "status": "archived",
+      "showPlayerCountFrom": 0
+    }
+  ]
+}

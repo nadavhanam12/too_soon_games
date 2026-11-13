@@ -1,0 +1,25 @@
+{
+  "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
+  "id": "FallingCEO",
+  "slug": "chip-drop",
+  "title": "Drop the Chip",
+  "tagline": "Icy Tower in reverse: how long can a CEO keep falling before the board meeting catches up?",
+  "audience": "us",
+  "lang": "en",
+  "version": "1.0.0",
+  "event": {
+    "title": "Nvidia CEO resignation, November 2026",
+    "date": "2026-11-12",
+    "sourceUrl": "https://nvidianews.nvidia.com/",
+    "sourceLabel": "Nvidia newsroom, Nov 12, 2026"
+  },
+  "score": { "label": "seconds survived", "max": 3600, "minDurationS": 3, "higherIsBetter": true },
+  "share": { "text": "Drop the Chip 📉 I lasted {result} before resigning. \"{rank}\" Your turn: {url}" },
+  "screens": { "cutscene": true, "board": true, "facts": true },
+  "showPlayerCountFrom": 500,
+  "cover": "assets/cover.png",
+  "ogImage": "assets/og.png",
+  "status": "draft",
+  "fonts": ["Patrick Hand"],
+  "themeColor": "#161616"
+}
