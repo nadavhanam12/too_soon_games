@@ -60,7 +60,12 @@ Memes, videos, parody accounts and EXISTING GAMES about this event, each with a 
 End with one line: "The played-out joke to avoid: ..." and one line: "The gap nobody filled: ...".
 
 ## 6. Three mechanic ideas
+**RULES 2א first:** the game must walk the player through the real story, in its real order. So before the ideas,
+write the **story beats**: 3–6 real moments of the event, in order, one line each, each with its source. Every idea
+below maps its stages (or its in-run events, for an endless game) onto those beats; an idea that cannot be mapped
+beat-by-beat is not a candidate (that is what went wrong with Drop the Chip, a generic mechanic with headlines glued on).
 For each (A/B/C):
+- Beat → stage map (beat 1 = stage 1 …; for an endless run: which beat arrives when)
 - What the player does (one sentence)
 - The central action (tap / swipe / hold / drag / timing)
 - The shareable moment (what makes someone say "you have to see this")
