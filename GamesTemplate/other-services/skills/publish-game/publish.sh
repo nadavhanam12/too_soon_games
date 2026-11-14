@@ -41,6 +41,11 @@ PUBLIC_BASE="$(jq_ "$STUDIO" publicBase 2>/dev/null || true)"; API_BASE="$(jq_ "
 echo "[publish] $GAME_ID → /$SLUG/  (\"$TITLE\")  dry-run=$DRY"
 [ -f "$GAME_DIR/research.md" ] || warn "research.md missing (RULES 4) - the agent must confirm with the user before continuing"
 
+# 0. share/cover images (RULES 21א): generated from the title screen when missing; hand-made files are kept
+step "assets"
+node "$TPL/other-services/assets/make-assets.mjs" "$GAME_ID" || fail "could not make og/cover images (other-services/assets/make-assets.mjs)"
+for A in cover ogImage; do P="$(jq_ "$GAME_JSON" $A)"; [ -z "$P" ] || [ -f "$GAME_DIR/$P" ] || fail "game.json.$A points to $P which does not exist"; done
+
 # 1. bugcheck
 step "bugcheck"
 if [ "$SKIP_BUG" = 1 ]; then

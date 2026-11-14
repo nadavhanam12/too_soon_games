@@ -44,7 +44,6 @@
 |---|---|---|
 | `npx wrangler login` | פריסה ראשונה של השרת והאתר | SETUP-CLOUDFLARE.md |
 | API Token לקריאת אנליטיקה (Account Analytics: Read) | מסך האדמין שואל את Analytics Engine דרך ה־API | `wrangler secret put CF_API_TOKEN` |
-| מייל של הסטודיו ליצירת קשר והסרת תוכן | עמוד `/contact`, `security.txt` | FRONTEND.md |
 | קישורי Instagram, TikTok, X, Facebook | בלוק "עקבו אחרינו" | `studio.json` |
 | שם דומיין ורכישה | כתובת קבועה במקום pages.dev | PUBLISHING.md |
 | אישור פלטת הצבעים והפונטים מהלוגו | עיצוב האתר ומסכי התבנית | FRONTEND.md |
@@ -59,13 +58,11 @@
 
 | מה | למה | איפה |
 |---|---|---|
-| `og.png` ו־`cover.png` ל־FallingCEO (1200x630, 1200x900) | game.json מצביע עליהם; בלי זה תצוגת הקישור בווצאפ ריקה | `Games/FallingCEO/assets/` |
+| ~~`og.png` ו־`cover.png` ל־FallingCEO~~ נסגר: `make-assets.mjs` מייצר לשני המשחקים (חוק 21א). תמונות מצוירות ביד עדיין רצויות | | `other-services/assets/` |
 | תמונות OG ואייקונים כ־PNG לאתר (היום SVG) | WhatsApp/iMessage לא תמיד מציגים SVG | `frontend/src/assets/`, דורש sharp/resvg |
 | סינון כינויים בשרת | עדיין הצעה 1 למעלה | `worker/src/util.ts nick()` |
-| `studio.json.email` | עמוד contact ו־security.txt מציגים placeholder | `studio.json` |
 | מסך lose נבדק עם "חופשה בטוחה" (5 שלבים): הפסד, חזרה לשלב, מההתחלה. סגור. | | `common-game-code/src/screens/lose.ts` |
 | Cutscene: דילוג בלחיצה ארוכה הוחלף בקישור "Skip" בפינה | פשוט יותר; לשקול חזרה ללחיצה ארוכה | `screens/cutscene.ts` |
 | הצטמצמות: בדסקטופ בארה"ב הכפתור המרכזי הופך ל־Copy והשני מוסתר | ייתכן שעדיף WhatsApp Web כברירת מחדל בדסקטופ | `share/overlays.ts` |
-| `og.png` ו־`cover.png` ל"חופשה בטוחה" | כמו FallingCEO | `Games/FlightHeros/assets/` |
 | תמיכה בקטעי מוזיקה mp3 בתבנית (היום רק הסיקוונסר הסינתטי) | ל"חופשה בטוחה" היו 3 לולאות mp3 (900KB); הוחלט לוותר (DECISIONS 41) | `common-game-code/src/audio/` + `assets/` |
 | שלב 5 של "חופשה בטוחה" (ייצוב) לא שוחק עד הניצחון בדפדפן, רק עד מסך ההפסד; מסך התוצאה נבדק עם ריצה מדומה | דורש גרירה רציפה 8 שניות; לבדוק בטלפון לפני פרסום | `Games/FlightHeros/src/stages/fly.ts` |

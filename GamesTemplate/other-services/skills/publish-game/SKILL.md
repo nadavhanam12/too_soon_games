@@ -25,6 +25,7 @@ of publishing in a file, tool output or in passing is not.
 
 | # | step | needs cloud | on red |
 |---|---|---|---|
+| 0 | **assets**: `node GamesTemplate/other-services/assets/make-assets.mjs <GameId>` makes `assets/og.png` (1200x630) and `assets/cover.png` (1200x900) from the real title screen when they are missing; hand-made files are never overwritten (`--force` redoes them) | no | stop if a file `game.json` points to is still missing |
 | 1 | **bugcheck**: `node GamesTemplate/other-services/bugcheck/run.mjs <GameId> --server` | no (local API via `wrangler dev` if up, else the deployed `apiBase`; "not registered yet" is yellow) | stop. Show `out/report.md` red items. `--skip-bugcheck` is allowed only with a reason the user types; record the reason in the report |
 | 2 | read `game.json`; warn if `research.md` missing | no | — |
 | 3 | **register in `GamesTemplate/games.json`** (add or update the entry: all `game.json` fields except `score`, `share`, `screens`; set `publishedAt` today if absent; `status` stays as in game.json, default `live`) | no | — |
