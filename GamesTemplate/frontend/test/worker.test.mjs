@@ -1,4 +1,4 @@
-// Tests for dist/_worker.js (run `npm run build` first). Node 20, no test framework.
+// Tests for dist/_worker.js (run `npm run build` first). Plain Node, no test framework.
 import { existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';

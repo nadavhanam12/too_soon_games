@@ -18,8 +18,9 @@
    שם: `toosoon-analytics`. הרשאה אחת: **Account · Account Analytics · Read**. Account Resources:
    החשבון שלך. Continue → Create Token. להעתיק לשורת `CF_API_TOKEN` ב־`.dev.vars`. **לא לשלוח בצ'אט.**
    בלי זה הכל עובד חוץ ממסך האדמין, שיציג "אנליטיקה לא זמינה".
-6. **Node.js 22 LTS:** הגרסה המותקנת (20) יצאה מתמיכה ו־wrangler החדש דורש 22. להתקין מ־
-   https://nodejs.org, ואז אני מסיר את הנעיצה של wrangler 4.80.
+6. **Node.js:** נדרש 22 ומעלה (wrangler). בוצע 2026-11-15: Node 26.13 LTS הותקן דרך `winget install OpenJS.NodeJS.LTS`,
+   ונעיצת wrangler 4.80 הוסרה (`^4.162`). אחרי שדרוג wrangler מסד ה־D1 המקומי מתחיל ריק: `npm run migrate:local` בתיקיית השרת
+   לפני `npm run dev`.
 7. **(מאוחר יותר, כשתרצה)** דומיין: Domain Registration → Register, או העברת דומיין קיים.
    דורש תשלום. עד אז הכתובת היא `https://<project>.pages.dev`.
 8. **(מאוחר יותר, כשתרצה)** אמצעי תשלום: Billing → Payment info. מפעיל R2 לגיבויים ומאפשר
@@ -77,6 +78,6 @@ Analytics Engine בחודש. אפס שינוי בקוד.
   לכן `studio.json.apiBase` חייב להצביע על הדומיין.
 - **אתר:** דומיין מותאם לפרויקט Pages, פעם אחת בלוח הבקרה: Workers & Pages → toosoon-games → Custom domains →
   Set up a custom domain → `toosoongames.app` (ושוב ל־`www.toosoongames.app`). Cloudflare מוסיף את רשומות ה־CNAME לבד.
-  ל־wrangler 4.80 אין פקודה לזה. אחרי ההפעלה: `studio.json.publicBase` → `https://toosoongames.app` ופרסום מחדש של האתר
+  ל־wrangler אין פקודה לזה. אחרי ההפעלה: `studio.json.publicBase` → `https://toosoongames.app` ופרסום מחדש של האתר
   ושל כל המשחקים (ה־OG והקישורים נבנים מ־publicBase).
 - `ALLOWED_ORIGINS` ב־`wrangler.toml` כולל את שני הדומיינים ואת pages.dev.

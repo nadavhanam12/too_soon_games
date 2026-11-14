@@ -2,7 +2,7 @@
 # Publish a game: bugcheck → register (games.json + API) → bump → build client → build site → deploy → verify.
 #   bash publish.sh <GameId> [--dry-run] [--skip-bugcheck "<reason>"]
 # --dry-run: everything local (no API registration, no deploy, no version bump, games.json written to a .preview file).
-# Runs in Git Bash on Windows (Node 20). Paths per docs/CONTRACTS.md.
+# Runs in Git Bash on Windows (Node 22+). Paths per docs/CONTRACTS.md.
 set -euo pipefail
 
 GAME_ID="${1:-}"; shift || true

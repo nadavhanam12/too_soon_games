@@ -77,7 +77,7 @@ happen and that nothing was deployed.
 
 - "Project not found" on deploy: the Pages project does not exist yet →
   `server-and-data/worker/node_modules/.bin/wrangler pages project create toosoon-games --production-branch main` (once;
-  done 2026-11-14), then rerun. Always the pinned wrangler: a bare `npx wrangler` outside the worker folder fetches a
-  version that needs Node 22.
+  done 2026-11-14), then rerun. Always the worker's wrangler (one version for the whole repo, installed in
+  `server-and-data/worker/node_modules`).
 - OG check fails but the page is live: usually `_worker.js` missing from `dist` (site build) — rerun step 7.
 - Board 404: step 4 was skipped — register the game in the API (or via the admin page "+ משחק").

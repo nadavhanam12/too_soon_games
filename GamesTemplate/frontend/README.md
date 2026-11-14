@@ -6,7 +6,7 @@
 
 ```
 build.ts               קורא ../games.json + ../studio.json → ../dist/
-run.mjs                מריץ את build.ts דרך esbuild (Node 20, בלי tsx)
+run.mjs                מריץ את build.ts דרך esbuild (בלי tsx)
 src/pages/             home, about, privacy, terms, contact, accessibility, 404
 src/components/        layout (header/footer/follow), games (hero/card/grid), icons, html helpers
 src/styles/site.css    הטוקנים והעיצוב (כהה תמיד). נכתב ל־dist עם hash בשם

@@ -3,7 +3,7 @@
 #   bash deploy.sh                # backup → typecheck → bump VERSION → migrations → deploy → verify
 #   bash deploy.sh --first-time   # also: d1 create, write database_id, push secrets from .dev.vars
 #   bash deploy.sh --dry-run      # print what would happen; changes nothing (no bump, no deploy)
-# Runs in Git Bash on Windows (Node 20, wrangler ~4.80). Never prints secret values.
+# Runs in Git Bash on Windows (Node 22+, wrangler 4.x). Never prints secret values.
 set -euo pipefail
 
 FIRST=0; DRY=0

@@ -18,9 +18,8 @@ user does themselves: `docs/SETUP-CLOUDFLARE.md`; command contracts: `docs/CONTR
    npx wrangler login
    ```
    Never try to log in for the user and never ask for API keys in chat.
-3. **Node / wrangler note:** the repo pins `wrangler ~4.80` because the machine runs Node 20.13.
-   `npx wrangler` printing "requires at least Node.js v22" means the pin was lost or Node changed:
-   reinstall (`npm install`) or, once Node 22 LTS is installed, remove the pin (BACKLOG item).
+3. **Node / wrangler note:** wrangler needs Node 22+; the machine runs Node 26 LTS since 2026-11-15 and wrangler is
+   `^4.162`. `npx wrangler` printing "requires at least Node.js v22" means an old Node is first on PATH.
 4. `.dev.vars` must exist with `ADMIN_KEY` set (and ideally `CF_ACCOUNT_ID`, `CF_API_TOKEN`). Missing
    file → copy `.dev.vars.example` and ask the user to fill it; do not invent values.
 
