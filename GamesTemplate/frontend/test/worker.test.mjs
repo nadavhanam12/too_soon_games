@@ -34,6 +34,14 @@ out = rewriteOg(GAME_HTML, { c: '42', n: '<img src=x onerror=alert(1)>' });
 check('nick escaped (angle brackets stripped, no raw tag)', !out.includes('<img') && out.includes('img src=x onerro scored'), out);
 out = rewriteOg(GAME_HTML, { c: '42', n: 'x"y' });
 check('quote in nick escaped', out.includes('x&quot;y scored'));
+const HE_HTML = `<!doctype html><html lang="he" dir="rtl"><head><title>חופשה בטוחה</title>
+<meta property="og:title" content="חופשה בטוחה · Too Soon Games"></head><body></body></html>`;
+out = rewriteOg(HE_HTML, { c: '4200', n: 'דני' });
+check('hebrew page → hebrew sentence, studio suffix stripped', out.includes('content="דני עשה 4,200 בחופשה בטוחה. תנצח אותו?"'), out);
+out = rewriteOg(HE_HTML, { c: '7' });
+check('hebrew page, no nick → חבר שלך', out.includes('חבר שלך עשה 7 ב'));
+out = rewriteOg(GAME_HTML.replace('Drop the Chip - game', 'Drop the Chip · Too Soon Games'), { c: '1', n: 'A' });
+check('english studio suffix stripped', out.includes('A scored 1 in Drop the Chip. Beat them?'), out);
 out = rewriteOg(GAME_HTML, { c: '42', n: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' });
 check('nick capped at 16 chars', out.includes('ABCDEFGHIJKLMNOP scored') && !out.includes('ABCDEFGHIJKLMNOPQ'));
 check('non-numeric c → unchanged', rewriteOg(GAME_HTML, { c: 'abc' }) === GAME_HTML);

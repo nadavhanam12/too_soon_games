@@ -1,4 +1,52 @@
 {
   "$comment": "Registry of published games. Source of truth for the portal build and for /publish-game (which also registers the game in the API). Fields: docs/FRONTEND.md.",
-  "games": []
+  "games": [
+    {
+      "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
+      "id": "FlightHeros",
+      "slug": "safe-flight",
+      "title": "חופשה בטוחה",
+      "tagline": "174 נוסעים, קוקפיט פרוץ, גובה שיורד. כמה מהר אתה מציל את הטיסה?",
+      "audience": "il",
+      "lang": "he",
+      "version": "1.0.0",
+      "event": {
+        "title": "טיסת פליי-דובאי FZ1073, דובאי–תל אביב",
+        "date": "2026-09-30",
+        "sourceUrl": "https://www.ynet.co.il/news",
+        "sourceLabel": "ynet, 30.9.2026"
+      },
+      "showPlayerCountFrom": 500,
+      "cover": "assets/cover.png",
+      "ogImage": "assets/og.png",
+      "status": "draft",
+      "themeColor": "#0f1a2b",
+      "publishedAt": "2026-11-14"
+    },
+    {
+      "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
+      "id": "FallingCEO",
+      "slug": "chip-drop",
+      "title": "Drop the Chip",
+      "tagline": "Icy Tower in reverse: how long can a CEO keep falling before the board meeting catches up?",
+      "audience": "us",
+      "lang": "en",
+      "version": "1.0.0",
+      "event": {
+        "title": "Nvidia CEO resignation, November 2026",
+        "date": "2026-11-12",
+        "sourceUrl": "https://nvidianews.nvidia.com/",
+        "sourceLabel": "Nvidia newsroom, Nov 12, 2026"
+      },
+      "showPlayerCountFrom": 500,
+      "cover": "assets/cover.png",
+      "ogImage": "assets/og.png",
+      "status": "draft",
+      "fonts": [
+        "Patrick Hand"
+      ],
+      "themeColor": "#161616",
+      "publishedAt": "2026-11-14"
+    }
+  ]
 }

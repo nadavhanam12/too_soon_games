@@ -39,6 +39,7 @@ const CLIENT_JS = `
     heroEl.setAttribute('data-slug',want.slug);
     var h1=heroEl.querySelector('h1'),lead=heroEl.querySelector('.lead'),links=heroEl.querySelectorAll('a[href]'),img=heroEl.querySelector('img.cover');
     if(h1)h1.textContent=want.title;if(lead)lead.textContent=want.tagline;
+    var eye=heroEl.querySelector('.eyebrow');if(eye){var FL={il:'🇮🇱',us:'🇺🇸'},LN={he:'Hebrew',en:'English'};var d=want.event&&want.event.date?new Date(want.event.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';eye.textContent=(want.status==='archived'?'From the archive':'Latest game')+' · '+(FL[want.audience]||'')+' '+(LN[want.lang]||want.lang)+(d?' · '+d:'');}
     for(var i=0;i<links.length;i++)links[i].setAttribute('href','/'+want.slug+'/');
     if(img){if(want.cover)img.setAttribute('src','/'+want.slug+'/'+String(want.cover).replace(/^\\/+/,''));else img.remove();}
     var cnt=heroEl.querySelector('[data-count]');if(cnt){cnt.setAttribute('data-count',want.slug);cnt.setAttribute('data-min',String(want.showPlayerCountFrom==null?500:want.showPlayerCountFrom));}

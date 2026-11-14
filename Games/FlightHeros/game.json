@@ -6,16 +6,28 @@
   "tagline": "174 נוסעים, קוקפיט פרוץ, גובה שיורד. כמה מהר אתה מציל את הטיסה?",
   "audience": "il",
   "lang": "he",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "event": {
     "title": "טיסת פליי-דובאי FZ1073, דובאי–תל אביב",
     "date": "2026-09-30",
     "sourceUrl": "https://www.ynet.co.il/news",
     "sourceLabel": "ynet, 30.9.2026"
   },
-  "score": { "label": "ניקוד", "max": 12000, "minDurationS": 20, "higherIsBetter": true },
-  "share": { "text": "חופשה בטוחה ✈️ הצלתי 174 נוסעים בטיסה מדובאי. ניקוד {result}, דרגה \"{rank}\". תנסה אתה: {url}" },
-  "screens": { "cutscene": true, "board": true, "facts": true, "lose": true },
+  "score": {
+    "label": "ניקוד",
+    "max": 12000,
+    "minDurationS": 20,
+    "higherIsBetter": true
+  },
+  "share": {
+    "text": "חופשה בטוחה ✈️ הצלתי 174 נוסעים בטיסה מדובאי. ניקוד {result}, דרגה \"{rank}\". תנסה אתה: {url}"
+  },
+  "screens": {
+    "cutscene": true,
+    "board": true,
+    "facts": true,
+    "lose": true
+  },
   "showPlayerCountFrom": 500,
   "cover": "assets/cover.png",
   "ogImage": "assets/og.png",

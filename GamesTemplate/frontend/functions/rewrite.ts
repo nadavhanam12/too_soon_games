@@ -33,9 +33,11 @@ export function rewriteOg(html: string, params: ChallengeParams): string {
   const ch = parseChallenge(params);
   if (!ch) return html;
   const rawTitle = metaContent(html, 'og:title') ?? (html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? 'this game');
-  const gameTitle = rawTitle.replace(/&amp;/g, '&').replace(/\s*[·|-]\s*(game|משחק)\s*$/i, '');
-  const who = ch.nick ? esc(ch.nick) : 'A friend';
-  const title = `${who} scored ${ch.score} in ${esc(gameTitle)}. Beat them?`;
+  const gameTitle = rawTitle.replace(/&amp;/g, '&').replace(/\s*[·|-]\s*(game|משחק|Too Soon Games)\s*$/i, '');
+  // Hebrew pages get the same sentence the game shows on its title screen (i18n/strings.ts)
+  const he = /<html[^>]*\slang=[\"']he[\"']/i.test(html);
+  const who = ch.nick ? esc(ch.nick) : he ? 'חבר שלך' : 'A friend';
+  const title = he ? `${who} עשה ${ch.score} ב${esc(gameTitle)}. תנצח אותו?` : `${who} scored ${ch.score} in ${esc(gameTitle)}. Beat them?`;
   let out = setMeta(html, 'og:title', title);
   out = setMeta(out, 'twitter:title', title);
   return out;
