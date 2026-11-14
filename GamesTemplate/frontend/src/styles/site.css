@@ -45,7 +45,7 @@ main.wrap{flex:1;display:grid;gap:20px;padding-block:8px 32px}
 .hero{display:grid;gap:16px;padding:0;overflow:hidden;position:relative}
 .hero::before{content:"";position:absolute;inset:0;background:var(--grad);opacity:.14;pointer-events:none}
 .hero-cover{display:block;position:relative}
-.hero .cover{width:100%;aspect-ratio:4/3;object-fit:cover}
+.hero .cover{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}  /* height:auto beats the img height= attribute */
 .hero-text{position:relative;padding:4px 20px 22px}
 .hero h1{margin-bottom:6px}
 .players{color:var(--muted);font-size:14px;margin:0 0 14px}.players b{color:var(--ink);font-family:var(--font-h);font-size:16px}
@@ -67,7 +67,7 @@ main.wrap{flex:1;display:grid;gap:20px;padding-block:8px 32px}
 .grid{list-style:none;margin:0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .game-card{padding:0;overflow:hidden}
 .game-card-link{color:inherit;text-decoration:none;display:block;height:100%}
-.game-card .cover{width:100%;aspect-ratio:4/3;object-fit:cover}
+.game-card .cover{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
 .game-card .cover-fallback{font-size:clamp(40px,12vw,80px)}
 .game-card-body{padding:12px 12px 14px}
 .game-card h3{margin-bottom:4px}

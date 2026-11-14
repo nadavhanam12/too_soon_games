@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Make the share/cover images of a game from its real title screen (docs/CONTRACTS.md).
 //   node make-assets.mjs <GameId> [--force]
-// Writes Games/<GameId>/assets/og.png (1200x630, WhatsApp/iMessage/X card) and cover.png (1200x900, site card).
+// Writes Games/<GameId>/assets/og.png (1200x630, WhatsApp/iMessage/X card: phone + title + tagline) and
+// cover.png (1200x900, site card: the phone alone, since the card prints the title and tagline under it).
 // Uses Playwright + the installed Chrome from ../bugcheck (no extra install). Existing files are kept unless --force.
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -70,7 +71,7 @@ const langLabel = rtl ? 'משחק רשת קצר בעברית' : 'A short web gam
 const studioName = studio.name || 'Too Soon Games';
 function html(w, h) {
   const tall = h > 700;
-  const phoneH = Math.round(h * (tall ? 0.86 : 0.9)), phoneW = Math.round(phoneH * 360 / 640);
+  const phoneH = Math.round(h * (tall ? 0.92 : 0.9)), phoneW = Math.round(phoneH * 360 / 640);
   const titleSize = cfg.title.length > 14 ? (tall ? 76 : 64) : (tall ? 96 : 80);
   return `<!doctype html><html lang="${cfg.lang}" dir="${rtl ? 'rtl' : 'ltr'}"><head><meta charset="utf-8">
 <link rel="stylesheet" href="${fontLink}">
@@ -78,8 +79,9 @@ function html(w, h) {
 html,body{margin:0;width:${w}px;height:${h}px;overflow:hidden}
 body{font-family:${fontFamily},system-ui,sans-serif;color:#fff;background:${bg};position:relative}
 .glow{position:absolute;inset:-20%;background:radial-gradient(60% 70% at ${rtl ? '30%' : '70%'} 40%,rgba(255,255,255,.14),transparent 60%),linear-gradient(135deg,rgba(255,255,255,.06),rgba(0,0,0,.25))}
-.wrap{position:absolute;inset:0;display:flex;align-items:center;gap:${tall ? 64 : 56}px;padding:0 ${tall ? 72 : 64}px;box-sizing:border-box}
-.phone{flex:none;width:${phoneW}px;height:${phoneH}px;border-radius:${tall ? 36 : 30}px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 6px rgba(255,255,255,.12);transform:rotate(${rtl ? 3 : -3}deg)}
+.wrap{position:absolute;inset:0;display:flex;align-items:center;${tall ? 'justify-content:center;' : ''}gap:${tall ? 64 : 56}px;padding:0 ${tall ? 72 : 64}px;box-sizing:border-box}
+.text-cover{flex:none;position:absolute;right:40px;bottom:32px}.text-cover .logo{height:110px;width:auto;filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
+.phone{flex:none;width:${phoneW}px;height:${phoneH}px;border-radius:${tall ? 36 : 30}px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 6px rgba(255,255,255,.12);transform:rotate(${tall ? 0 : rtl ? 3 : -3}deg)}
 .phone img{width:100%;height:100%;display:block}
 .text{flex:1;min-width:0}
 .eyebrow{font-size:${tall ? 28 : 24}px;font-weight:700;opacity:.8;letter-spacing:.02em;margin:0 0 ${tall ? 22 : 14}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -90,12 +92,12 @@ p.tag{font-size:${tall ? 36 : 30}px;line-height:1.3;margin:0 0 ${tall ? 44 : 30}
 .play{display:inline-block;background:#ffc400;color:#1a1200;border-radius:999px;padding:${tall ? '18px 44px' : '14px 36px'};font-size:${tall ? 34 : 28}px;font-weight:900;margin-${rtl ? 'right' : 'left'}:auto}
 </style></head><body><div class="glow"></div><div class="wrap">
 <div class="phone"><img src="data:image/png;base64,${shot.toString('base64')}" alt=""></div>
-<div class="text">
+${tall ? `<div class="text text-cover">${logo ? `<img class="logo" src="${logo}" alt="">` : ''}</div>` : `<div class="text">
 <p class="eyebrow">${esc(langLabel)}</p>
 <h1>${esc(cfg.title)}</h1>
 <p class="tag">${esc(cfg.tagline)}</p>
 <div class="studio">${logo ? `<img src="${logo}" alt="">` : ''}<span>${esc(studioName)}</span><span class="play">${rtl ? 'שחקו ▶' : 'Play ▶'}</span></div>
-</div></div></body></html>`;
+</div>`}</div></body></html>`;
 }
 for (const t of todo) {
   const p = await browser.newPage({ viewport: { width: t.w, height: t.h }, deviceScaleFactor: 1 });
