@@ -26,7 +26,7 @@ export function layout(ctx: SiteCtx, meta: PageMeta, body: string): string {
 <title>${esc(fullTitle)}</title>
 <meta name="description" content="${attr(meta.description)}">
 <link rel="canonical" href="${attr(url)}">
-<meta name="theme-color" content="#140b24">
+<meta name="theme-color" content="#6c3df4">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${attr(studio.name)}">

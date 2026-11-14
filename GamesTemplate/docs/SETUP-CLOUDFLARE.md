@@ -68,3 +68,15 @@ Analytics Engine בחודש. אפס שינוי בקוד.
 חשבון חדש בלי תת־דומיין: ההעלאה מצליחה אבל נגמרת ב־`register a workers.dev subdomain`, ולשרת אין כתובת.
 בלוח הבקרה: Workers & Pages → Overview → תיבת "Your subdomain" → בחירת שם. נבחר `toosoon121234`, ולכן כתובת ה־API היא
 `https://toosoon-api.toosoon121234.workers.dev` (רשומה ב־`studio.json` → `apiBase`). השם מופיע רק בכתובת ה־API.
+
+## הדומיין toosoongames.app (2026-11-15)
+
+ה־DNS של הדומיין ב־Cloudflare (nameservers odin/christina.ns.cloudflare.com), באותו חשבון.
+- **API:** `api.toosoongames.app`, דומיין מותאם של ה־Worker (`routes` ב־`wrangler.toml`, `custom_domain = true`). Cloudflare יוצר
+  את רשומת ה־DNS והתעודה לבד בפריסה. שים לב: ברגע שיש דומיין מותאם, כתובת ה־workers.dev מפסיקה לענות (שגיאה 1042),
+  לכן `studio.json.apiBase` חייב להצביע על הדומיין.
+- **אתר:** דומיין מותאם לפרויקט Pages, פעם אחת בלוח הבקרה: Workers & Pages → toosoon-games → Custom domains →
+  Set up a custom domain → `toosoongames.app` (ושוב ל־`www.toosoongames.app`). Cloudflare מוסיף את רשומות ה־CNAME לבד.
+  ל־wrangler 4.80 אין פקודה לזה. אחרי ההפעלה: `studio.json.publicBase` → `https://toosoongames.app` ופרסום מחדש של האתר
+  ושל כל המשחקים (ה־OG והקישורים נבנים מ־publicBase).
+- `ALLOWED_ORIGINS` ב־`wrangler.toml` כולל את שני הדומיינים ואת pages.dev.

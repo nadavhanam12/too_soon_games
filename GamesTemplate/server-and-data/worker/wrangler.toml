@@ -4,11 +4,14 @@ main = "src/index.ts"
 compatibility_date = "2025-10-01"
 compatibility_flags = ["nodejs_compat"]
 
+# The API answers on api.toosoongames.app (custom domain: DNS record + certificate managed by Cloudflare) and on workers.dev.
+routes = [{ pattern = "api.toosoongames.app", custom_domain = true }]
+
 # Deployed version string, shown by GET /v1/version. /deploy-server bumps it.
 [vars]
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 # Comma-separated origins allowed to call the API. localhost is always allowed in `wrangler dev`.
-ALLOWED_ORIGINS = "https://toosoon-games.pages.dev"
+ALLOWED_ORIGINS = "https://toosoongames.app,https://www.toosoongames.app,https://toosoon-games.pages.dev"
 # Analytics Engine dataset name (must match the binding below) - used by the admin SQL queries.
 EVENTS_DATASET = "toosoon_events"
 
