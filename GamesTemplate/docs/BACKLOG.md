@@ -42,8 +42,6 @@
 
 | מה | למה צריך | איפה נכנס |
 |---|---|---|
-| `npx wrangler login` | פריסה ראשונה של השרת והאתר | SETUP-CLOUDFLARE.md |
-| API Token לקריאת אנליטיקה (Account Analytics: Read) | מסך האדמין שואל את Analytics Engine דרך ה־API | `wrangler secret put CF_API_TOKEN` |
 | קישורי Instagram, TikTok, X, Facebook | בלוק "עקבו אחרינו" | `studio.json` |
 | שם דומיין ורכישה | כתובת קבועה במקום pages.dev | PUBLISHING.md |
 | אישור פלטת הצבעים והפונטים מהלוגו | עיצוב האתר ומסכי התבנית | FRONTEND.md |
