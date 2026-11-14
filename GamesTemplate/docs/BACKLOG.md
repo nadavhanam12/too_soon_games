@@ -42,7 +42,7 @@
 | מה | למה צריך | איפה נכנס |
 |---|---|---|
 | קישורי Instagram, TikTok, X, Facebook | בלוק "עקבו אחרינו" | `studio.json` |
-| חיבור toosoongames.app לפרויקט Pages בלוח הבקרה (Custom domains), ואז publicBase | האתר עדיין ב־pages.dev; ה־API כבר על api.toosoongames.app | SETUP-CLOUDFLARE.md |
+| `www.toosoongames.app` עדיין לא מחובר ב־Pages (הראשי כן) | כניסה עם www תיכשל | לוח הבקרה → Custom domains |
 | אישור פלטת הצבעים והפונטים מהלוגו | עיצוב האתר ומסכי התבנית | FRONTEND.md |
 | קובץ וקטורי של הלוגו (SVG/AI), אם קיים | favicon ואייקונים חדים | FRONTEND.md |
 | החלטה על דגימת אירועים (אחרי קריאת הקיבולת ב־EVENTS.md) | רשת ביטחון מול מכסת האנליטיקה | EVENTS.md |

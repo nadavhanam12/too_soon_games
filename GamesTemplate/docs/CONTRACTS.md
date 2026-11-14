@@ -47,7 +47,7 @@
 
 ## `studio.json`
 `{ name, tagline, email, instagram, tiktok, x, facebook, youtube, cfWebAnalyticsToken, publicBase, apiBase }`.
-`publicBase` = `https://toosoon-games.pages.dev` (יוחלף בדומיין). `apiBase` = כתובת ה־Worker. ריק = יחסי/לא פעיל.
+`publicBase` = `https://toosoongames.app`. `apiBase` = `https://api.toosoongames.app`. ריק = יחסי/לא פעיל.
 
 ## API (סיכום; המלא ב־ARCHITECTURE.md)
 `GET /v1/version`, `GET /v1/games/:slug/count` → `{players, plays}`, `GET /v1/games/:slug/board?limit&userId`,
