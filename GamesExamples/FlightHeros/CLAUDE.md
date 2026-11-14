@@ -1,3 +1,6 @@
+> **Legacy.** This is the pre-template itch.io version, kept for reference. The maintained game lives in
+> `Games/FlightHeros/` on the shared template (`GamesTemplate/`). Do not add features here.
+
 # חופשה בטוחה (FlightHeros)
 
 A single-file Hebrew arcade game: `index.html` holds all CSS, markup and JS. One portrait

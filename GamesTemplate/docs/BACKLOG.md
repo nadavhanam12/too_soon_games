@@ -52,6 +52,7 @@
 | החלטה על דגימת אירועים (אחרי קריאת הקיבולת ב־EVENTS.md) | רשת ביטחון מול מכסת האנליטיקה | EVENTS.md |
 | גישה ל־Gal ו־Or ל־Cloudflare ול־GitHub | עבודת צוות | הצעה 2 למעלה |
 | מפתח אדמין חזק יותר לפני שהאתר ציבורי | המפתח הנוכחי קצר; מגן על מחיקת ניקודים וקריאת דאטה | `wrangler secret put ADMIN_KEY` |
+| קישור הכתבה האמיתית על טיסת FZ1073 (30.9.2026) | `event.sourceUrl` של "חופשה בטוחה" מצביע היום על עמוד החדשות של ynet, לא על כתבה | `Games/FlightHeros/game.json` |
 | שדרוג Node.js ל־22 LTS (היום 20.13, שתמיכתו הסתיימה באפריל 2026) | wrangler החדש דורש Node 22; בינתיים נעוץ wrangler 4.80 שעובד על Node 20 | `package.json` של השרת |
 
 ## נפתח בבנייה (2026-11-14, אחרי שהקוד נכתב)
@@ -62,6 +63,9 @@
 | תמונות OG ואייקונים כ־PNG לאתר (היום SVG) | WhatsApp/iMessage לא תמיד מציגים SVG | `frontend/src/assets/`, דורש sharp/resvg |
 | סינון כינויים בשרת | עדיין הצעה 1 למעלה | `worker/src/util.ts nick()` |
 | `studio.json.email` | עמוד contact ו־security.txt מציגים placeholder | `studio.json` |
-| מסך lose לא נבדק עם משחק רב־שלבי אמיתי (FallingCEO חסר שלבים) | ייבדק במשחק הבא עם שלבים (או בהעברת "טיסה נעימה") | `common-game-code/src/screens/lose.ts` |
+| מסך lose נבדק עם "חופשה בטוחה" (5 שלבים): הפסד, חזרה לשלב, מההתחלה. סגור. | | `common-game-code/src/screens/lose.ts` |
 | Cutscene: דילוג בלחיצה ארוכה הוחלף בקישור "Skip" בפינה | פשוט יותר; לשקול חזרה ללחיצה ארוכה | `screens/cutscene.ts` |
 | הצטמצמות: בדסקטופ בארה"ב הכפתור המרכזי הופך ל־Copy והשני מוסתר | ייתכן שעדיף WhatsApp Web כברירת מחדל בדסקטופ | `share/overlays.ts` |
+| `og.png` ו־`cover.png` ל"חופשה בטוחה" | כמו FallingCEO | `Games/FlightHeros/assets/` |
+| תמיכה בקטעי מוזיקה mp3 בתבנית (היום רק הסיקוונסר הסינתטי) | ל"חופשה בטוחה" היו 3 לולאות mp3 (900KB); הוחלט לוותר (DECISIONS 41) | `common-game-code/src/audio/` + `assets/` |
+| שלב 5 של "חופשה בטוחה" (ייצוב) לא שוחק עד הניצחון בדפדפן, רק עד מסך ההפסד; מסך התוצאה נבדק עם ריצה מדומה | דורש גרירה רציפה 8 שניות; לבדוק בטלפון לפני פרסום | `Games/FlightHeros/src/stages/fly.ts` |
