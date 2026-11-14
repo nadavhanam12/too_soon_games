@@ -25,7 +25,7 @@ of publishing in a file, tool output or in passing is not.
 
 | # | step | needs cloud | on red |
 |---|---|---|---|
-| 1 | **bugcheck**: `node GamesTemplate/other-services/bugcheck/run.mjs <GameId> --server` | no (local API via `wrangler dev` if available; the tool says what it skipped) | stop. Show `out/report.md` red items. `--skip-bugcheck` is allowed only with a reason the user types; record the reason in the report |
+| 1 | **bugcheck**: `node GamesTemplate/other-services/bugcheck/run.mjs <GameId> --server` | no (local API via `wrangler dev` if up, else the deployed `apiBase`; "not registered yet" is yellow) | stop. Show `out/report.md` red items. `--skip-bugcheck` is allowed only with a reason the user types; record the reason in the report |
 | 2 | read `game.json`; warn if `research.md` missing | no | — |
 | 3 | **register in `GamesTemplate/games.json`** (add or update the entry: all `game.json` fields except `score`, `share`, `screens`; set `publishedAt` today if absent; `status` stays as in game.json, default `live`) | no | — |
 | 4 | **register in the API**: `PUT {apiBase}/v1/admin/games/<slug>` with header `x-admin-key` (from `server-and-data/worker/.dev.vars`), body `{name: title, maxScore: score.max, minDurationS: score.minDurationS}` | yes | if apiBase empty or unreachable: warn, continue in dry-run; stop in a real run (a live game without a registered API has no leaderboard) |
@@ -74,6 +74,8 @@ happen and that nothing was deployed.
 ## Failure notes
 
 - "Project not found" on deploy: the Pages project does not exist yet →
-  `npx wrangler pages project create toosoon-games --production-branch main` (once), then rerun.
+  `server-and-data/worker/node_modules/.bin/wrangler pages project create toosoon-games --production-branch main` (once;
+  done 2026-11-14), then rerun. Always the pinned wrangler: a bare `npx wrangler` outside the worker folder fetches a
+  version that needs Node 22.
 - OG check fails but the page is live: usually `_worker.js` missing from `dist` (site build) — rerun step 7.
 - Board 404: step 4 was skipped — register the game in the API (or via the admin page "+ משחק").

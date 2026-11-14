@@ -184,7 +184,8 @@ if (withServer) {
     ok(S, 'smoke test passes', sm.status === 0, (sm.stdout.match(/FAIL.*/g) || []).slice(0, 5).join(' | '));
     try {
       const r = await fetch(`${API}/v1/games/${slug}/count`);
-      ok(S, `game "${slug}" registered in the API`, r.ok, r.ok ? '' : `GET /count → ${r.status}. Register with PUT /v1/admin/games/${slug} (publish-game does this)`);
+      // not registered yet is yellow: publish-game registers the game right after this check
+      if (r.ok) ok(S, `game "${slug}" registered in the API`, true); else add(S, `game "${slug}" registered in the API`, 'yellow', `GET /count → ${r.status}. publish-game registers it (PUT /v1/admin/games/${slug})`);
     } catch (e) { add(S, 'count endpoint', 'red', String(e.message)); }
   }
 }

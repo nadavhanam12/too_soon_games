@@ -26,6 +26,7 @@ REGISTRY="$TPL/games.json"
 STUDIO="$TPL/studio.json"
 DEVVARS="$TPL/server-and-data/worker/.dev.vars"
 BUGCHECK="$TPL/other-services/bugcheck/run.mjs"
+WRANGLER="$TPL/server-and-data/worker/node_modules/.bin/wrangler"   # the pinned wrangler (Node 20); a bare npx would fetch one that needs Node 22
 
 step() { printf '\n[publish] %s\n' "$*"; }
 warn() { printf '[publish] WARNING: %s\n' "$*"; }
@@ -45,6 +46,8 @@ step "bugcheck"
 if [ "$SKIP_BUG" = 1 ]; then
   warn "bugcheck SKIPPED - reason: $SKIP_REASON"
 elif [ -f "$BUGCHECK" ]; then
+  # server checks: the local wrangler dev if it is up, otherwise the deployed API from studio.json
+  if ! curl -s -m 2 -o /dev/null http://127.0.0.1:8787/v1/version && [ -n "$API_BASE" ]; then export API_BASE; echo "  (local API down, bugcheck uses $API_BASE)"; fi
   node "$BUGCHECK" "$GAME_ID" --server || fail "bugcheck red - see $TPL/other-services/bugcheck/out/report.md"
 else
   [ "$DRY" = 1 ] && warn "bugcheck tool not found at $BUGCHECK (dry-run continues)" || fail "bugcheck tool not found at $BUGCHECK"
@@ -104,8 +107,9 @@ if [ "$DRY" = 1 ]; then
   echo; echo "[publish] dry run complete - built to $TPL/dist, nothing deployed, registry preview at $REG_OUT"
   exit 0
 fi
-( cd "$TPL" && npx wrangler whoami >/dev/null 2>&1 ) || fail "not logged in to Cloudflare. Run:  npx wrangler login   then rerun."
-( cd "$TPL" && npx wrangler pages deploy dist --project-name toosoon-games --commit-dirty=true ) || fail "deploy failed (previous deployment stays live). First time? npx wrangler pages project create toosoon-games --production-branch main"
+[ -x "$WRANGLER" ] || fail "pinned wrangler missing - run npm install in server-and-data/worker"
+( cd "$TPL" && "$WRANGLER" whoami >/dev/null 2>&1 ) || fail "not logged in to Cloudflare. Run:  npx wrangler login   (in server-and-data/worker) then rerun."
+( cd "$TPL" && "$WRANGLER" pages deploy dist --project-name toosoon-games --commit-dirty=true ) || fail "deploy failed (previous deployment stays live). First time? $WRANGLER pages project create toosoon-games --production-branch main"
 
 # 9. verify
 step "verify"

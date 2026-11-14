@@ -12,7 +12,7 @@
 | אתר הסטודיו | `GamesTemplate/frontend` | `npm run build` | `GamesTemplate/dist/index.html`, עמודי החובה, `_headers`, `robots.txt`, `sitemap.xml`, `_worker.js` |
 | שרת | `GamesTemplate/server-and-data/worker` | `npm run dev` / `npm run deploy` / `npm run smoke` | `http://127.0.0.1:8787` מקומית |
 | כלי הבאגים | `GamesTemplate/other-services/bugcheck` | `node run.mjs <GameId> [--server]` | `out/report.md` + צילומי מסך; exit 1 באדום |
-| פריסת אתר | מ־`GamesTemplate` | `npx wrangler pages deploy dist --project-name toosoon-games` | |
+| פריסת אתר | מ־`GamesTemplate` | `server-and-data/worker/node_modules/.bin/wrangler pages deploy dist --project-name toosoon-games` (ה־wrangler הנעוץ; `npx wrangler` מחוץ לתיקיית השרת מוריד גרסה שדורשת Node 22) | `https://toosoon-games.pages.dev` |
 
 `<GameId>` = שם התיקייה ב־`Games/` (PascalCase). `<slug>` = `game.json.slug` (kebab-case). `dist/` לא ב־git.
 
