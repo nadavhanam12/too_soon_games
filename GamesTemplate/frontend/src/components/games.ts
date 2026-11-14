@@ -9,7 +9,8 @@ export const coverUrl = (g: GameEntry) => (g.cover ? `/${g.slug}/${g.cover.repla
 export function sortGames(games: GameEntry[]): GameEntry[] {
   return [...games].sort((a, b) => {
     if ((a.status === 'archived') !== (b.status === 'archived')) return a.status === 'archived' ? 1 : -1;
-    return (b.publishedAt || '').localeCompare(a.publishedAt || '');
+    const byRelease = (b.publishedAt || '').localeCompare(a.publishedAt || '');
+    return byRelease || (b.event?.date || '').localeCompare(a.event?.date || ''); // same release day: the newer event first
   });
 }
 
