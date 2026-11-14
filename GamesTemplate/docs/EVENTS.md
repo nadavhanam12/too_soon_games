@@ -26,7 +26,7 @@
 | `share_click` | לחיצה על כפתור שיתוף | `channel` (whatsapp/sms/system/copy) | איזה ערוץ עובד לקהל הזה |
 | `share_complete` | שיתוף המערכת הסתיים בהצלחה / העתקה הצליחה | `channel` | כמה לחיצות הופכות לשיתוף (לא זהה ללחיצה!) |
 | `follow_click` | כפתור רשת של הסטודיו | `network` | |
-| `source_click` | קישור למקור ב־facts | | |
+| `source_click` | (לא בשימוש מאז החלטה 44: אין קישור למקור) | | |
 | `replay` | "שחק שוב" | `fromScreen` | כמה חוזרים |
 | `error` | שגיאת JS לא תפוסה | `msg`, `where` (עד 200 תווים) | באגים בשטח |
 | `session_end` | `visibilitychange` → hidden | `durationS`, `lastScreen` | כמה זמן נשארים, איפה עוזבים |

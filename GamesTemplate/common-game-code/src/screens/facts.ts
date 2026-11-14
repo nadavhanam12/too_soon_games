@@ -4,18 +4,17 @@ import { go, state, type Scene } from '../core/scenes';
 import { R } from '../core/runtime';
 import { inBtn, txt, wrap } from '../draw/prims';
 import { env } from '../config';
-import { reportOverlay, sourceOverlay } from '../share/overlays';
+import { reportOverlay } from '../share/overlays';
 import { sfx } from '../audio/synth';
 
 /** facts: what actually happened, dated lines, the parody note, source + report links (rules 3, 4ד, 17). */
 export const factsScene: Scene = {
   enter() {
-    const e = R.cfg.event;
-    sourceOverlay.show(518, e.sourceUrl, `${R.strs.source} · ${e.sourceLabel || e.date}`);
+    // no outbound links (decision 44): the source is named as text, the only link is our own contact page
     const base = (env.publicBase || '').replace(/\/$/, '');
-    reportOverlay.show(596, `${base}/contact/`, R.strs.reportLink, 90, W - 180);
+    reportOverlay.show(608, `${base}/contact/`, R.strs.reportLink, 90, W - 180);
   },
-  exit() { sourceOverlay.hide(); reportOverlay.hide(); },
+  exit() { reportOverlay.hide(); },
   draw() {
     const th = R.theme, c = R.content.facts, s = R.strs, st = state.st;
     th.bg(st, 'facts');
@@ -35,11 +34,14 @@ export const factsScene: Scene = {
       ls.forEach((l, k) => txt(l, textX, y + k * 15, 12, line.bold ? th.colors.accent : th.colors.ink, rtl ? 'right' : 'left', line.bold ? 900 : 400));
       y += Math.max(1, ls.length) * 15 + 10;
     }
-    if (c.disclaimer) th.text(c.disclaimer, W / 2, 462, 11, th.colors.muted, 'center', 400);
-    th.text(s.parodyNote, W / 2, 492, 11, th.colors.muted, 'center', 400);
-    // source link overlay at 520..560, report link at 596..616
-    th.button(s.continue, W / 2, 576, 180, 44, true, 16);
+    let fy = 458;
+    if (c.disclaimer) for (const l of wrap(c.disclaimer, 11, W - 40, 400)) { th.text(l, W / 2, fy, 11, th.colors.muted, 'center', 400); fy += 14; }
+    th.text(s.parodyNote, W / 2, fy + 4, 11, th.colors.muted, 'center', 400);
+    const e = R.cfg.event;
+    th.text(`${s.source}: ${e.sourceLabel || e.date}`, W / 2, 524, 12, th.colors.ink, 'center', 700);
+    // continue at 548..596, the report link (our contact page) at 598..618
+    th.button(s.continue, W / 2, 572, 200, 48, true, 16);
     const p = takeTap();
-    if (p && st > 0.4 && (p.key || inBtn(p, W / 2, 576, 180, 44, 6))) { sfx.tick?.(); go('community'); }
+    if (p && st > 0.4 && (p.key || inBtn(p, W / 2, 572, 200, 48, 6))) { sfx.tick?.(); go('community'); }
   },
 };

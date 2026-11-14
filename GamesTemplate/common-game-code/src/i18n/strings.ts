@@ -21,7 +21,7 @@ const he: Strings = {
   boardTotal: (n) => `${n} שחקנים בלוח`, yourRank: (r) => `המקום שלך: #${r}`,
   playersPlayed: (n) => `${n} שחקנים כבר שיחקו`,
   challenge: (name, result) => `${name} עשה ${result}. תנצח אותו?`, aFriend: 'חבר שלך',
-  whatHappened: 'מה קרה באמת', source: 'למקור', parodyNote: 'פרודיה. לא קשור לאנשים ולגופים האמיתיים.', reportLink: 'בקשה להסרת תוכן',
+  whatHappened: 'מה קרה באמת', source: 'מקור', parodyNote: 'פרודיה. לא קשור לאנשים ולגופים האמיתיים.', reportLink: 'בקשה להסרת תוכן',
   followTitle: 'רוצים להיות הראשונים לשחק במשחק הבא?', followBody: 'המשחק הבא תלוי בחדשות. עקבו אחרינו.',
   shareTitle: 'מי מהחברים שלך ינצח אותך?', shareBody: 'שתף את התוצאה ואתגר חבר',
   shareCentral: 'שיתוף בווצאפ', shareSystem: 'שתף…', copy: 'העתק קישור', copied: 'הועתק ✓', notCopied: 'לא הועתק', moreGames: 'עוד משחקים שלנו',
