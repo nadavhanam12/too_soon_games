@@ -103,8 +103,9 @@ r = await call('GET', `/v1/admin/games/${game}/board`, undefined, adm);
 check('admin: board with userIds', r.status === 200 && r.data.rows.length === 2 && r.data.rows[0].user_id === user2);
 r = await call('DELETE', `/v1/admin/games/${game}/scores/${user2}`, undefined, adm);
 check('admin: delete troll', r.status === 200 && r.data.deleted === 1, JSON.stringify(r.data));
-r = await call('GET', `/v1/games/${game}/board?limit=10`);
-check('board after delete: 1 row (cache busted)', r.status === 200 && r.data.total === 1 && r.data.top.length === 1, JSON.stringify(r.data));
+// the board is edge-cached 10 s per data centre; the purge is per colo, so allow up to 12 s for the change to show
+for (let i = 0; i < 13; i++) { r = await call('GET', `/v1/games/${game}/board?limit=10`); if (r.data?.total === 1) break; await new Promise((res) => setTimeout(res, 1000)); }
+check('board after delete: 1 row (within the 10 s cache TTL)', r.status === 200 && r.data.total === 1 && r.data.top.length === 1, JSON.stringify(r.data));
 r = await call('GET', '/admin');
 check('admin page served', r.status === 200 && typeof r.data === 'string' && r.data.includes('<title>'));
 r = await call('GET', '/nope');

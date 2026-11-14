@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Deployed version string, shown by GET /v1/version. /deploy-server bumps it.
 [vars]
-VERSION = "0.1.0"
+VERSION = "0.1.4"
 # Comma-separated origins allowed to call the API. localhost is always allowed in `wrangler dev`.
 ALLOWED_ORIGINS = "https://toosoon-games.pages.dev"
 # Analytics Engine dataset name (must match the binding below) - used by the admin SQL queries.
@@ -21,7 +21,7 @@ EVENTS_DATASET = "toosoon_events"
 [[d1_databases]]
 binding = "DB"
 database_name = "toosoon"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "45794694-3abd-4a42-ae9a-e3be4f03e62c"
 migrations_dir = "migrations"
 
 # Every analytics event goes here (write-heavy, SQL queries from the admin page).

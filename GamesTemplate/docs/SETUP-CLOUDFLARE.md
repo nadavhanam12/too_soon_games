@@ -56,3 +56,15 @@ Analytics Engine בחודש. אפס שינוי בקוד.
 - **שחזור נתונים:** `wrangler d1 time-travel restore toosoon --timestamp=<ISO>` (עד 30 יום אחורה).
 - **ייצוא ידני:** `bash server-and-data/backup/export.sh` → `backups/<date>.sql`.
 - **חזרה לגרסת שרת קודמת:** Workers → api → Deployments → Rollback (או `wrangler rollback`).
+
+## הפעלת Analytics Engine (פעם אחת, לפני הפריסה הראשונה)
+
+הפריסה הראשונה נכשלת עם `You need to enable Analytics Engine [code: 10089]` עד שמפעילים את השירות בחשבון.
+בלוח הבקרה: Workers & Pages → Analytics Engine → **Enable** (או הקישור שהשגיאה מדפיסה). חינמי, בלי כרטיס.
+אחרי ההפעלה מריצים שוב `/deploy-server`; D1 והסודות כבר קיימים והסקריפט מדלג עליהם.
+
+## תת־דומיין workers.dev (פעם אחת, לפני הפריסה הראשונה)
+
+חשבון חדש בלי תת־דומיין: ההעלאה מצליחה אבל נגמרת ב־`register a workers.dev subdomain`, ולשרת אין כתובת.
+בלוח הבקרה: Workers & Pages → Overview → תיבת "Your subdomain" → בחירת שם. נבחר `toosoon121234`, ולכן כתובת ה־API היא
+`https://toosoon-api.toosoon121234.workers.dev` (רשומה ב־`studio.json` → `apiBase`). השם מופיע רק בכתובת ה־API.

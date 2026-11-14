@@ -82,8 +82,8 @@ async function adminBoard(ctx: Ctx, game: string): Promise<Response> {
 
 async function deleteScore(ctx: Ctx, game: string, uid: string): Promise<Response> {
   const r = await ctx.env.DB.prepare('DELETE FROM scores WHERE game_id = ? AND user_id = ?').bind(game, uid).run();
-  // bust the cached board for this game (all common limits)
-  ctx.waitUntil(Promise.all([10, 20, 50].map((l) => caches.default.delete(new Request(new URL(`/__cache/board/${game}/${l}`, ctx.url.origin).toString())))));
+  // bust the cached board for this game (all common limits); awaited so the next GET already sees the change
+  await Promise.all([10, 20, 50].map((l) => caches.default.delete(new Request(new URL(`/__cache/board/${game}/${l}`, ctx.url.origin).toString()))));
   return json({ ok: true, deleted: r.meta.changes ?? 0 });
 }
 
