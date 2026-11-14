@@ -100,7 +100,8 @@ if [ "$DRY" = 1 ]; then
   echo; echo "[deploy] dry run complete - nothing changed."
   exit 0
 fi
-URL="$(npx wrangler deployments list 2>/dev/null | grep -oE 'https://[a-z0-9.-]+\.workers\.dev' | head -1 || true)"
+URL="$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('../../studio.json','utf8')).apiBase||'')}catch{}" 2>/dev/null || true)"   # studio.json apiBase first
+[ -n "$URL" ] || URL="$(npx wrangler deployments list 2>/dev/null | grep -oE 'https://[a-z0-9.-]+\.workers\.dev' | head -1 || true)"
 if [ -z "$URL" ]; then
   SUB="$(npx wrangler whoami 2>/dev/null | grep -oE '[a-z0-9-]+\.workers\.dev' | head -1 || true)"
   [ -n "$SUB" ] && URL="https://toosoon-api.$SUB"

@@ -50,11 +50,11 @@
 `publicBase` = `https://toosoon-games.pages.dev` (יוחלף בדומיין). `apiBase` = כתובת ה־Worker. ריק = יחסי/לא פעיל.
 
 ## API (סיכום; המלא ב־ARCHITECTURE.md)
-`GET /v1/version`, `GET /v1/games/:slug/count`, `GET /v1/games/:slug/board?limit&userId`,
+`GET /v1/version`, `GET /v1/games/:slug/count` → `{players, plays}`, `GET /v1/games/:slug/board?limit&userId`,
 `POST /v1/games/:slug/scores`, `POST /v1/games/:slug/events`, `PUT /v1/admin/games/:slug` (header `x-admin-key`).
 
 ## hooks לבדיקות (בכל build של משחק, על `window`)
-`__go(scene)`, `__advance(seconds)`, `__state()`, `__scenes()` (רשימת כל המסכים). הפרמטר `#scene=<name>` ב־URL פותח
+`__go(scene)`, `__advance(seconds)`, `__state()`, `__scenes()` (רשימת כל המסכים), `__music()` (מצב המוזיקה והקבצים). הפרמטר `#scene=<name>` ב־URL פותח
 במסך. `?c=<score>&n=<nick>&u=<id>` = קישור אתגר.
 
 ## קישור אתגר ב־`_worker.js` של האתר

@@ -51,6 +51,7 @@ export async function postEvents(ctx: Ctx, game: string): Promise<Response> {
   if (sawGameStart) {
     stmts.push(ctx.env.DB.prepare('INSERT OR IGNORE INTO players (game_id, user_id, first_at) VALUES (?, ?, ?)').bind(game, uid, ctx.now));
     stmts.push(ctx.env.DB.prepare('UPDATE users SET games_played = games_played + 1 WHERE user_id = ?').bind(uid));
+    stmts.push(ctx.env.DB.prepare('UPDATE games SET plays = plays + 1 WHERE game_id = ?').bind(game)); // the "N games played" counter
   }
   if (stmts.length) ctx.waitUntil(ctx.env.DB.batch(stmts).catch((e) => console.error('events d1', e)));
   return noContent();

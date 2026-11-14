@@ -37,8 +37,6 @@ export const factsScene: Scene = {
     let fy = 458;
     if (c.disclaimer) for (const l of wrap(c.disclaimer, 11, W - 40, 400)) { th.text(l, W / 2, fy, 11, th.colors.muted, 'center', 400); fy += 14; }
     th.text(s.parodyNote, W / 2, fy + 4, 11, th.colors.muted, 'center', 400);
-    const e = R.cfg.event;
-    th.text(`${s.source}: ${e.sourceLabel || e.date}`, W / 2, 524, 12, th.colors.ink, 'center', 700);
     // continue at 548..596, the report link (our contact page) at 598..618
     th.button(s.continue, W / 2, 572, 200, 48, true, 16);
     const p = takeTap();

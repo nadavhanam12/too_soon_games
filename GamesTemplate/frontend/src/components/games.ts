@@ -41,7 +41,7 @@ export function hero(g: GameEntry | undefined): string {
     <p class="eyebrow">${g.status === 'archived' ? 'From the archive' : 'Latest game'} · ${flag(g.audience)} ${langName(g.lang)}${g.event?.date ? ` · ${esc(fmtDate(g.event.date))}` : ''}</p>
     <h1 dir="auto">${esc(g.title)}</h1>
     <p class="lead" dir="auto">${esc(g.tagline)}</p>
-    <p class="players" data-count="${attr(g.slug)}" data-min="${g.showPlayerCountFrom ?? 500}" hidden><b></b> played</p>
+    <p class="players" data-count="${attr(g.slug)}" data-min="1" hidden><b></b> games played so far</p>
     <a class="btn btn-play" href="${attr(gameUrl(g))}">${icons.play} Play</a>
   </div>
 </section>`;
@@ -66,7 +66,7 @@ export function gameCard(g: GameEntry): string {
       <p class="meta">
         <span title="${langName(g.lang)}">${flag(g.audience)}</span>
         ${g.event?.date ? `<time datetime="${attr(g.event.date)}">${esc(fmtDate(g.event.date))}</time>` : ''}
-        <span class="players" data-count="${attr(g.slug)}" data-min="0" hidden><b></b> played</span>
+        <span class="players" data-count="${attr(g.slug)}" data-min="1" hidden><b></b> games played</span>
         ${g.status === 'archived' ? '<span class="tag">Archive</span>' : ''}
       </p>
     </div>

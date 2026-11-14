@@ -16,7 +16,9 @@ createGame({
   content,
   theme,
   scenes: { play: playScene },
-  music: MUSIC,
+  // the three loops of the itch version (assets/audio, ~900 KB): calm on the menus, tense in play, win on the result
+  music: { ...MUSIC, files: { calm: 'assets/audio/calm.mp3', play: 'assets/audio/tense.mp3', win: 'assets/audio/win.mp3' }, volume: { calm: 0.32, play: 0.38, win: 0.4 } },
+  musicFor: (s) => (s === 'play' ? 'play' : s === 'result' ? 'win' : s === 'lose' ? 'off' : 'calm'),
   hooks: {
     drawTitleArt(st) {
       plane(W / 2, 82 + Math.sin(st * 2) * 5, 0.78);

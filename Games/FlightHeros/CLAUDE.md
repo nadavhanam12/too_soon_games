@@ -18,13 +18,15 @@ src/content.ts     every player-facing text: title, cutscene (5 steps), lose, re
                    LINES (passengers, stewardess, trolley guy, captain, Bibi), BANNERS (stage intros)
 src/theme.ts       defaultTheme with the navy/amber palette; clouds on non-play screens, red on lose, sky on result
 src/art.ts         person/walker/suitcase/bubble/btn/plane/clouds/flag/cheer/hand/headphones/tiedGuy, FAM + colours
-src/sfx.ts         game sounds added to the template kit (hit, punch, stab, click, rumble, lose) + MUSIC progression
+src/sfx.ts         game sounds added to the template kit (hit, punch, stab, click, rumble, lose) + MUSIC (synth fallback)
+assets/audio/      calm.mp3, tense.mp3, win.mp3 (the itch loops; ~900 KB, inside the 1.5 MB audio budget)
 src/play.ts        the play scene = stage machine: G (score, altitude, held pointer), setStage/stageDone, HUD, keys
 src/stages/        run.ts (aisle), door.ts (trolley + lock rings), cockpit.ts (fight), tie.ts (cable + "tied"), fly.ts
 tsconfig.json      extends the template's base config
 ```
 Shared screens, share, leaderboard, analytics, audio and the build come from `GamesTemplate/common-game-code`
-(rule 6). The mp3 loops of the itch version were dropped for the template's synth sequencer (DECISIONS 41).
+(rule 6). Music: the three mp3 loops of the itch version in `assets/audio/` (calm / tense / win), played by the
+template's file-music player with crossfades (`music.files` in main.ts, DECISIONS 45).
 
 ## Commands (from `GamesTemplate/common-game-code`)
 

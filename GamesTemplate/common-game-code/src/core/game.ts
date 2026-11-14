@@ -97,6 +97,7 @@ export function createGame(def: GameDef): void {
   w.__state = () => ({ scene: state.scene, st: state.st, playTime: R.playTime, run: R.run, best: R.best, players: R.players, H: view.H, top: view.top, scale: view.scale, S: { ...S } });
   w.__scenes = () => Object.keys(scenes);
   w.__fit = fit;
+  w.__music = () => ({ mode: music.mode, on: music.on, files: Object.fromEntries(Object.entries(music.tracks).map(([k, a]) => [k, { paused: a!.paused, volume: +a!.volume.toFixed(2), missing: !!a!.dataset.missing }])) });
 
   def.onReady?.();
   const hash = location.hash.slice(1);

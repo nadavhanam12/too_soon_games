@@ -23,7 +23,7 @@ export const content: Content = {
         draw: (st) => { panel(st); ink([[W - 180, 230], [W - 140, 242], [W - 100, 238], [W - 40, 286]], 4, '#c9403a'); ceo(90, 290, 'fall', st, 1.1, 1); woman(160, 296, 'agent', st); sticker('📉', W - 60, 300, 18, '#f0a0a0'); } },
       { dur: 0, text: 'Wednesday: a second affair. This time with a VP inside the company. The board opens an investigation. The press waits below.', speaker: 'Day 4',
         draw: (st) => { panel(st); ceo(100, 290, 'fall', st, 1.1, 2); woman(250, 296, 'vp', st); const bz = Math.sin(st * 30) * 2; ctx.save(); ctx.translate(292 + bz, 232); marker(-24, -10, 48, 20, '#fff8e0', 1); inkRect(-24, -10, 48, 20, 2, '#0b0b0b'); txt('call me', 0, 1, 10, '#0b0b0b'); ctx.restore(); } },
-      { dur: 0, text: 'Thursday: the board meets. The floor is rising toward you. Hold a side to move, tap JUMP for an extra hop. How long can you stay a CEO?', speaker: 'Day 5',
+      { dur: 0, text: 'Thursday: the board meets. The floor is rising toward you. Drag your finger to move, swipe up for an extra hop. How long can you stay a CEO?', speaker: 'Day 5',
         draw: (st) => { panel(st); ink([[30, 300], [W - 30, 300]], 4, NV); for (let k = 0; k < 4; k++) { ink([[80 + k * 60, 300], [80 + k * 60, 276]], 2.5); markerCirc(80 + k * 60, 271, 6, '#555'); } ceo(200, 240 + Math.sin(st * 3) * 6, 'fall', st, 1, 2); sticker('NOV 12', W - 70, 250, 11, '#f0a0a0', 0.05); } },
     ],
   },

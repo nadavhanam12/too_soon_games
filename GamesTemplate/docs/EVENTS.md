@@ -27,6 +27,8 @@
 | `share_complete` | שיתוף המערכת הסתיים בהצלחה / העתקה הצליחה | `channel` | כמה לחיצות הופכות לשיתוף (לא זהה ללחיצה!) |
 | `follow_click` | כפתור רשת של הסטודיו | `network` | |
 | `source_click` | (לא בשימוש מאז החלטה 44: אין קישור למקור) | | |
+
+ספירה שלישית ב־D1: `games.plays` עולה ב־1 על כל `game_start` (כמה משחקים שוחקו, לא כמה שחקנים). מוצג באתר לכל משחק, מ־`GET /count`.
 | `replay` | "שחק שוב" | `fromScreen` | כמה חוזרים |
 | `error` | שגיאת JS לא תפוסה | `msg`, `where` (עד 200 תווים) | באגים בשטח |
 | `session_end` | `visibilitychange` → hidden | `durationS`, `lastScreen` | כמה זמן נשארים, איפה עוזבים |

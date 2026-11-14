@@ -41,8 +41,8 @@ straight to `result` (no lose screen). Score = whole seconds survived; `content.
 
 ## Play (`src/play.ts`)
 
-- World y grows downward. The CEO falls under gravity `G`; hold a side of the screen (`input.down`, `input.px`)
-  or arrow/A/D keys. Platforms (`PT`, weights in `ptype`) bounce by `bounce`; `news` breaks on contact;
+- World y grows downward. The CEO falls under gravity `G`; on touch he steers toward the finger's x (`input.px`),
+  a swipe up (45 units above the touch's lowest point, `swipeY`) is a jump; keyboard: arrow/A/D keys. Platforms (`PT`, weights in `ptype`) bounce by `bounce`; `news` breaks on contact;
   `sorry` flashes and detaches attached women, three of them spawn one golden `gold` platform; `trump` is the
   biggest bounce. Each landing arms one extra mid-air jump: the JUMP circle (`JB`, a pointer intercept via
   `setPointerIntercept` so a second finger can keep holding a side) or Space/Up/W (`onKeyDown` hook).

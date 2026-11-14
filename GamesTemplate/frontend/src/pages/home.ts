@@ -42,7 +42,7 @@ const CLIENT_JS = `
     var eye=heroEl.querySelector('.eyebrow');if(eye){var FL={il:'🇮🇱',us:'🇺🇸'},LN={he:'Hebrew',en:'English'};var d=want.event&&want.event.date?new Date(want.event.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';eye.textContent=(want.status==='archived'?'From the archive':'Latest game')+' · '+(FL[want.audience]||'')+' '+(LN[want.lang]||want.lang)+(d?' · '+d:'');}
     for(var i=0;i<links.length;i++)links[i].setAttribute('href','/'+want.slug+'/');
     if(img){if(want.cover)img.setAttribute('src','/'+want.slug+'/'+String(want.cover).replace(/^\\/+/,''));else img.remove();}
-    var cnt=heroEl.querySelector('[data-count]');if(cnt){cnt.setAttribute('data-count',want.slug);cnt.setAttribute('data-min',String(want.showPlayerCountFrom==null?500:want.showPlayerCountFrom));}
+    var cnt=heroEl.querySelector('[data-count]');if(cnt){cnt.setAttribute('data-count',want.slug);cnt.hidden=true;}
     if(boardEl){boardEl.setAttribute('data-slug',want.slug);var bt=boardEl.querySelector('.board-title');if(bt)bt.textContent=want.title;var more=boardEl.querySelector('.board-more a');if(more)more.setAttribute('href','/'+want.slug+'/#board');}
   }
   if(!api)return;
@@ -54,10 +54,10 @@ const CLIENT_JS = `
     var slug=n.getAttribute('data-count');if(!slug)return;
     counts[slug]=counts[slug]||fetch(api+'/v1/games/'+encodeURIComponent(slug)+'/count').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     counts[slug].then(function(d){
-      if(!d||typeof d.players!=='number')return;
+      if(!d)return;var plays=typeof d.plays==='number'?d.plays:(typeof d.players==='number'?d.players:0);
       var min=Number(n.getAttribute('data-min')||0);
-      if(d.players<min||d.players<=0)return;
-      var b=n.querySelector('b');if(b)b.textContent=fmt(d.players);n.hidden=false;
+      if(plays<min)return;
+      var b=n.querySelector('b');if(b)b.textContent=fmt(plays);n.hidden=false;
     });
   });
 

@@ -97,16 +97,54 @@ export const sfx: Record<string, (...a: any[]) => void> = {
 sfx.logo = () => { sfx.whoosh!(); after(140, () => sfx.ping!()); };
 
 // ---------- music: step sequencer ----------
-export type MusicMode = 'off' | 'calm' | 'play';
-export interface MusicDef { bpm: number; prog: Array<[number, number[]]> } // [root midi, chord tones]
+export type MusicMode = 'off' | 'calm' | 'play' | 'win';
+export type TrackName = Exclude<MusicMode, 'off'>;
+/** Music is either the synth sequencer (bpm + chord progression) or looped files (`files`), crossfaded per mode. */
+export interface MusicDef {
+  bpm: number; prog: Array<[number, number[]]>; // [root midi, chord tones]
+  files?: Partial<Record<TrackName, string>>;   // e.g. { calm: 'assets/audio/calm.mp3', play: 'assets/audio/tense.mp3', win: 'assets/audio/win.mp3' }
+  volume?: Partial<Record<TrackName, number>>;  // per-track loudness, default calm .32 / play .38 / win .4
+}
+const TRACK_VOL: Record<TrackName, number> = { calm: 0.32, play: 0.38, win: 0.4 };
 
 const DEFAULT_MUSIC: MusicDef = { bpm: 126, prog: [[57, [57, 60, 64, 67]], [53, [53, 57, 60, 65]], [48, [48, 52, 55, 60]], [55, [55, 59, 62, 67]]] };
 
 export const music = {
   on: true, mode: 'off' as MusicMode, def: DEFAULT_MUSIC, step: 0, next: 0, timer: 0 as number, bus: null as GainNode | null,
+  tracks: {} as Partial<Record<TrackName, HTMLAudioElement>>, unlocked: false, ttimer: 0 as number,
   hz: (n: number) => 440 * Math.pow(2, (n - 69) / 12),
-  configure(def: Partial<MusicDef>) { this.def = { ...DEFAULT_MUSIC, ...def }; },
-  set(mode: MusicMode) { if (mode === this.mode) return; this.mode = mode; if (mode === 'off') this.stop(); else this.start(); },
+  configure(def: Partial<MusicDef>) {
+    this.def = { ...DEFAULT_MUSIC, ...def };
+    if (!def.files) return;
+    // looped files: created now (preload), played after the first gesture, crossfaded by a 100 ms ticker
+    for (const k of Object.keys(def.files) as TrackName[]) {
+      const src = def.files[k]; if (!src) continue;
+      const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.volume = 0;
+      a.addEventListener('error', () => { a.dataset.missing = '1'; });
+      this.tracks[k] = a;
+    }
+    const unlock = () => { this.unlocked = true; };
+    window.addEventListener('pointerdown', unlock, { once: true }); window.addEventListener('keydown', unlock, { once: true });
+    if (!this.ttimer) this.ttimer = window.setInterval(() => this.trackTick(0.1), 100);
+  },
+  hasFiles(): boolean { return Object.keys(this.tracks).length > 0; },
+  set(mode: MusicMode) {
+    if (mode === this.mode) return; this.mode = mode;
+    if (this.hasFiles()) return; // the ticker fades tracks toward the new mode
+    if (mode === 'off') this.stop(); else this.start();
+  },
+  trackTick(dt: number) {
+    if (!this.unlocked) return;
+    const want: MusicMode = this.on ? this.mode : 'off';
+    for (const k of Object.keys(this.tracks) as TrackName[]) {
+      const a = this.tracks[k]!; if (a.dataset.missing) continue;
+      const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k]) : 0;
+      if (target > 0 && a.paused) { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { /* blocked: retried next tick */ }); }
+      const v = a.volume + Math.max(-dt * 1.2, Math.min(dt * 1.2, target - a.volume));
+      a.volume = Math.max(0, Math.min(1, v));
+      if (target === 0 && a.volume < 0.005 && !a.paused) a.pause();
+    }
+  },
   start() {
     if (this.timer) return;
     try {
@@ -116,7 +154,7 @@ export const music = {
     } catch { /* no audio */ }
   },
   stop() { if (this.timer) { clearInterval(this.timer); this.timer = 0; } },
-  toggle(): boolean { this.on = !this.on; if (this.bus) this.bus.gain.value = this.on ? 0.5 : 0; return this.on; },
+  toggle(): boolean { this.on = !this.on; if (this.bus) this.bus.gain.value = this.on ? 0.5 : 0; return this.on; }, // file tracks follow `on` in trackTick
   tick() {
     const c = AC; if (!c || c.state !== 'running' || !this.on) return;
     const sd = 60 / this.def.bpm / 4;
@@ -137,7 +175,7 @@ export const music = {
   },
   play(i: number, t: number, sd: number) {
     const bar = Math.floor(i / 16) % this.def.prog.length, s16 = i % 16, entry = this.def.prog[bar]!;
-    const [root, ch] = entry, full = this.mode === 'play', calm = this.mode === 'calm';
+    const [root, ch] = entry, full = this.mode === 'play', calm = this.mode === 'calm' || this.mode === 'win';
     if (s16 === 0) { const g = calm ? 0.045 : 0.035; ch.forEach((n) => { this.osc('sawtooth', this.hz(n), t, sd * 16, g, { det: -7, lp: 900, a: 0.4 }); this.osc('sawtooth', this.hz(n), t, sd * 16, g, { det: 7, lp: 900, a: 0.4 }); }); }
     const an = (ch[(s16 * 5) % ch.length] ?? root) + (s16 % 8 < 4 ? 12 : 24);
     this.osc('triangle', this.hz(an), t, sd * 1.6, calm ? 0.05 : 0.06, { lp: 4000 });

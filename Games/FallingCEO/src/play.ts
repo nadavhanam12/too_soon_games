@@ -33,6 +33,7 @@ let P: World;
 let PLAYT = 0;
 let lastSide = 1;
 let jumpReq = false;
+let swipeY: number | null = null; // lowest y of the current touch; moving 45 units above it = a swipe up = jump
 let headline: { s: string; life: number; t: number } | null = null;
 const JB = { x: W / 2, y: H - 46, r: 30 };
 
@@ -54,7 +55,7 @@ function addRow(y: number): void {
 }
 function initPlay(): void {
   P = { x: W / 2, y: 0, vx: 0, vy: 0, cam: -H * 0.42, floor: START_GAP, fs: 8, plats: [], parts: [], env: [], top: 60, bot: 60, pose: 'fall', land: 0, cap: 5, combo: 0, sorryN: 0, canJump: false, jumpFx: 0, npcs: [], agentT: 4, vpT: 6, inv: 0, evt: 0, nextGeneric: 200, lastQuip: 0, quipI: 0, planeX: null, envT: 0, fsBonus: 0 };
-  PLAYT = 0; headline = null; jumpReq = false;
+  PLAYT = 0; headline = null; jumpReq = false; swipeY = null;
   P.plats.push(mk('chip', 110, W / 2 - 45)); P.bot = 110; P.top = 110; genPlats();
 }
 const gap = (): number => { const l = LVL(); return rnd(78 + 16 * l, 112 + 30 * l); };
@@ -125,8 +126,15 @@ function stepPlay(dt: number): void {
   const ev = EVENTS[P.evt];
   if (ev && PLAYT >= ev[0]) { P.evt++; news(ev[1]); ev[2](); }
   else if (!ev && PLAYT >= P.nextGeneric) { P.nextGeneric = PLAYT + 40; news(pick(GENERIC)); }
-  const L = keyLeft() || (input.down && input.px < W / 2), Rr = keyRight() || (input.down && input.px >= W / 2);
-  const tx = L && !Rr ? -PX : Rr && !L ? PX : 0; P.vx = lerp(P.vx, tx, 1 - Math.pow(0.0008, dt));
+  // touch: the CEO follows the finger's x; a swipe up is a jump. keyboard: arrows / A D, Space / Up / W.
+  if (input.down) {
+    if (swipeY === null || input.py > swipeY) swipeY = input.py;
+    else if (input.py < swipeY - 45) { jumpReq = true; swipeY = input.py; }
+  } else swipeY = null;
+  const L = keyLeft(), Rr = keyRight();
+  let tx = L && !Rr ? -PX : Rr && !L ? PX : 0;
+  if (!tx && input.down) tx = clamp((input.px - P.x) * 9, -PX * 1.3, PX * 1.3);
+  P.vx = lerp(P.vx, tx, 1 - Math.pow(0.0008, dt));
   P.vy += G * dt; const py = P.y; P.y += P.vy * dt; P.x = clamp(P.x + P.vx * dt, 14, W - 14);
   if (P.land > 0) { P.land -= dt; if (P.land <= 0) P.pose = 'fall'; }
   if (P.vy > 0) for (const p of P.plats) { if (p.gone) continue; if (py <= p.y + 1 && P.y >= p.y - 1 && P.x > p.x - 6 && P.x < p.x + p.w + 6) { P.y = p.y; landOn(p); break; } }
@@ -194,7 +202,7 @@ export const playScene: Scene = {
   enter() {
     initPlay();
     setPointerIntercept((p) => { if (inJump(p)) { jumpReq = true; return true; } return false; });
-    R.say('Hold a side to move. Tap JUMP (or Space) for an extra jump.', 2.8);
+    R.say('Drag your finger: the CEO follows it. Swipe up (or tap JUMP) for an extra jump.', 2.8);
   },
   exit() { setPointerIntercept(null); },
   draw(dt) {

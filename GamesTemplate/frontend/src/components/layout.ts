@@ -86,9 +86,10 @@ const NETWORKS = [
   ['tiktok', 'TikTok'],
   ['x', 'X'],
   ['facebook', 'Facebook'],
+  ['youtube', 'YouTube'],
 ] as const;
 
-/** The follow block: 4 network buttons; a network without a link is shown half-transparent and inert. */
+/** The follow block: 5 network buttons; a network without a link is shown half-transparent and inert. */
 export function followBlock(ctx: SiteCtx): string {
   const s = ctx.studio as unknown as Record<string, string>;
   const buttons = NETWORKS.map(([key, label]) => {
