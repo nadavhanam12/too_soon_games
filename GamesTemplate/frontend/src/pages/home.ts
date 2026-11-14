@@ -27,24 +27,7 @@ const CLIENT_JS = `
   var fmt=function(n){return Number(n||0).toLocaleString('en-US');};
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
 
-  // 1. featured by browser language (unless games.json pins one)
-  var live=games.filter(function(g){return g.status!=='archived';});
-  var pinned=live.filter(function(g){return g.featured;})[0];
-  var pref=(navigator.language||'en').toLowerCase().indexOf('he')===0?'he':'en';
-  var newest=function(list){return list.slice().sort(function(a,b){return (b.publishedAt||'').localeCompare(a.publishedAt||'');})[0];};
-  var want=pinned||newest(live.filter(function(g){return g.lang===pref;}))||newest(live)||newest(games);
-  var heroEl=document.getElementById('hero'),boardEl=document.getElementById('board');
-  if(want&&heroEl&&heroEl.getAttribute('data-slug')!==want.slug){
-    // swap the server-rendered hero for the preferred game by moving the matching card's data in
-    heroEl.setAttribute('data-slug',want.slug);
-    var h1=heroEl.querySelector('h1'),lead=heroEl.querySelector('.lead'),links=heroEl.querySelectorAll('a[href]'),img=heroEl.querySelector('img.cover');
-    if(h1)h1.textContent=want.title;if(lead)lead.textContent=want.tagline;
-    var eye=heroEl.querySelector('.eyebrow');if(eye){var FL={il:'🇮🇱',us:'🇺🇸'},LN={he:'Hebrew',en:'English'};var d=want.event&&want.event.date?new Date(want.event.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';eye.textContent=(want.status==='archived'?'From the archive':'Latest game')+' · '+(FL[want.audience]||'')+' '+(LN[want.lang]||want.lang)+(d?' · '+d:'');}
-    for(var i=0;i<links.length;i++)links[i].setAttribute('href','/'+want.slug+'/');
-    if(img){if(want.cover)img.setAttribute('src','/'+want.slug+'/'+String(want.cover).replace(/^\\/+/,''));else img.remove();}
-    var cnt=heroEl.querySelector('[data-count]');if(cnt){cnt.setAttribute('data-count',want.slug);cnt.hidden=true;}
-    if(boardEl){boardEl.setAttribute('data-slug',want.slug);var bt=boardEl.querySelector('.board-title');if(bt)bt.textContent=want.title;var more=boardEl.querySelector('.board-more a');if(more)more.setAttribute('href','/'+want.slug+'/#board');}
-  }
+  // the hero is always the newest game, rendered server-side (decision 53): no client-side swap
   if(!api)return;
 
   // 2. player counts (one request per distinct slug)
@@ -54,7 +37,7 @@ const CLIENT_JS = `
     var slug=n.getAttribute('data-count');if(!slug)return;
     counts[slug]=counts[slug]||fetch(api+'/v1/games/'+encodeURIComponent(slug)+'/count').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     counts[slug].then(function(d){
-      if(!d)return;var plays=typeof d.plays==='number'?d.plays:(typeof d.players==='number'?d.players:0);
+      if(!d)return;var plays=typeof d.playsPublic==='number'?d.playsPublic:(typeof d.plays==='number'?d.plays:0);
       var min=Number(n.getAttribute('data-min')||0);
       if(plays<min)return;
       var b=n.querySelector('b');if(b)b.textContent=fmt(plays);n.hidden=false;

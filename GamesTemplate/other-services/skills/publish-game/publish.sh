@@ -39,7 +39,7 @@ MAX="$(jq_ "$GAME_JSON" score.max)"; MIN_D="$(jq_ "$GAME_JSON" score.minDuration
 [ -n "$SLUG" ] && [ -n "$TITLE" ] && [ -n "$MAX" ] || fail "game.json needs slug, title, score.max"
 PUBLIC_BASE="$(jq_ "$STUDIO" publicBase 2>/dev/null || true)"; API_BASE="$(jq_ "$STUDIO" apiBase 2>/dev/null || true)"
 echo "[publish] $GAME_ID → /$SLUG/  (\"$TITLE\")  dry-run=$DRY"
-[ -f "$GAME_DIR/research.md" ] || warn "research.md missing (RULES 4) - the agent must confirm with the user before continuing"
+[ -f "$GAME_DIR/research.md" ] || warn "research.md missing - allowed (RULES 4), but it is due within 3 days of the release; the daily reminder will nag"
 
 # 0. share/cover images (RULES 21א): generated from the title screen when missing; hand-made files are kept
 step "assets"

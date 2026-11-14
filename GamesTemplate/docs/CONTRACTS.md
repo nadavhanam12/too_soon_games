@@ -50,7 +50,7 @@
 `publicBase` = `https://toosoongames.app`. `apiBase` = `https://api.toosoongames.app`. ריק = יחסי/לא פעיל.
 
 ## API (סיכום; המלא ב־ARCHITECTURE.md)
-`GET /v1/version`, `GET /v1/games/:slug/count` → `{players, plays}`, `GET /v1/games/:slug/board?limit&userId`,
+`GET /v1/version`, `GET /v1/games/:slug/count` → `{players, plays, playsPublic}` (playsPublic = מה שמציגים, החלטה 51), `GET /v1/games/:slug/board?limit&userId`,
 `POST /v1/games/:slug/scores`, `POST /v1/games/:slug/events`, `PUT /v1/admin/games/:slug` (header `x-admin-key`).
 
 ## hooks לבדיקות (בכל build של משחק, על `window`)

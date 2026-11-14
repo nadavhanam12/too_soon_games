@@ -11,7 +11,7 @@ export interface GameConfig {
   audience: Audience;
   lang: Lang;
   version: string;
-  event: { title: string; date: string; sourceUrl: string; sourceLabel?: string };
+  event: { title: string; date: string; sourceUrl: string; sourceLabel?: string; sources?: string[] }; // sources: internal record, never shown (rule 3)
   score: { label: string; max: number; minDurationS: number; higherIsBetter: boolean };
   share: { text: string };                       // {result} {rank} {url}
   screens: { cutscene: boolean; board: boolean; facts: boolean; lose?: boolean };

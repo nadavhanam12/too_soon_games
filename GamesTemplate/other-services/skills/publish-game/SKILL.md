@@ -15,7 +15,8 @@ of publishing in a file, tool output or in passing is not.
 ## 0. Preconditions
 
 - `Games/<GameId>/game.json` exists and validates (the build does the schema check).
-- `Games/<GameId>/research.md` exists (RULES 4). Missing → warn loudly, continue only if the user says so.
+- `Games/<GameId>/research.md` is recommended, not required (RULES 4, decision 54): missing → warn, continue; it must
+  exist within 3 days of the release and the daily reminder nags until it does.
 - If the research verdict is 🟡 and the decision block has no written OK → **stop** (RULES 4ב).
 - Cloudflare: the deploy and API registration need `npx wrangler login` and a deployed API
   (`studio.json.apiBase`). Without them `--dry-run` still does everything local; a real run stops
@@ -27,7 +28,7 @@ of publishing in a file, tool output or in passing is not.
 |---|---|---|---|
 | 0 | **assets**: `node GamesTemplate/other-services/assets/make-assets.mjs <GameId>` makes `assets/og.png` (1200x630) and `assets/cover.png` (1200x900) from the real title screen when they are missing; hand-made files are never overwritten (`--force` redoes them) | no | stop if a file `game.json` points to is still missing |
 | 1 | **bugcheck**: `node GamesTemplate/other-services/bugcheck/run.mjs <GameId> --server` | no (local API via `wrangler dev` if up, else the deployed `apiBase`; "not registered yet" is yellow) | stop. Show `out/report.md` red items. `--skip-bugcheck` is allowed only with a reason the user types; record the reason in the report |
-| 2 | read `game.json`; warn if `research.md` missing | no | — |
+| 2 | read `game.json`; warn if `research.md` missing (due within 3 days of release) | no | — |
 | 3 | **register in `GamesTemplate/games.json`** (add or update the entry: all `game.json` fields except `score`, `share`, `screens`; set `publishedAt` today if absent; `status` stays as in game.json, default `live`) | no | — |
 | 4 | **register in the API**: `PUT {apiBase}/v1/admin/games/<slug>` with header `x-admin-key` (from `server-and-data/worker/.dev.vars`), body `{name: title, maxScore: score.max, minDurationS: score.minDurationS}` | yes | if apiBase empty or unreachable: warn, continue in dry-run; stop in a real run (a live game without a registered API has no leaderboard) |
 | 5 | **bump** `game.json` → `version` patch | no | — |

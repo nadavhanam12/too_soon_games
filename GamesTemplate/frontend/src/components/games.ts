@@ -16,7 +16,7 @@ export function sortGames(games: GameEntry[]): GameEntry[] {
 /** Server-side default featured game (the client may swap it by browser language). */
 export function defaultFeatured(games: GameEntry[]): GameEntry | undefined {
   const sorted = sortGames(games.filter((g) => g.status !== 'archived'));
-  return sorted.find((g) => g.featured) ?? sorted[0] ?? sortGames(games)[0];
+  return sorted[0] ?? sortGames(games)[0]; // always the newest live game (decision 53); `featured` is ignored
 }
 
 function coverImg(g: GameEntry, cls: string, lazy: boolean): string {

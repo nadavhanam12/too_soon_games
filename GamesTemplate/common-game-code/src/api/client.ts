@@ -31,7 +31,7 @@ export interface Board { top: BoardRow[]; you: { rank: number; score: number; ni
 export interface ScoreResult { rank: number; total: number; best: number; improved: boolean }
 
 export const api = {
-  count: (slug: string) => call<{ players: number }>('GET', `/v1/games/${slug}/count`),
+  count: (slug: string) => call<{ players: number; plays?: number; playsPublic?: number }>('GET', `/v1/games/${slug}/count`),
   board: (slug: string, userId: string, limit = 20) => call<Board>('GET', `/v1/games/${slug}/board?limit=${limit}&userId=${encodeURIComponent(userId)}`),
   score: (slug: string, body: { userId: string; nick?: string | null; score: number; durationS: number; stage?: string; version: string }) =>
     call<ScoreResult>('POST', `/v1/games/${slug}/scores`, body),
