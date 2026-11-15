@@ -230,15 +230,6 @@ export function confetti(t: number, n = 40, top = 0, span = 420): void {
   }
 }
 
-/** The finisher medal: a slice of halloumi on a ribbon. */
-export function halloumiMedal(x: number, y: number, sc = 1): void {
-  ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
-  ctx.strokeStyle = '#1f7fbf'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-8, -22); ctx.lineTo(0, -4); ctx.lineTo(8, -22); ctx.stroke();
-  rr(-10, -5, 20, 13, 3, '#fffbe8', '#e3d9b0', 1.5);
-  ctx.strokeStyle = '#c98b3a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-6, -2); ctx.lineTo(-2, 5); ctx.moveTo(1, -2); ctx.lineTo(5, 5); ctx.stroke();
-  ctx.restore();
-}
-
 /** A sunbather on the sand; `burn` 0..1 turns them lobster red. */
 export function sunbather(x: number, y: number, burn: number): void {
   const r = Math.round(242 + (255 - 242) * burn), g = Math.round(201 - 110 * burn), b = Math.round(160 - 100 * burn);

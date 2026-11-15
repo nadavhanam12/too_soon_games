@@ -5,7 +5,7 @@ import { content, CONSOLATION } from './content';
 import { theme } from './theme';
 import { playScene } from './play';
 import { MUSIC } from './sfx';
-import { C, arch, baby, bus, cat, confetti, halloumiMedal, person, runnerSide, wife } from './art';
+import { C, arch, baby, bus, cat, confetti, person, runnerSide, wife } from './art';
 import './stages/start'; import './stages/water'; import './stages/sun'; import './stages/wall'; import './stages/finish';
 
 const cfg = cfgJson as GameConfig;
@@ -38,7 +38,6 @@ createGame({
       rr(0, 330, W, 50, 0, C.road);
       arch(W / 2, 372, 0.9);
       runnerSide(W / 2 - 10, 356, 1.3, st, 0.4);
-      halloumiMedal(W / 2 - 6, 330 + Math.sin(st * 3) * 1.5, 1.2);
       // the kudos card
       rr(W - 116, 168, 100, 40, 10, '#ffffff'); txt('KUDOS: 1', W - 66, 182, 12, '#fc4c02', 'center', 900); txt('(from Mom)', W - 66, 198, 10, '#0b2545', 'center', 700);
       const five = r.reason === 'highfive';

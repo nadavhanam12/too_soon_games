@@ -42,12 +42,12 @@ export const LINES = {
   excuses: ['KNEE', 'LACES', 'TOO HOT', 'NO SLEEP', 'BLISTER', 'STITCH', 'HEADWIND', 'NEW SHOES', 'NO GEL', 'CHAFING', 'CALF', 'THE HILL', 'GPS LOST', 'CRAMP', 'TOENAIL', 'HUNGRY'],
   ouzo: ['Ouzo?! Who gave you ouzo?', 'A local grandpa says: one for the road.', 'The road is now spinning.'],
   thirsty: ['Thirsty. Grab a cup!', 'Your mouth is a desert. Grab water!'],
-  sunHot: ["29°C in November. It's Cyprus, don't ask.", 'Burn rate: 1,400 calories. Runway shrinking.', 'You are cooking. Let go!'],
+  sunHot: ["29°C in November. It's Cyprus, don't ask.", 'Sweat level: Mediterranean.', 'You are cooking. Let go!'],
   siga: ['Siga siga! (slow down, my friend)', 'Siga siga! Why you run? Sit!'],
   catTrip: ['You tripped over a cat. The cat is fine.', 'The cat did not move. The cat never moves.', 'Cat 1, Founder 0.'],
   catOk: ['Cat respected.', 'The cat nods at you.', 'Cat. Another cat. Same cat?'],
   bus: ['The bus came from the wrong side. Again.'],
-  wall: ['The runway ran out at km 18.', "Why didn't I spend Saturday on the couch like a normal person?", 'The investors are watching.', "If it's not on Strava, it didn't happen.", 'Think of the medal. Think of the shower.', 'This is not a wall. This is a down round.'],
+  wall: ["Why didn't I spend Saturday on the couch like a normal person?", 'My legs just filed for divorce.', 'Who signed me up for this? Oh. Me.', "If it's not on Strava, it didn't happen.", 'Think of the medal. Think of the shower.', 'Is it too late to become a swimmer?', 'That km sign is lying. It has to be.'],
   wallWrong: ['Same leg twice. Bold strategy.', 'Left, right. Not right, right.', 'Easy. Those are legs, not thumbs.'],
   crowdSign: ['GO DAVE', 'FREE HUGS', 'WHO ARE WE CHEERING?', 'TOUCH FOR POWER', 'PINTS AT KM 22'],
   wrongBlonde: ["That's Sharon from Manchester.", "That's a different blonde. She is also proud of you.", "That's Kevin. He's had four pints."],
@@ -61,7 +61,7 @@ export const BANNERS = {
   start: ['KM 0 · THE START', ['Swipe to get past the crowd.']],
   water: ['KM 3 · WATER STATION', ['Tap to grab. Food = boost. Ouzo = no.']],
   sun: ['KM 8 · CYPRUS SUN', ['Hold to sprint. Let go to cool down, and for cats.']],
-  wall: ['KM 15 · THE WALL', ['LEFT, RIGHT, LEFT, RIGHT.']],
+  wall: ['KM 15 · THE WALL', ['The mental wall: the km where your head says stop.', 'Push through: LEFT, RIGHT, LEFT, RIGHT.']],
   finish: ['KM 19 · THE FINISH', ['Tap to sprint. Tap the baby for a high five.']],
 } as const satisfies Record<string, readonly [string, readonly string[]]>;
 
@@ -128,4 +128,4 @@ export const content: Content = {
 };
 
 /** Lose-screen consolation pool (the template shows content.lose.consolation; main.ts rotates it). */
-export const CONSOLATION = ['(In real life he finished. You can too.)', '(A 2-year-old would have finished faster. In a diaper.)', '(The runway ran out. But this was only the seed round.)'];
+export const CONSOLATION = ['(In real life he finished. You can too.)', '(A 2-year-old would have finished faster. In a diaper.)', '(The wall won this time. Rematch?)'];

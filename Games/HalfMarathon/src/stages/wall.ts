@@ -63,6 +63,6 @@ registerStage('wall', {
       ctx.restore();
     }
     demo('alt', W / 2, H - 150);
-    hint('Alternate LEFT and RIGHT. Same leg twice = stumble');
+    hint('Alternate LEFT and RIGHT');
   },
 });
