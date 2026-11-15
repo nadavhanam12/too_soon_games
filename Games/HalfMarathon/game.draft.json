@@ -1,0 +1,38 @@
+{
+  "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
+  "id": "HalfMarathon",
+  "slug": "half-marathon",
+  "_titleCandidates": ["Half a Marathon, Whole Halloumi", "21.1", "The Runway Ran Out at Km 18"],
+  "title": "Half a Marathon, Whole Halloumi",
+  "tagline": "21.1 km in Cyprus: halloumi, street cats, 29°C in November, and the baby waiting at the finish.",
+  "audience": "us",
+  "lang": "en",
+  "version": "0.1.0",
+  "event": {
+    "title": "A founder's half marathon, Cyprus",
+    "headline": "One of our founders ran a half marathon today.",
+    "date": "2026-11-15",
+    "sourceUrl": "https://toosoongames.app",
+    "sourceLabel": "studio event, no external source"
+  },
+  "score": {
+    "label": "seconds before the course closed",
+    "max": 6300,
+    "minDurationS": 60,
+    "higherIsBetter": true
+  },
+  "share": {
+    "text": "Half a Marathon, Whole Halloumi 🏃 I ran 21.1 km in Cyprus and finished {result} seconds before the course closed. Rank: \"{rank}\". Try to pass me: {url}"
+  },
+  "screens": {
+    "cutscene": true,
+    "board": true,
+    "facts": true,
+    "lose": true
+  },
+  "showPlayerCountFrom": 500,
+  "cover": "assets/cover.png",
+  "ogImage": "assets/og.png",
+  "status": "draft",
+  "themeColor": "#0b2545"
+}

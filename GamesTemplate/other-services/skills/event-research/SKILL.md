@@ -93,7 +93,8 @@ For each (A/B/C):
 
 ## 7. Sensitivities & risks (RULES 4א–4ד)
 Verdict: 🔴 RED / 🟡 YELLOW / 🟢 GREEN, with the specific rule lines that apply.
-- 🔴 reasons (if any): deaths/serious injuries still being treated, minors, sexual/violent crime
+- 🔴 reasons (if any): deaths/serious injuries still being treated, an identifiable real minor (name, photo,
+  likeness or any detail that leads to them; a generic unnamed child or baby is fine, DECISIONS 64), sexual/violent crime
   victims, disaster/attack in its first two weeks, illness/death of a private person.
 - 🟡 reasons (if any): open legal proceeding (only "allegedly", no guilt), private person exposed
   (generic character, no name/photo), religion/ethnicity as the joke, real brand.
