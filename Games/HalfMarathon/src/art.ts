@@ -101,13 +101,26 @@ export function cat(x: number, y: number, sc: number, t: number, col = '#e08a3c'
   ctx.restore();
 }
 
-export type Item = 'water' | 'sports' | 'halloumi' | 'ouzo';
+export type Item = 'water' | 'sports' | 'halloumi' | 'gyros' | 'loukoumades' | 'coffee' | 'ouzo';
+export const FOOD: ReadonlySet<Item> = new Set<Item>(['halloumi', 'gyros', 'loukoumades', 'coffee']);
 /** Water-station items on the table. */
 export function item(kind: Item, x: number, y: number, sc = 1): void {
   ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
   if (kind === 'halloumi') {
     rr(-13, -16, 26, 16, 3, '#fffbe8', '#e3d9b0', 1.5);
     ctx.strokeStyle = '#c98b3a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-9, -12); ctx.lineTo(-3, -4); ctx.moveTo(-1, -12); ctx.lineTo(5, -4); ctx.moveTo(7, -12); ctx.lineTo(11, -6); ctx.stroke();
+  } else if (kind === 'gyros') {
+    ctx.fillStyle = '#e8c27a'; ctx.beginPath(); ctx.moveTo(-12, -2); ctx.lineTo(0, -30); ctx.lineTo(12, -2); ctx.fill();
+    ctx.fillStyle = '#8a4b22'; ctx.fillRect(-6, -18, 12, 5); ctx.fillStyle = '#3ddc84'; ctx.fillRect(-5, -23, 10, 3); ctx.fillStyle = '#ff5a3c'; circ(0, -12, 2.5);
+    rr(-12, -6, 24, 6, 2, '#ffffff');
+  } else if (kind === 'loukoumades') {
+    rr(-14, -6, 28, 6, 3, '#ffffff');
+    for (const [dx, dy] of [[-7, -10], [0, -11], [7, -10], [-3, -17], [4, -17]] as const) circ(dx, dy, 4.5, '#d9902f');
+    ctx.fillStyle = 'rgba(255,200,60,.8)'; ctx.fillRect(-9, -15, 18, 2);
+  } else if (kind === 'coffee') {
+    rr(-8, -16, 16, 16, 3, '#ffffff', '#c9c9c9', 1.5); rr(-6, -14, 12, 4, 2, '#5a3517');
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(10, -9, 4, -1.2, 1.2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.moveTo(-2, -20); ctx.quadraticCurveTo(2, -24, -1, -28); ctx.stroke();
   } else if (kind === 'ouzo') {
     rr(-7, -30, 14, 30, 3, 'rgba(240,250,255,.9)', '#9fb4c4', 1.5); rr(-3, -38, 6, 9, 2, '#9fb4c4');
     rr(-7, -20, 14, 9, 1, '#1f4fa0'); txt('OUZO', 0, -15.5, 5, '#fff', 'center', 900);
@@ -127,12 +140,16 @@ export function pint(x: number, y: number, sc = 1): void {
 }
 
 /** Sun with soft rays. */
-export function sun(x: number, y: number, r: number, t: number): void {
+export function sun(x: number, y: number, r: number, t: number, shades = false): void {
   ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.2);
   ctx.fillStyle = 'rgba(255,210,63,.35)';
   for (let i = 0; i < 12; i++) { ctx.rotate(Math.PI / 6); ctx.fillRect(r * 1.1, -3, r * 0.5, 6); }
   ctx.restore();
   circ(x, y, r, C.sun);
+  if (shades) {
+    rr(x - r * 0.75, y - r * 0.28, r * 0.65, r * 0.38, 5, '#111'); rr(x + r * 0.1, y - r * 0.28, r * 0.65, r * 0.38, 5, '#111'); rr(x - r * 0.12, y - r * 0.2, r * 0.25, 3, 1, '#111');
+    ctx.strokeStyle = '#b5523b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y + r * 0.2, r * 0.35, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+  }
 }
 
 export function palm(x: number, y: number, sc: number, t: number): void {
@@ -151,7 +168,7 @@ export function seafront(off: number, t: number, H: number, hot = 0): void {
   const g = ctx.createLinearGradient(0, -220, 0, 300);
   g.addColorStop(0, hot > 0.5 ? '#ffb36b' : C.sky); g.addColorStop(1, C.sky2);
   ctx.fillStyle = g; ctx.fillRect(-10, -220, W + 20, 520);
-  sun(290, 90, 30 + hot * 10, t);
+  sun(290, 90, 30 + hot * 10, t, hot > 0.5);
   ctx.fillStyle = C.sea; ctx.fillRect(-10, 250, W + 20, 70);
   ctx.fillStyle = C.sea2; for (let i = 0; i < 9; i++) { const x = ((i * 60 - off * 0.2) % (W + 60) + W + 60) % (W + 60) - 30; ctx.fillRect(x, 262 + (i % 3) * 16, 26, 3); }
   ctx.fillStyle = C.sand; ctx.fillRect(-10, 320, W + 20, 40);
@@ -173,7 +190,12 @@ export function arch(x: number, y: number, sc = 1): void {
 export function bus(x: number, y: number, sc: number, t: number): void {
   ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
   rr(-90, -70, 180, 64, 12, '#f2f2f2', '#0b2545', 3);
-  for (let i = 0; i < 5; i++) rr(-80 + i * 32, -60, 26, 22, 4, '#8fd3f4');
+  for (let i = 0; i < 5; i++) {
+    rr(-80 + i * 32, -60, 26, 22, 4, '#8fd3f4');
+    circ(-67 + i * 32, -46, 6, i % 2 ? C.skin : '#ff9f8a'); rr(-73 + i * 32, -55, 12, 4, 2, i % 3 ? '#3a2a1a' : C.blonde);
+    if (i % 2 === 0) { ctx.fillStyle = '#e8c27a'; ctx.beginPath(); ctx.moveTo(-62 + i * 32, -42); ctx.lineTo(-58 + i * 32, -54); ctx.lineTo(-54 + i * 32, -42); ctx.fill(); }
+  }
+  rr(40, -86, 50, 16, 5, '#7fd3ff'); txt('❄ AC', 65, -78, 9, '#0b2545', 'center', 900);
   rr(-90, -32, 180, 10, 0, C.orange);
   txt('SWEEPER BUS', 0, -14, 12, '#0b2545', 'center', 900);
   for (const wx of [-56, 56]) { circ(wx, -4, 13, '#222'); circ(wx, -4, 5, '#999'); }
@@ -206,4 +228,23 @@ export function confetti(t: number, n = 40, top = 0, span = 420): void {
     const cx = ((i * 53 + t * 30 * (1 + (i % 3))) % (W + 20)) - 10, cy = ((i * 97 + t * (60 + (i % 5) * 20)) % span) + top;
     ctx.fillStyle = [C.orange, '#ffffff', C.sun, '#1f7fbf'][i % 4]!; ctx.fillRect(cx, cy, 6, 10);
   }
+}
+
+/** The finisher medal: a slice of halloumi on a ribbon. */
+export function halloumiMedal(x: number, y: number, sc = 1): void {
+  ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
+  ctx.strokeStyle = '#1f7fbf'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-8, -22); ctx.lineTo(0, -4); ctx.lineTo(8, -22); ctx.stroke();
+  rr(-10, -5, 20, 13, 3, '#fffbe8', '#e3d9b0', 1.5);
+  ctx.strokeStyle = '#c98b3a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-6, -2); ctx.lineTo(-2, 5); ctx.moveTo(1, -2); ctx.lineTo(5, 5); ctx.stroke();
+  ctx.restore();
+}
+
+/** A sunbather on the sand; `burn` 0..1 turns them lobster red. */
+export function sunbather(x: number, y: number, burn: number): void {
+  const r = Math.round(242 + (255 - 242) * burn), g = Math.round(201 - 110 * burn), b = Math.round(160 - 100 * burn);
+  const skin = `rgb(${r},${g},${b})`;
+  rr(x - 30, y - 4, 64, 8, 3, '#ff5f8f');
+  rr(x - 24, y - 11, 40, 9, 4, skin); circ(x + 22, y - 8, 6, skin); rr(x - 6, y - 12, 12, 5, 2, '#1f7fbf');
+  rr(x + 18, y - 16, 10, 4, 2, '#111');
+  if (burn > 0.6) txt('!', x + 34, y - 20, 12, '#ff3b3b', 'center', 900);
 }

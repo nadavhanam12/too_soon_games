@@ -41,6 +41,9 @@ export const G = {
   ps: { x: 0, y: 0 },    // where the held pointer went down
   wasDown: false,
   t: 0,                  // seconds in the current stage
+  hintUntil: 0,          // the bottom hint shows for the first 3 s of a stage, and again for 2.5 s after a mistake
+  tag: '',               // what powers the current boost, shown in the HUD ("GYROS POWER")
+  sayT: -9,              // last toast (rate limit)
 };
 const stages: Partial<Record<StageName, Stage>> = {};
 let retryEntry = { km: 0, raceT: 0 };
@@ -52,7 +55,7 @@ export const segK = (): number => { const s = SEG[G.stage]; return clamp((G.km -
 export const pxPerKm = (pxPerS: number): number => { const s = SEG[G.stage]; return (pxPerS * s.len) / (s.to - s.from); };
 
 export function setStage(name: StageName): void {
-  G.stage = name; G.km = SEG[name].from; G.entry = { km: G.km, raceT: G.raceT }; G.f = 1; G.t = 0;
+  G.stage = name; G.km = SEG[name].from; G.entry = { km: G.km, raceT: G.raceT }; G.f = 1; G.t = 0; G.hintUntil = 0; G.tag = '';
   R.stageStart(name); const b = BANNERS[name]; R.banner(b[0], [...b[1]]);
   stages[name]!.enter();
 }
@@ -95,14 +98,38 @@ export function hud(): void {
   for (let km = 1; km < 21; km++) ctx.fillRect(x0 + ((x1 - x0) * km) / TOTAL_KM - 0.5, y - 2, 1, 4);
   for (const n of ORDER) { const xs = x0 + ((x1 - x0) * SEG[n].from) / TOTAL_KM; ctx.fillStyle = '#ffffff'; ctx.fillRect(xs - 1, y - 6, 2, 12); }
   ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * k, y, 6, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
-  if (G.f > 1.05) txt('▲ ' + Math.round(G.f * 100) + '%', W / 2, 18, 12, '#3ddc84', 'center', 900);
+  if (G.f > 1.05) txt('▲ ' + (G.tag || Math.round(G.f * 100) + '%'), W / 2 + 6, 18, 12, '#3ddc84', 'center', 900);
   else if (G.f < 0.7) txt('▼ ' + Math.round(G.f * 100) + '%', W / 2, 18, 12, '#ff8a8a', 'center', 900);
 }
 
-/** Bottom hint strip used by the stages. */
+/** Toast with a rate limit, so jokes don't pile up. `force` for the lines that explain a penalty. */
+export function say(text: string, life = 1.4, force = false): void {
+  if (!force && G.playT - G.sayT < 2.5) return;
+  G.sayT = G.playT; R.say(text, life);
+}
+/** Show the bottom hint again for a moment (after a mistake). */
+export function nudge(): void { G.hintUntil = G.t + 2.5; }
+
+/** Bottom hint strip: only in the first 3 s of a stage, or right after a mistake. */
 export function hint(s: string, y = H - 34): void {
+  if (G.t > 3 && G.t > G.hintUntil) return;
   rr(16, y - 16, W - 32, 32, 12, 'rgba(11,37,69,.78)');
   txt(s, W / 2, y, 13, '#ffffff', 'center', 900);
+}
+
+/** A pointing hand that shows the gesture for the first seconds of a stage (instead of more text). */
+export function demo(kind: 'swipe' | 'tap' | 'hold' | 'alt', x: number, y: number): void {
+  if (G.t > 2.6) return;
+  const t = G.t, a = Math.min(1, (2.6 - t) * 2);
+  ctx.save(); ctx.globalAlpha = a;
+  let dx = 0, dy = 0, press = false;
+  if (kind === 'swipe') dx = Math.sin(t * 4) * 50;
+  else if (kind === 'tap') { press = (t * 2.5) % 1 < 0.35; dy = press ? 6 : 0; }
+  else if (kind === 'hold') { press = true; dy = 6; }
+  else { dx = (Math.floor(t * 3) % 2 ? 1 : -1) * 70; press = (t * 3) % 1 < 0.4; dy = press ? 6 : 0; }
+  if (press) { ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x + dx, y - 22, 16 + ((t * 6) % 1) * 10, 0, Math.PI * 2); ctx.stroke(); }
+  txt('☝', x + dx, y + dy, 40, '#ffffff', 'center', 400);
+  ctx.restore();
 }
 
 onKeyDown((e) => { if (state.scene !== 'play') return false; return stages[G.stage]?.key?.(e) ?? false; });

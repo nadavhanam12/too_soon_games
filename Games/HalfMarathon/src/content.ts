@@ -27,7 +27,19 @@ export const LINES = {
   pintGuy: ['Cheers mate!', 'Is this the queue for the bar?', 'Brilliant! Keep going lad!'],
   stag: ["DAVE'S STAG", 'TEAM DAVE', 'NO SLEEP TIL KM 21'],
   water: ['Ahh. Water.', 'Hydrated. Valuation up.', 'Electrolytes acquired.'],
-  halloumi: ['Energy gel? Here it is halloumi.', '+HALLOUMI! Squeaky speed boost', 'Grilled. Salty. Aerodynamic.'],
+  food: {
+    halloumi: ['Energy gel? Here it is halloumi.', 'Squeaky cheese, squeaky speed.', 'Grilled. Salty. Aerodynamic.'],
+    gyros: ['A gyros at km 5. Bold.', 'Pita-powered.', 'Extra tzatziki, extra speed.'],
+    loukoumades: ['Honey balls! Sugar rush!', 'Loukoumades. Sticky fingers, fast legs.'],
+    coffee: ['Cypriot coffee. Heart rate: yes.', 'Sketo, no sugar, all panic.'],
+  } as Record<string, string[]>,
+  foodTag: { halloumi: 'HALLOUMI POWER', gyros: 'GYROS POWER', loukoumades: 'SUGAR RUSH', coffee: 'CAFFEINE' } as Record<string, string>,
+  thief: ['A cat stole your {food}.', 'Cat 1, your {food} 0.', 'The cat is eating your {food}. Respect.'],
+  stroller: ['A dad with a stroller just passed you.', 'Overtaken by a stroller. The baby waved.'],
+  costume: ['GYROS', 'PITA', 'SOUVLAKI'],
+  thought: '"Thrilled to announce I ran 21.1 km…"',
+  babyRun: ['Wait. Is that the baby?!', 'The baby finished first.'],
+  excuses: ['KNEE', 'LACES', 'TOO HOT', 'NO SLEEP', 'BLISTER', 'STITCH', 'HEADWIND', 'NEW SHOES', 'NO GEL', 'CHAFING', 'CALF', 'THE HILL', 'GPS LOST', 'CRAMP', 'TOENAIL', 'HUNGRY'],
   ouzo: ['Ouzo?! Who gave you ouzo?', 'A local grandpa says: one for the road.', 'The road is now spinning.'],
   thirsty: ['Thirsty. Grab a cup!', 'Your mouth is a desert. Grab water!'],
   sunHot: ["29°C in November. It's Cyprus, don't ask.", 'Burn rate: 1,400 calories. Runway shrinking.', 'You are cooking. Let go!'],
@@ -46,11 +58,11 @@ export const LINES = {
 
 /** Stage banners: title + three lines, shown by the template (pauses until a tap). */
 export const BANNERS = {
-  start: ['KM 0 · THE START', ['4,000 runners, one road.', 'Swipe (or tap a side / arrows) to switch lanes.', "Don't run into the stag party."]],
-  water: ['KM 3 · WATER STATION', ['Tap to grab what is in the orange ring.', 'Water keeps you going. Halloumi = boost.', 'Ouzo = mistake.']],
-  sun: ['KM 8 · CYPRUS SUN', ['Hold to run faster. Let go to cool down.', "Don't overheat.", 'And let go when a cat crosses.']],
-  wall: ['KM 15 · THE WALL', ['The runway ran out.', 'Tap LEFT, RIGHT, LEFT, RIGHT. Alternate!', 'Same leg twice = stumble.']],
-  finish: ['KM 19 · THE FINISH', ['Tap the bottom half to sprint.', 'Find the blonde with the RUN!!! sign.', 'Tap the baby for a high five.']],
+  start: ['KM 0 · THE START', ['Swipe to get past the crowd.']],
+  water: ['KM 3 · WATER STATION', ['Tap to grab. Food = boost. Ouzo = no.']],
+  sun: ['KM 8 · CYPRUS SUN', ['Hold to sprint. Let go to cool down, and for cats.']],
+  wall: ['KM 15 · THE WALL', ['LEFT, RIGHT, LEFT, RIGHT.']],
+  finish: ['KM 19 · THE FINISH', ['Tap to sprint. Tap the baby for a high five.']],
 } as const satisfies Record<string, readonly [string, readonly string[]]>;
 
 // ---------- cutscene drawings (y 0..450; the caption panel sits below) ----------
@@ -83,22 +95,21 @@ function startLine(st: number): void {
 export const content: Content = {
   title: {
     heading: ' ', // drawn on two lines by main.ts (drawTitleArt): too long for the template's one-line heading
-    lines: ['Startup founder. 21.1 km. Cyprus. 29°C in November.', 'Your wife and the baby are waiting at the finish.'],
+    lines: ['21.1 km in Cyprus. 29°C in November.', 'The baby is waiting at the finish.'],
     credit: 'Based on a real race. Today. · Too Soon Games',
   },
   cutscene: {
     button: 'To the start line',
     steps: [
-      { dur: 4, speaker: '4:30 a.m.', text: 'The alarm goes off. Race day.', draw: (st) => bedroom(st, false), sfx: 'bad' },
-      { dur: 0, speaker: 'The baby', text: 'Has been awake since 4:15. Staring at you. Silently.', draw: (st) => bedroom(st, true) },
+      { dur: 0, speaker: '4:30 a.m. Race day.', text: 'The baby has been up since 4:15. Staring. Silently.', draw: (st) => bedroom(st, true), sfx: 'bad' },
       { dur: 0, speaker: 'From the bed', text: '"Go. Come back with a medal, not excuses."', draw: (st) => { bedroom(st, true); bubble('Medal. Not excuses.', 120, 250, 13, '#fff', '#111', 60, 285); } },
-      { dur: 0, speaker: 'The start line', text: '4,000 people in running gear. And one Brit who has not slept since yesterday.', draw: (st) => startLine(st), sfx: 'ok' },
+      { dur: 0, speaker: 'The start line', text: '4,000 runners. One Brit who never went to bed.', draw: (st) => startLine(st), sfx: 'ok' },
     ],
   },
   lose: { heading: 'Course closed.', line: 'The sweeper bus picked you up. It had air conditioning.', consolation: '(In real life he finished. You can too.)' },
   result: {
     heading: (r) => (r.reason === 'highfive' ? 'Finisher + high five!' : 'Finisher. Baby fell asleep.'),
-    sentence: (r) => `21.1 km in ${finishTimeOf(r.score)}. That is ${r.score.toLocaleString('en-US')} seconds before the course closed. Rank: "${rankFor(r.score)}"`,
+    sentence: (r) => `21.1 km in ${finishTimeOf(r.score)}. Rank: "${rankFor(r.score)}"`,
     rankFor,
     resultWords: (r: RunResult) => (r.score > 0 ? finishTimeOf(r.score) : 'DNF'),
   },
@@ -107,11 +118,9 @@ export const content: Content = {
     heading: 'What really happened',
     sub: 'A founder, a half marathon, Cyprus',
     lines: [
-      { text: 'Nov 15, 2026: one of our founders ran a real half marathon in Cyprus. 21.1 km.' },
-      { text: 'He got up early. The 2-year-old got up earlier.' },
-      { text: 'The water stations did not hand out halloumi. Allegedly.' },
-      { text: 'The ouzo grandpa was made up. Probably.' },
-      { text: 'We built this game the same day, while he was running. He finished first.', bold: true },
+      { text: 'Nov 15, 2026: one of our founders ran a real half marathon in Cyprus.' },
+      { text: 'No halloumi at the water stations. No ouzo grandpa. Allegedly.' },
+      { text: 'We built this game while he ran. He finished first.', bold: true },
     ],
     disclaimer: 'Everyone in the game is made up. Including Sharon from Manchester.',
   },

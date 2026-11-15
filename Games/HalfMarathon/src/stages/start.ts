@@ -1,15 +1,16 @@
 // Stage 1 (km 0-3): weave through the start crowd. Three lanes, top-down, the runner seen from behind.
-// Slow runners come down the screen: a guy filming a story, a Brit with a pint, a hand-holding couple, a stag party.
+// Slow runners come down the screen: a guy filming a story, a Brit with a pint, a hand-holding couple, a stag party,
+// a runner in a gyros costume. Once, a dad with a stroller overtakes you (no collision, just shame).
 import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx } from '@tsg/index';
-import { G, registerStage, pxPerKm, hint } from '../play';
+import { G, registerStage, pxPerKm, hint, say, nudge, demo } from '../play';
 import { LINES } from '../content';
-import { C, bubble, person, pint, runnerBack } from '../art';
+import { C, baby, bubble, person, pint, runnerBack } from '../art';
 
 const LANES = [W / 2 - 84, W / 2, W / 2 + 84], PY = H - 150, SCROLL = 260;
-type Kind = 'story' | 'pint' | 'couple' | 'stag';
+type Kind = 'story' | 'pint' | 'couple' | 'stag' | 'costume';
 interface Obs { kind: Kind; lane: number; y: number; hit?: boolean; line: string; passed?: boolean }
 let s = init();
-function init() { return { lane: 1, x: W / 2, obs: [] as Obs[], spawn: 1.0, stun: 0, swipeX: null as number | null, sayT: 3 }; }
+function init() { return { lane: 1, x: W / 2, obs: [] as Obs[], spawn: 1.0, stun: 0, swipeX: null as number | null, stroller: null as { x: number; y: number } | null, strollerDone: false }; }
 function lane(d: number): void { const n = clamp(s.lane + d, 0, 2); if (n !== s.lane) { s.lane = n; sfx.whoosh?.(); } }
 const lanesOf = (o: Obs): number[] => (o.kind === 'couple' || o.kind === 'stag' ? [o.lane, o.lane + 1] : [o.lane]);
 
@@ -29,19 +30,22 @@ registerStage('start', {
     if (s.spawn <= 0 && G.km < 2.8) {
       s.spawn = rnd(0.75, 1.1);
       const r = Math.random();
-      const kind: Kind = r < 0.3 ? 'story' : r < 0.55 ? 'pint' : r < 0.8 ? 'couple' : 'stag';
+      const kind: Kind = r < 0.25 ? 'story' : r < 0.45 ? 'pint' : r < 0.62 ? 'costume' : r < 0.82 ? 'couple' : 'stag';
       const wide = kind === 'couple' || kind === 'stag';
       const ln = wide ? Math.floor(rnd(0, 2)) : Math.floor(rnd(0, 3));
-      const line = kind === 'story' ? pick(LINES.story) : kind === 'pint' ? pick(LINES.pintGuy) : kind === 'stag' ? pick(LINES.stag) : '';
+      const line = kind === 'story' ? pick(LINES.story) : kind === 'pint' ? pick(LINES.pintGuy) : kind === 'stag' ? pick(LINES.stag) : kind === 'costume' ? pick(LINES.costume) : '';
       s.obs.push({ kind, lane: ln, y: -60, line });
     }
     for (const o of s.obs) {
       o.y += (SCROLL * G.f - 70) * dt;
       if (!o.hit && Math.abs(o.y - PY) < 28 && lanesOf(o).some((l) => Math.abs(LANES[l]! - s.x) < 34)) {
-        o.hit = true; s.stun = 0.75; R.shake(0.25); sfx.hit?.(); R.say(pick(LINES.startHit), 1.4);
+        o.hit = true; s.stun = 0.75; R.shake(0.25); sfx.hit?.(); say(pick(LINES.startHit), 1.4, true); nudge();
       }
-      if (!o.passed && o.y > PY + 30) { o.passed = true; if (!o.hit && Math.random() < 0.25) R.say(pick(LINES.startPass), 1.1); }
+      if (!o.passed && o.y > PY + 30) { o.passed = true; if (!o.hit && Math.random() < 0.25) say(pick(LINES.startPass), 1.1); }
     }
+    // the stroller dad overtakes once, around km 1.4, in a lane next to you
+    if (!s.strollerDone && G.km > 1.4) { s.strollerDone = true; s.stroller = { x: LANES[s.lane === 0 ? 1 : s.lane - 1]!, y: H + 60 }; say(pick(LINES.stroller), 1.8, true); }
+    if (s.stroller) { s.stroller.y -= 150 * dt; if (s.stroller.y < -120) s.stroller = null; }
     s.obs = s.obs.filter((o) => o.y < H + 80);
   },
   render() {
@@ -70,6 +74,13 @@ registerStage('start', {
       const x = LANES[o.lane]!;
       if (o.kind === 'story') { ctx.save(); ctx.translate(x, o.y); ctx.scale(1.2, 1.2); person(0, 0, { shirt: '#8a2be2', hair: '#111', back: true }); rr(10, -36, 9, 15, 2, '#222'); circ2(14, -30); ctx.restore(); }
       else if (o.kind === 'pint') { ctx.save(); ctx.translate(x, o.y); ctx.scale(1.2, 1.2); person(0, 0, { shirt: '#c8102e', hair: C.blonde, sunburn: true, back: true }); pint(14, 2, 0.9); ctx.restore(); }
+      else if (o.kind === 'costume') {
+        ctx.save(); ctx.translate(x, o.y);
+        ctx.fillStyle = '#e8c27a'; ctx.beginPath(); ctx.moveTo(-22, 18); ctx.lineTo(0, -44); ctx.lineTo(22, 18); ctx.fill();
+        ctx.fillStyle = '#8a4b22'; ctx.fillRect(-12, -8, 24, 9); ctx.fillStyle = '#3ddc84'; ctx.fillRect(-10, -16, 20, 5); ctx.fillStyle = '#ff5a3c'; ctx.fillRect(-8, -22, 16, 4);
+        rr(-16, 2, 32, 10, 3, '#ffffff'); txt(o.line, 0, 7, 7, '#c8102e', 'center', 900);
+        ctx.restore();
+      }
       else if (o.kind === 'couple') {
         ctx.save(); ctx.translate(x, o.y); ctx.scale(1.15, 1.15); person(0, 0, { shirt: '#ff5fa2', hair: '#3a2a1a', back: true }); ctx.restore();
         ctx.save(); ctx.translate(x + 84, o.y); ctx.scale(1.15, 1.15); person(0, 0, { shirt: '#ff5fa2', hair: C.blonde, longhair: true, back: true }); ctx.restore();
@@ -80,10 +91,17 @@ registerStage('start', {
         rr(x - 4, o.y - 52, 92, 20, 6, '#ffffff'); txt(o.line, x + 42, o.y - 42, 10, '#1aa36b', 'center', 900);
       }
     }
+    if (s.stroller) {
+      const { x, y } = s.stroller;
+      rr(x - 16, y - 42, 32, 30, 8, '#3d5a80'); rr(x - 18, y - 46, 36, 10, 5, '#2b405e'); baby(x, y - 30, 0.8, G.t, true);
+      ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(x - 12, y - 10, 4, 0, 7); ctx.arc(x + 12, y - 10, 4, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(x, y + 26); ctx.scale(1.25, 1.25); person(0, 0, { shirt: '#3ddc84', hair: '#3a2a1a', back: true }); ctx.restore();
+    }
     runnerBack(s.x, PY, 1.35, G.t, G.f);
     if (s.stun > 0) txt('ouch', s.x, PY - 52, 12, '#ffd23f', 'center', 900);
     ctx.restore();
     for (const o of s.obs) if ((o.kind === 'story' || o.kind === 'pint') && o.y > 90 && o.y < PY - 60) bubble(o.line, LANES[o.lane]!, o.y - 52, 11, '#fff', '#111', LANES[o.lane]!, o.y - 30);
+    demo('swipe', W / 2, PY + 70);
     hint('Swipe or tap a side to switch lanes');
   },
 });

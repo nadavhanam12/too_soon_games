@@ -1,8 +1,9 @@
 // Stage 5 (km 19-21.1): the finish. Tap the bottom half to sprint. A crowd of sunburned blondes scrolls by behind the
 // barrier; somewhere in it is the blonde with the RUN!!! sign holding the baby. Tap the baby (or ↑) for a high five:
 // the baby's high five takes a minute off the finish time. Miss them and the game ends on "the baby fell asleep".
-import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, rnd, pick, sfx } from '@tsg/index';
-import { G, registerStage, pxPerKm, hint, SEG } from '../play';
+// After a high five, the baby runs onto the course in the last 300 m, overtakes you and crosses the line first.
+import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx } from '@tsg/index';
+import { G, registerStage, pxPerKm, hint, say, demo, SEG } from '../play';
 import { LINES } from '../content';
 import { C, arch, baby, bubble, confetti, person, pint, runnerSide, seafront, wife } from '../art';
 
@@ -14,7 +15,7 @@ function init() {
   for (let i = 0, wx = 0; wx < 2700; i++, wx += rnd(34, 44)) {
     fans.push({ wx, blonde: Math.random() < 0.75, shirt: pick(['#c8102e', '#ffffff', '#2f6fdd', '#1aa36b', '#ffd23f']), sign: Math.random() < 0.12 ? pick(LINES.crowdSign) : undefined, pint: Math.random() < 0.3, sun: Math.random() < 0.6 });
   }
-  return { fans, sprint: 0.9, five: 0, missed: false, famWX: 0, wrongT: 0, fx: 0 };
+  return { fans, sprint: 0.9, five: 0, missed: false, famWX: 0, wrongT: 0, fx: 0, babyRun: 0 };
 }
 const off = (): number => (G.km - SEG.finish.from) * pxPerKm(SCROLL);
 const famX = (): number => s.famWX - off();
@@ -24,7 +25,7 @@ function tryFive(x: number, y: number, key: boolean): boolean {
   if (G.highFive) return false;
   if (key ? fx > 30 && fx < W - 30 : Math.abs(x - fx) < 44 && y > BAND.top - 50 && y < BAND.bot) {
     G.highFive = true; s.five = 1.6; s.sprint = Math.min(1.45, s.sprint + 0.3);
-    sfx.five?.(); R.flash(0.3); R.say(pick(LINES.highFive), 1.6); return true;
+    sfx.five?.(); R.flash(0.3); say(pick(LINES.highFive), 1.6, true); return true;
   }
   return false;
 }
@@ -35,20 +36,22 @@ registerStage('finish', {
     s.famWX = (FAM_KM - SEG.finish.from) * pxPerKm(SCROLL) + W * 0.62;
     s.fans = s.fans.filter((f) => Math.abs(f.wx - s.famWX) > 50);
   },
-  key(e) { if (e.key === 'ArrowUp' || e.key === 'w') { if (!tryFive(0, 0, true) && !G.highFive) R.say('Not yet. Find the sign!', 0.9); return true; } return false; },
+  key(e) { if (e.key === 'ArrowUp' || e.key === 'w') { if (!tryFive(0, 0, true) && !G.highFive) say('Not yet. Find the sign!', 0.9, true); return true; } return false; },
   step(dt) {
     for (const p of input.taps.splice(0)) {
       if (p.key || p.y >= BAND.bot) { s.sprint = Math.min(1.45, s.sprint + 0.14); sfx.step?.(1); continue; }
       if (tryFive(p.x, p.y, false)) continue;
       if (G.t - s.wrongT > 0.8) {
         const near = s.fans.find((f) => Math.abs(f.wx - off() - p.x) < 20);
-        if (near?.blonde) { s.wrongT = G.t; R.say(pick(LINES.wrongBlonde), 1.3); sfx.tick?.(); }
+        if (near?.blonde) { s.wrongT = G.t; say(pick(LINES.wrongBlonde), 1.3, true); sfx.tick?.(); }
       }
     }
     s.sprint = Math.max(0.6, s.sprint - dt * 0.55);
     s.five = Math.max(0, s.five - dt); s.fx += dt;
     G.f = s.sprint;
-    if (!G.highFive && !s.missed && famX() < -30) { s.missed = true; sfx.bad?.(); R.say(pick(LINES.missed), 1.8); }
+    if (!G.highFive && !s.missed && famX() < -30) { s.missed = true; sfx.bad?.(); say(pick(LINES.missed), 1.8, true); }
+    if (G.highFive && s.babyRun === 0 && G.km > 20.8) { s.babyRun = 1; say(LINES.babyRun[0]!, 1.6, true); }
+    if (s.babyRun === 1 && G.km > 21.06) { s.babyRun = 2; say(LINES.babyRun[1]!, 1.8, true); }
   },
   render() {
     const o = off();
@@ -74,11 +77,18 @@ registerStage('finish', {
     const ax = (SEG.finish.to - SEG.finish.from) * pxPerKm(SCROLL) - o + RX + 10;
     if (ax < W + 100) arch(ax, RY + 20, 1);
     runnerSide(RX, RY, 1.7, G.t, G.f);
+    if (s.babyRun > 0) {
+      const p = clamp((G.km - 20.8) / 0.3, 0, 1), bx = lerp(RX - 80, ax + 50, Math.pow(p, 0.8)), hop = Math.abs(Math.sin(G.t * 16)) * 6;
+      ctx.strokeStyle = C.skin; ctx.lineWidth = 3; ctx.lineCap = 'round'; const lg = Math.sin(G.t * 16) * 5;
+      ctx.beginPath(); ctx.moveTo(bx - 3, RY + 4 - hop); ctx.lineTo(bx - 3 + lg, RY + 16); ctx.moveTo(bx + 3, RY + 4 - hop); ctx.lineTo(bx + 3 - lg, RY + 16); ctx.stroke();
+      baby(bx, RY + 6 - hop, 1.3, G.t, true);
+    }
     if (s.five > 0) { bubble('HIGH FIVE!!!', fx, BAND.top + 10, 15, C.orange, '#ffffff', fx, BAND.top + 50); confetti(s.fx * 3, 30, 60, 300); }
     if (G.highFive) { rr(W - 132, 100, 116, 30, 10, '#3ddc84'); txt('HIGH FIVE −1:00', W - 74, 115, 11, '#0b2545', 'center', 900); }
     // sprint gauge
     rr(16, 100, 120, 30, 10, 'rgba(11,37,69,.78)'); txt('SPRINT', 24, 115, 10, '#cfe3f5', 'left', 900);
     rr(66, 110, 60, 10, 5, 'rgba(255,255,255,.2)'); rr(66, 110, 60 * clamp((s.sprint - 0.6) / 0.85, 0, 1), 10, 5, '#ffd23f');
+    demo('tap', W / 2 + 70, H - 90);
     hint(G.highFive || s.missed ? 'Tap the bottom half to sprint!' : 'Tap below to sprint · tap the baby to high five');
   },
 });
