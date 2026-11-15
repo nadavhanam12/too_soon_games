@@ -12,12 +12,14 @@
       "version": "1.0.3",
       "event": {
         "title": "טיסת פליי-דובאי FZ1073, דובאי–תל אביב",
+        "headline": "Flydubai FZ1073, Dubai to Tel Aviv.",
         "date": "2026-09-30",
         "sourceUrl": "https://www.ynet.co.il/news",
         "sourceLabel": "ynet, 30.9.2026"
       },
       "showPlayerCountFrom": 500,
       "cover": "assets/cover.png",
+      "clip": "assets/clip.webm",
       "ogImage": "assets/og.png",
       "status": "draft",
       "themeColor": "#0f1a2b",
@@ -34,12 +36,14 @@
       "version": "1.0.3",
       "event": {
         "title": "Nvidia CEO resignation, November 2026",
+        "headline": "Nvidia's CEO resigns.",
         "date": "2026-11-12",
         "sourceUrl": "https://nvidianews.nvidia.com/",
         "sourceLabel": "Nvidia newsroom, Nov 12, 2026"
       },
       "showPlayerCountFrom": 500,
       "cover": "assets/cover.png",
+      "clip": "assets/clip.webm",
       "ogImage": "assets/og.png",
       "status": "draft",
       "fonts": [

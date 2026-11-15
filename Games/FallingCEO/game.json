@@ -9,6 +9,7 @@
   "version": "1.0.4",
   "event": {
     "title": "Nvidia CEO resignation, November 2026",
+    "headline": "Nvidia's CEO resigns.",
     "date": "2026-11-12",
     "sourceUrl": "https://nvidianews.nvidia.com/",
     "sourceLabel": "Nvidia newsroom, Nov 12, 2026"
@@ -29,6 +30,7 @@
   },
   "showPlayerCountFrom": 500,
   "cover": "assets/cover.png",
+  "clip": "assets/clip.webm",
   "ogImage": "assets/og.png",
   "status": "draft",
   "fonts": [

@@ -7,14 +7,18 @@ export interface GameEntry {
   audience: 'il' | 'us';
   lang: 'he' | 'en';
   version?: string;
-  event?: { title?: string; date?: string; sourceUrl?: string };
+  event?: { title?: string; headline?: string; date?: string; sourceUrl?: string; sourceLabel?: string };
+  region?: string; // shown in the feed meta line; default derived from audience
   cover?: string;
   ogImage?: string;
+  clip?: string; // relative to the game folder, like cover
   publishedAt?: string;
   status?: 'live' | 'archived';
   featured?: boolean;
   showPlayerCountFrom?: number;
 }
+
+export interface FeedEvent { date: string; text: string }
 
 export interface Studio {
   name: string;
@@ -33,6 +37,7 @@ export interface Studio {
 export interface SiteCtx {
   studio: Studio;
   games: GameEntry[];
+  events: FeedEvent[];
   cssHref: string;
   base: string; // publicBase without trailing slash, for canonical/og urls
   todoEmail: boolean;

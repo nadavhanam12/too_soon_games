@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Publish a game: bugcheck → register (games.json + API) → bump → build client → build site → deploy → verify.
-#   bash publish.sh <GameId> [--dry-run] [--skip-bugcheck "<reason>"]
+#   bash publish.sh <GameId> [--dry-run] [--skip-bugcheck "<reason>"] [--events-done]
 # --dry-run: everything local (no API registration, no deploy, no version bump, games.json written to a .preview file).
 # Runs in Git Bash on Windows (Node 22+). Paths per docs/CONTRACTS.md.
 set -euo pipefail
 
 GAME_ID="${1:-}"; shift || true
 [ -n "$GAME_ID" ] || { echo "usage: publish.sh <GameId> [--dry-run] [--skip-bugcheck \"reason\"]" >&2; exit 2; }
-DRY=0; SKIP_BUG=0; SKIP_REASON=""
+DRY=0; SKIP_BUG=0; SKIP_REASON=""; EVENTS_DONE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
+    --events-done) EVENTS_DONE=1 ;;   # the user answered the events question and events-feed.json is up to date (decision 60)
     --skip-bugcheck) SKIP_BUG=1; SKIP_REASON="${2:-}"; shift || true
       [ -n "$SKIP_REASON" ] || { echo "--skip-bugcheck needs a reason typed by the user" >&2; exit 2; } ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
@@ -45,6 +46,12 @@ echo "[publish] $GAME_ID → /$SLUG/  (\"$TITLE\")  dry-run=$DRY"
 step "assets"
 node "$TPL/other-services/assets/make-assets.mjs" "$GAME_ID" || fail "could not make og/cover images (other-services/assets/make-assets.mjs)"
 for A in cover ogImage; do P="$(jq_ "$GAME_JSON" $A)"; [ -z "$P" ] || [ -f "$GAME_DIR/$P" ] || fail "game.json.$A points to $P which does not exist"; done
+
+# 0ב. events feed (decision 60): a real release needs the user's answer about big events since the previous game
+step "events feed"
+if [ "$EVENTS_DONE" = 1 ]; then echo "  events-feed.json confirmed up to date"
+elif [ "$DRY" = 1 ]; then warn "events feed not confirmed (dry-run continues)"
+else fail "ask the user which big global events happened since the previous game (none is an answer), update $TPL/events-feed.json (max 3 between two games), then rerun with --events-done"; fi
 
 # 1. bugcheck
 step "bugcheck"
@@ -99,6 +106,23 @@ if [ "$DRY" = 1 ]; then echo "  (dry-run) $CUR → $NEW"; else
 step "build client"
 ( cd "$TPL/common-game-code" && [ -d node_modules ] || npm install --no-audit --no-fund >/dev/null; npm run -s build -- "$GAME_ID" ) || fail "client build failed"
 [ -f "$TPL/dist/$SLUG/index.html" ] || fail "expected $TPL/dist/$SLUG/index.html after the client build"
+
+# 6ב. live-demo clip for the home page (decision 64): recorded from the built game when missing, then registered
+step "clip"
+if [ -f "$GAME_DIR/assets/clip.webm" ]; then echo "  Games/$GAME_ID/assets/clip.webm exists (delete it to record a new one)"
+else
+  node "$TPL/other-services/assets/make-clip.mjs" "$GAME_ID" || warn "clip not recorded - the home page falls back to the cover image"
+fi
+if [ -f "$GAME_DIR/assets/clip.webm" ]; then
+  [ -f "$TPL/dist/$SLUG/assets/clip.webm" ] || cp "$GAME_DIR/assets/clip.webm" "$TPL/dist/$SLUG/assets/clip.webm"
+  node - "$GAME_JSON" "$REG_OUT" "$SLUG" <<'EOF2'
+const fs=require('fs');const [gj,reg,slug]=process.argv.slice(2);
+for(const f of [gj,reg]){const j=JSON.parse(fs.readFileSync(f,'utf8'));
+  if(f===gj)j.clip=j.clip||'assets/clip.webm';else{const g=(j.games||[]).find(x=>x.slug===slug);if(g)g.clip=g.clip||'assets/clip.webm';}
+  fs.writeFileSync(f,JSON.stringify(j,null,2)+'
+');}
+EOF2
+fi
 
 # 7. build site
 step "build site"

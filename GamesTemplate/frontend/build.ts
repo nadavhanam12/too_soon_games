@@ -7,10 +7,10 @@ import { join, dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { build as esbuild } from 'esbuild';
-import type { GameEntry, Studio, SiteCtx } from './src/types';
+import type { GameEntry, FeedEvent, Studio, SiteCtx } from './src/types';
 import { homePage } from './src/pages/home';
 import { aboutPage, privacyPage, termsPage, contactPage, accessibilityPage, notFoundPage } from './src/pages/text';
-import { sortGames } from './src/components/games';
+import { sortGames, checkEventLimits } from './src/components/games';
 
 // run.mjs bundles this file into .cache/, so the frontend dir comes from the env it sets.
 const here = process.env.FRONTEND_DIR || resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,6 +27,9 @@ export async function main(args: string[]): Promise<void> {
   const studio = JSON.parse(readFileSync(join(templateRoot, 'studio.json'), 'utf8')) as Studio;
   const games = (JSON.parse(readFileSync(gamesFile, 'utf8')) as { games: GameEntry[] }).games ?? [];
   validate(games);
+  const eventsFile = resolve(here, arg(args, '--events') ?? join(templateRoot, 'events-feed.json'));
+  const events = existsSync(eventsFile) ? ((JSON.parse(readFileSync(eventsFile, 'utf8')) as { events: FeedEvent[] }).events ?? []) : [];
+  validateEvents(games, events);
 
   mkdirSync(join(out, 'assets'), { recursive: true });
 
@@ -39,6 +42,7 @@ export async function main(args: string[]): Promise<void> {
   const ctx: SiteCtx = {
     studio,
     games,
+    events,
     cssHref,
     base: (studio.publicBase || '').replace(/\/$/, ''),
     todoEmail: !studio.email,
@@ -72,8 +76,8 @@ export async function main(args: string[]): Promise<void> {
     short_name: 'Too Soon',
     start_url: '/',
     display: 'standalone',
-    background_color: '#140b24',
-    theme_color: '#140b24',
+    background_color: '#ffffff',
+    theme_color: '#121212',
     icons: [
       { src: '/assets/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
       { src: '/assets/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
@@ -123,7 +127,15 @@ export async function main(args: string[]): Promise<void> {
   console.log(`frontend built → ${out}  (${n} pages, ${games.length} games from ${gamesFile.replace(templateRoot, '…')}, css ${cssHref})`);
   if (!studio.email) console.log('note: studio.json "email" is empty → contact pages show a TODO placeholder');
 
-  if (args.includes('--serve')) serve(out, Number(arg(args, '--port') ?? 5180));
+  if (args.includes('--serve')) serve(out, Number(arg(args, '--port') ?? 5180), arg(args, '--host') ?? '127.0.0.1');
+}
+
+function validateEvents(games: GameEntry[], events: FeedEvent[]): void {
+  for (const e of events) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? '') || !(e.text ?? '').trim()) throw new Error(`events-feed.json: each event needs date (YYYY-MM-DD) and text, got ${JSON.stringify(e)}`);
+  }
+  const errors = checkEventLimits(games, events);
+  if (errors.length) throw new Error(errors.join('\n'));
 }
 
 function validate(games: GameEntry[]): void {
@@ -138,7 +150,7 @@ function validate(games: GameEntry[]): void {
 }
 
 // Minimal static server for local checks (mirrors Pages: /x/ → /x/index.html, 404 → 404.html).
-function serve(root: string, port: number): void {
+function serve(root: string, port: number, host: string): void {
   const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain', '.xml': 'application/xml' };
   createServer((req, res) => {
     let p = decodeURIComponent((req.url || '/').split('?')[0] ?? '/');
@@ -153,5 +165,5 @@ function serve(root: string, port: number): void {
     }
     res.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' });
     res.end(readFileSync(file));
-  }).listen(port, '127.0.0.1', () => console.log(`serving ${root} at http://127.0.0.1:${port}/  (${readdirSync(root).length} entries)`));
+  }).listen(port, host, () => console.log(`serving ${root} at http://${host === '0.0.0.0' ? 'localhost' : host}:${port}/  (${readdirSync(root).length} entries)`));
 }

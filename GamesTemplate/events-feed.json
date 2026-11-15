@@ -1,0 +1,8 @@
+{
+  "$comment": "Big global events with no game, shown in the home feed as one English sentence + 'too soon even for us'. Max 3 between two games (decision 59). Updated only when a game is published (decision 60, /publish-game). Fields: date (YYYY-MM-DD), text (one sentence).",
+  "events": [
+    { "date": "2026-11-04", "text": "A European capital banned e-scooters overnight." },
+    { "date": "2026-10-21", "text": "A streaming giant raised prices for the third time this year." },
+    { "date": "2026-10-09", "text": "The World Series ended on a replay review nobody understood." }
+  ]
+}

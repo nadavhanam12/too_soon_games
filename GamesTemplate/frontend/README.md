@@ -1,6 +1,6 @@
 # frontend - אתר הסטודיו
 
-האתר הסטטי של Too Soon Games: עמוד הבית (משחק נבחר, לידרבורד, רשת המשחקים, עקבו אחרינו), עמודי
+האתר הסטטי של Too Soon Games: עמוד הבית (פיד חדשות: כתבה ראשית = המשחק החדש, ומתחתיה משחקים ואירועי "too soon even for us"), עמודי
 החובה, וה־Worker של Pages לקישורי אתגר. המפרט ב־[../docs/FRONTEND.md](../docs/FRONTEND.md), החוזים
 ב־[../docs/CONTRACTS.md](../docs/CONTRACTS.md).
 
@@ -8,8 +8,8 @@
 build.ts               קורא ../games.json + ../studio.json → ../dist/
 run.mjs                מריץ את build.ts דרך esbuild (בלי tsx)
 src/pages/             home, about, privacy, terms, contact, accessibility, 404
-src/components/        layout (header/footer/follow), games (hero/card/grid), icons, html helpers
-src/styles/site.css    הטוקנים והעיצוב (כהה תמיד). נכתב ל־dist עם hash בשם
+src/components/        layout (top bar/masthead/footer), games (lead story, feed items), icons, html helpers
+src/styles/site.css    הטוקנים והעיצוב (כיוון E "אתר חדשות", בהיר). נכתב ל־dist עם hash בשם
 src/assets/            logo.png, favicon.svg, og.svg
 functions/worker.ts    dist/_worker.js: og:title אישי ל־/<slug>/?c=..&n=.., 404 → 404.html
 functions/rewrite.ts   הפונקציה הטהורה של ההחלפה (נבדקת ב־Node)
@@ -31,6 +31,8 @@ npm run check          # typecheck
 ## מה האתר מצפה
 - `../games.json`: `{ games: [...] }` עם `id, slug, title, tagline, audience, lang` חובה; `cover` יחסי לתיקיית
   המשחק (`/<slug>/<cover>`); `publishedAt` לסדר; `status: archived` לארכיון; `featured: true` לנעיצה.
+- `../events-feed.json`: `{ events: [{date, text}] }` אירועים גלובליים בלי משחק, עד 3 בין שני משחקים (ה־build נכשל אחרת).
+  `event.headline` ב־game.json = הכותרת האנגלית בפיד.
 - `../studio.json`: `apiBase` ריק = בלי ספירות ולידרבורד בעמוד הבית (הדף שלם גם בלי). `email` ריק =
   עמודי הקשר מציגים TODO. `cfWebAnalyticsToken` ריק = בלי beacon.
 - עמודי המשחקים (`dist/<slug>/`) נבנים על ידי `common-game-code`, לא כאן.
