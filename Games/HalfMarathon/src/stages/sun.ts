@@ -1,15 +1,16 @@
 // Stage 3 (km 8-15): the Cyprus sun. Hold = run faster but heat up; let go = cool down. Overheat = forced walk.
 // Street cats cross the road: let go before you reach one, or trip over it. A grandpa on a plastic chair says "siga siga".
 // A Brit on the beach slowly turns lobster red; the sun puts on sunglasses when you heat up; at km 12 you draft a post.
-import { R, W, SAFE_H as H, ctx, input, keyHeld, rr, txt, clamp, rnd, pick, sfx } from '@tsg/index';
-import { G, registerStage, pxPerKm, segK, hint, say, nudge, demo } from '../play';
+import { W, SAFE_H as H, ctx, input, keyHeld, rr, txt, clamp, rnd, pick, sfx } from '@tsg/index';
+import { G, registerStage, pxPerKm, segK, hint, say, nudge, demo, impact, runnerSq, bigHit } from '../play';
 import { LINES } from '../content';
 import { C, bubble, cat, person, runnerSide, seafront, sunbather } from '../art';
 
 const RX = 110, RY = 520, SCROLL = 210;
-interface Cat { x: number; col: string; done?: boolean; tripped?: boolean }
+interface Cat { x: number; col: string; done?: boolean; tripped?: boolean; grace?: number }
+const CAT_GRACE = 0.12; // letting go up to 120 ms after reaching a cat still counts (ת12: touch screens are late)
 let s = init();
-function init() { return { heat: 0.25, over: 0, trip: 0, cats: [] as Cat[], catIn: 2.6, grandpa: -99, gline: '', said: 0, bus: 0, busOn: false }; }
+function init() { return { heat: 0.25, over: 0, trip: 0, cats: [] as Cat[], catIn: 2.6, grandpa: -99, gline: '', said: 0, bus: 0, busOn: false, wasHold: false }; }
 const holding = (): boolean => input.down || keyHeld(' ', 'ArrowUp', 'ArrowRight');
 
 registerStage('sun', {
@@ -20,8 +21,11 @@ registerStage('sun', {
     s.over = Math.max(0, s.over - dt); s.trip = Math.max(0, s.trip - dt);
     const hold = holding() && s.over <= 0;
     if (s.over > 0) { s.heat = clamp(s.heat - dt * 0.25, 0, 1); }
-    else if (hold) { s.heat = clamp(s.heat + dt * 0.2, 0, 1); if (s.heat >= 1) { s.over = 2.4; sfx.bad?.(); R.shake(0.2); say('Overheated. Walking. Sweating.', 1.6, true); nudge(); } }
+    else if (hold) { s.heat = clamp(s.heat + dt * 0.2, 0, 1); if (s.heat >= 1) { s.over = 2.4; sfx.bad?.(); bigHit(0.35); say('Overheated. Walking. Sweating.', 1.6, true); nudge(); } }
     else s.heat = clamp(s.heat - dt * 0.24, 0, 1);
+    // the burst: a stretch and a whoosh the moment the hold starts, so the press is felt before the speed is (ת1)
+    if (hold && !s.wasHold) { impact(-0.2); sfx.whoosh?.(); }
+    s.wasHold = hold;
     G.f = s.trip > 0 ? 0.3 : s.over > 0 ? 0.35 : hold ? 1.3 : 0.85;
     const v = SCROLL * G.f;
     // cats
@@ -31,8 +35,12 @@ registerStage('sun', {
       c.x -= v * dt;
       if (!c.done && c.x < RX + 26) {
         c.done = true;
-        if (hold) { c.tripped = true; s.trip = 1; sfx.hit?.(); R.shake(0.3); say(pick(LINES.catTrip), 1.5, true); nudge(); }
+        if (hold) c.grace = CAT_GRACE;
         else { sfx.meow?.(); say(pick(LINES.catOk), 1); }
+      }
+      if (c.grace !== undefined && c.grace > 0) {
+        if (!hold) { c.grace = 0; sfx.meow?.(); say(pick(LINES.catOk), 1); }
+        else if ((c.grace -= dt) <= 0) { c.tripped = true; s.trip = 1; sfx.hit?.(); bigHit(0.45); say(pick(LINES.catTrip), 1.5, true); nudge(); }
       }
     }
     s.cats = s.cats.filter((c) => c.x > -40);
@@ -60,7 +68,11 @@ registerStage('sun', {
     for (const c of s.cats) cat(c.x, RY + 10, 1.4, G.t, c.col);
     const warn = s.cats.some((c) => !c.done && c.x - RX < 170);
     if (warn) { rr(RX + 70, RY - 120, 84, 30, 10, '#ff3b3b'); txt('CAT! LET GO', RX + 112, RY - 104, 11, '#ffffff', 'center', 900); }
-    runnerSide(RX, RY, 1.7, G.t, G.f, s.over > 0 ? 1 : s.heat * 0.6);
+    if (hold) { // speed lines behind the runner while sprinting
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      for (let i = 0; i < 4; i++) { const ly = RY - 70 + i * 22, lx = RX - 40 - ((G.t * 600 + i * 37) % 90); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx - 26, ly); ctx.stroke(); }
+    }
+    runnerSide(RX, RY, 1.7, G.t, G.f, s.over > 0 ? 1 : s.heat * 0.6, runnerSq());
     if (s.trip > 0) txt('✶', RX + 20, RY - 90, 22, '#ffd23f', 'center', 900);
     if (G.km > 11.6 && G.km < 12.5) { for (const [dx, dy, r] of [[14, -96, 3], [22, -110, 5]] as const) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(RX + dx, RY + dy, r, 0, 7); ctx.fill(); } bubble(LINES.thought, RX + 90, RY - 140, 11, '#ffffff', '#0b2545'); }
     // heat meter

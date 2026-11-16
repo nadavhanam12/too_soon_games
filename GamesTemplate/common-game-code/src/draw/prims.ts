@@ -6,6 +6,10 @@ export { rand };
 export const rnd = (a: number, b: number): number => a + rand() * (b - a);
 export const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+/** Volume-keeping squash: a > 0 flattens (landing, hit), a < 0 stretches (speed). Returns [scaleX, scaleY], sx * sy = 1. */
+export const squash = (a: number): [number, number] => { const sy = 1 - clamp(a, -0.5, 0.5); return [1 / sy, sy]; };
+/** Damped spring for follow-through: starts at `amp`, overshoots past 0 and settles. `t` = seconds since the kick. */
+export const springOut = (t: number, amp: number, freq = 22, decay = 8): number => amp * Math.exp(-decay * t) * Math.cos(freq * t);
 export const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)] as T;
 export const fmtTime = (s: number): string => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 export const fmtInt = (n: number): string => Math.round(n).toLocaleString('en-US');

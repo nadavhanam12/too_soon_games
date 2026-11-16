@@ -4,7 +4,7 @@
 // the stage's fixed rate, so a slower runner spends more real time, and therefore more race time, on the same stretch.
 // Race clock ≥ 3:00:00 → R.fail (the sweeper bus). Km 21.1 → a FINISH moment (OUTRO_S, taps swallowed so the sprint
 // mashing can't hit the result screen's buttons), then R.win, score = seconds left before the cutoff.
-import { R, W, SAFE_H as H, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, type Scene } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, springOut, type Scene } from '@tsg/index';
 import { BANNERS, CUTOFF, fmtRace } from './content';
 import { confetti } from './art';
 import './sfx';
@@ -50,10 +50,19 @@ export const G = {
   hintUntil: 0,          // the bottom hint shows for the first 3 s of a stage, and again for 2.5 s after a mistake
   tag: '',               // what powers the current boost, shown in the HUD ("GYROS POWER")
   sayT: -9,              // last toast (rate limit)
+  sqA: 0, sqT: 9,        // the runner's squash spring: kick size and seconds since the kick (impact())
 };
 const stages: Partial<Record<StageName, Stage>> = {};
 let retryEntry = { km: 0, raceT: 0 };
 let pendingWin: Parameters<typeof R.win>[0] | null = null;
+
+/** Kick the runner's squash spring (UX-ANIMATION-RULES ת3): a > 0 squashes (hit, landing), a < 0 stretches (burst).
+ *  The spring overshoots the other way and settles, which is the follow-through. */
+export function impact(a: number): void { G.sqA = a; G.sqT = 0; }
+/** The runner's squash right now: the spring, plus a constant stretch while boosted. Pass it to runnerSide/runnerBack. */
+export const runnerSq = (): number => springOut(G.sqT, G.sqA) - (G.f > 1.15 ? 0.06 : 0);
+/** A big moment (ת6): freeze a few frames, shake, flash. Small moments only get impact() and a sound. */
+export function bigHit(sq = 0.4): void { R.hitStop(0.07); R.shake(0.3); R.flash(0.18); impact(sq); }
 
 export function registerStage(name: StageName, s: Stage): void { stages[name] = s; }
 /** 0..1 progress inside the current stage. */
@@ -157,7 +166,7 @@ onKeyDown((e) => { if (state.scene !== 'play') return false; return stages[G.sta
 export const playScene: Scene = {
   enter() {
     const retry = R.retry;
-    G.ended = false; G.wasDown = false; G.outro = 0; pendingWin = null;
+    G.ended = false; G.wasDown = false; G.outro = 0; pendingWin = null; G.sqA = 0;
     if (retry?.stage && stages[retry.stage as StageName]) { setStage(retry.stage as StageName); G.km = retryEntry.km; G.raceT = retryEntry.raceT; G.entry = { ...retryEntry }; }
     else { G.km = 0; G.raceT = 0; G.playT = 0; G.highFive = false; setStage('start'); }
   },
@@ -165,7 +174,7 @@ export const playScene: Scene = {
     if (dt > 0 && !G.ended) {
       if (input.down && !G.wasDown) { G.ps.x = input.px; G.ps.y = input.py; }
       G.wasDown = input.down;
-      G.playT += dt; G.t += dt;
+      G.playT += dt; G.t += dt; G.sqT += dt;
       stages[G.stage]!.step(dt);
       const s = SEG[G.stage];
       G.km = Math.min(s.to, G.km + (Math.max(0.05, G.f) * (s.to - s.from) * dt) / s.len);
@@ -175,7 +184,7 @@ export const playScene: Scene = {
     } else if (dt > 0 && G.outro > 0) {
       // the finish moment: the runner slows down under the arch, every tap is swallowed
       input.taps.length = 0;
-      G.t += dt; G.f = Math.max(0.25, G.f - dt * 1.2);
+      G.t += dt; G.sqT += dt; G.f = Math.max(0.25, G.f - dt * 1.2);
       G.outro -= dt;
       if (G.outro <= 0 && pendingWin) { const w = pendingWin; pendingWin = null; R.win(w); }
     }

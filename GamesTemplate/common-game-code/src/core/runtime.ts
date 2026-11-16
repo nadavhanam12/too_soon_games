@@ -65,6 +65,7 @@ export interface Runtime {
   banner(title: string, lines: string[]): void;   // stage banner; pauses the game until tapped
   shake(s?: number): void;
   flash(a?: number): void;
+  hitStop(s?: number): void;                       // freeze the play scene's dt for s seconds (a big hit lands)
   stageStart(stage: string): void;
   stageComplete(stage: string, score: number): void;
 }

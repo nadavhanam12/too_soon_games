@@ -2,7 +2,7 @@
 // Water / sports drink refill the thirst meter; local food (halloumi, gyros, loukoumades, Cypriot coffee) is a speed
 // boost; ouzo makes the road spin. A street cat walks the table and steals food before you get there.
 import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, rnd, pick, sfx, rand } from '@tsg/index';
-import { G, registerStage, pxPerKm, hint, say, nudge, demo } from '../play';
+import { G, registerStage, pxPerKm, hint, say, nudge, demo, impact, runnerSq } from '../play';
 import { LINES } from '../content';
 import { C, FOOD, cat, item, person, runnerSide, seafront, type Item } from '../art';
 
@@ -10,7 +10,7 @@ const RX = 110, RY = 520, TY = 420, RING = { x: RX + 24, r: 30 }, SCROLL = 170;
 interface Thing { kind: Item; x: number; taken?: boolean }
 interface Thief { x: number; t: number; target: Thing | null; dir: number; stole?: boolean }
 let s = init();
-function init() { return { things: [] as Thing[], nextX: W + 40, thirst: 0.65, boost: 0, wobble: 0, jitter: 0, grab: 0, thirstSaid: 0, thief: null as Thief | null, thiefIn: 3.5 }; }
+function init() { return { things: [] as Thing[], nextX: W + 40, thirst: 0.65, boost: 0, wobble: 0, jitter: 0, grab: 0, thirstSaid: 0, thief: null as Thief | null, thiefIn: 3.5, miss: 0, ringPop: 0 }; }
 function roll(): Item {
   const r = rand();
   return r < 0.36 ? 'water' : r < 0.56 ? 'sports' : r < 0.66 ? 'halloumi' : r < 0.75 ? 'gyros' : r < 0.82 ? 'loukoumades' : r < 0.88 ? 'coffee' : 'ouzo';
@@ -27,7 +27,7 @@ registerStage('water', {
     if (s.nextX < W + 40 && G.km < 7.7) { s.things.push({ kind: roll(), x: s.nextX + 40 }); s.nextX += rnd(70, 105); }
     s.things = s.things.filter((t) => t.x > -40);
     s.thirst = clamp(s.thirst - dt * 0.075, 0, 1);
-    s.boost = Math.max(0, s.boost - dt); s.wobble = Math.max(0, s.wobble - dt); s.jitter = Math.max(0, s.jitter - dt); s.grab = Math.max(0, s.grab - dt * 4);
+    s.boost = Math.max(0, s.boost - dt); s.wobble = Math.max(0, s.wobble - dt); s.jitter = Math.max(0, s.jitter - dt); s.grab = Math.max(0, s.grab - dt * 4); s.miss = Math.max(0, s.miss - dt * 3); s.ringPop = Math.max(0, s.ringPop - dt * 5);
     // the cat thief: lands on a food item ahead of you, takes it, runs off along the table
     s.thiefIn -= dt;
     if (!s.thief && s.thiefIn <= 0) {
@@ -48,14 +48,14 @@ registerStage('water', {
       const t = s.things.filter((q) => !q.taken && Math.abs(q.x - RING.x) < RING.r).sort((a, b) => Math.abs(a.x - RING.x) - Math.abs(b.x - RING.x))[0];
       s.grab = 1;
       if (t) {
-        t.taken = true;
-        if (t.kind === 'water' || t.kind === 'sports') { s.thirst = clamp(s.thirst + (t.kind === 'water' ? 0.35 : 0.45), 0, 1); sfx.ok?.(); say(pick(LINES.water), 0.9); }
-        else if (t.kind === 'ouzo') { s.wobble = 3; s.boost = 0; sfx.bad?.(); R.shake(0.2); say(pick(LINES.ouzo), 1.4, true); nudge(); }
+        t.taken = true; s.ringPop = 1;
+        if (t.kind === 'water' || t.kind === 'sports') { s.thirst = clamp(s.thirst + (t.kind === 'water' ? 0.35 : 0.45), 0, 1); sfx.ok?.(); impact(0.12); say(pick(LINES.water), 0.9); }
+        else if (t.kind === 'ouzo') { s.wobble = 3; s.boost = 0; sfx.bad?.(); R.shake(0.2); impact(0.25); say(pick(LINES.ouzo), 1.4, true); nudge(); }
         else {
           s.boost = t.kind === 'coffee' ? 3.2 : 2.6; if (t.kind === 'coffee') s.jitter = 3.2;
-          G.tag = LINES.foodTag[t.kind] ?? ''; sfx.halloumi?.(); say(pick(LINES.food[t.kind] ?? ['Boost!']), 1.2, true);
+          G.tag = LINES.foodTag[t.kind] ?? ''; sfx.halloumi?.(); impact(-0.22); say(pick(LINES.food[t.kind] ?? ['Boost!']), 1.2, true);
         }
-      } else { sfx.tick?.(); nudge(); }
+      } else { s.miss = 1; sfx.tick?.(); nudge(); } // a miss shakes the ring red: the tap landed, the timing didn't (ת1)
     }
     if (s.thirst < 0.15 && G.t - s.thirstSaid > 3) { s.thirstSaid = G.t; say(pick(LINES.thirsty), 1.2, true); nudge(); }
     G.f = s.boost > 0 ? 1.35 : s.wobble > 0 ? 0.7 : s.thirst < 0.15 ? 0.55 : 1;
@@ -70,10 +70,11 @@ registerStage('water', {
     for (const t of s.things) if (!t.taken) item(t.kind, t.x, TY, 1.1);
     if (s.thief) { ctx.save(); if (!s.thief.dir) cat(s.thief.x, TY, 1, G.t, '#444'); else { ctx.translate(s.thief.x, TY); ctx.scale(-1, 1); cat(0, 0, 1, G.t * 2, '#444'); ctx.scale(-1, 1); if (s.thief.stole) item(s.thief.target?.kind ?? 'halloumi', 18, -12, 0.6); } ctx.restore(); }
     const hot = s.things.some((q) => !q.taken && Math.abs(q.x - RING.x) < RING.r);
-    ctx.strokeStyle = hot ? '#ff8a00' : 'rgba(255,138,0,.55)'; ctx.lineWidth = hot ? 4 : 3;
-    ctx.beginPath(); ctx.arc(RING.x, TY - 12, RING.r, 0, Math.PI * 2); ctx.stroke();
+    const rx = RING.x + Math.sin(G.t * 60) * 5 * s.miss, rad = RING.r * (1 + 0.3 * s.ringPop);
+    ctx.strokeStyle = s.miss > 0 ? '#ff3b3b' : hot ? '#ff8a00' : 'rgba(255,138,0,.55)'; ctx.lineWidth = hot || s.miss > 0 ? 4 : 3;
+    ctx.beginPath(); ctx.arc(rx, TY - 12, rad, 0, Math.PI * 2); ctx.stroke();
     const jx = s.jitter > 0 ? Math.sin(G.t * 60) * 2 : 0;
-    runnerSide(RX + jx, RY, 1.7, G.t, G.f);
+    runnerSide(RX + jx, RY, 1.7, G.t, G.f, 0, runnerSq());
     if (s.grab > 0) { ctx.strokeStyle = C.skin; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(RX + 6, RY - 50); ctx.lineTo(RING.x, TY - 8 + (1 - s.grab) * 20); ctx.stroke(); }
     ctx.restore();
     rr(16, 100, 150, 34, 10, 'rgba(11,37,69,.78)'); txt('THIRST', 26, 117, 11, '#cfe3f5', 'left', 900);

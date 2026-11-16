@@ -1,7 +1,7 @@
 // Drawing kit of "Half a Marathon, Whole Halloumi": the runner (back and side view), the crowd, the wife and the baby,
 // cats, cups, halloumi, the Cyprus seafront, the finish arch and the sweeper bus. Flat vector shapes, safe-zone units.
 // Everyone is generic (research.md section 7): no faces, no names, no real landmarks.
-import { ctx, W, rr, circ, txt, wrap, clamp } from '@tsg/index';
+import { ctx, W, rr, circ, txt, wrap, clamp, squash } from '@tsg/index';
 
 export const C = {
   sky: '#8fd3f4', sky2: '#d7f1ff', sea: '#1f7fbf', sea2: '#3aa0d8', sand: '#f1d8a0', road: '#6b7280', road2: '#596170',
@@ -22,10 +22,11 @@ export function person(x: number, y: number, o: PersonOpts = {}): void {
   ctx.restore();
 }
 
-/** The runner seen from behind (stage 1). `t` animates the legs. */
-export function runnerBack(x: number, y: number, sc: number, t: number, speed = 1): void {
+/** The runner seen from behind (stage 1). `t` animates the legs; `sq` squashes (> 0) or stretches (< 0) from the feet. */
+export function runnerBack(x: number, y: number, sc: number, t: number, speed = 1, sq = 0): void {
   ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
-  const lg = Math.sin(t * 20 * Math.max(0.4, speed)) * 6;
+  const ph = t * 20 * Math.max(0.4, speed), lg = Math.sin(ph) * 6;
+  footSquash(28, sq + (speed > 0 ? 0.04 * Math.cos(2 * ph) : 0));
   rr(-9, 10, 7, 14 + lg, 3, C.skin); rr(2, 10, 7, 14 - lg, 3, C.skin);
   rr(-11, 6, 22, 10, 4, C.shorts);
   rr(-12, -8, 24, 18, 8, C.tank);
@@ -34,10 +35,12 @@ export function runnerBack(x: number, y: number, sc: number, t: number, speed = 
   ctx.restore();
 }
 
-/** The runner from the side, running to the right (stages 2-5). */
-export function runnerSide(x: number, y: number, sc: number, t: number, speed = 1, tired = 0): void {
+/** The runner from the side, running to the right (stages 2-5). `sq` squashes (> 0) or stretches (< 0) from the feet. */
+export function runnerSide(x: number, y: number, sc: number, t: number, speed = 1, tired = 0, sq = 0): void {
   ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
   const ph = t * (8 + 10 * clamp(speed, 0.2, 1.5)), sw = Math.sin(ph), lean = 0.12 + clamp(speed, 0, 1.5) * 0.1 - tired * 0.15;
+  // a small squash on every foot strike (twice per stride), deeper when running fast
+  footSquash(34, sq + 0.045 * Math.cos(2 * ph) * clamp(speed, 0.3, 1.3));
   ctx.rotate(lean);
   ctx.lineCap = 'round';
   const limb = (x0: number, y0: number, a: number, l1: number, l2: number, bend: number, col: string, w: number) => {
@@ -238,4 +241,10 @@ export function sunbather(x: number, y: number, burn: number): void {
   rr(x - 24, y - 11, 40, 9, 4, skin); circ(x + 22, y - 8, 6, skin); rr(x - 6, y - 12, 12, 5, 2, '#1f7fbf');
   rr(x + 18, y - 16, 10, 4, 2, '#111');
   if (burn > 0.6) txt('!', x + 34, y - 20, 12, '#ff3b3b', 'center', 900);
+}
+
+/** Scale the current drawing around the feet (local y = `feetY`) so a squash keeps them on the ground. */
+function footSquash(feetY: number, a: number): void {
+  const [sx, sy] = squash(a);
+  ctx.translate(0, feetY); ctx.scale(sx, sy); ctx.translate(0, -feetY);
 }

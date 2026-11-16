@@ -52,6 +52,7 @@ export function createGame(def: GameDef): void {
     banner: (title: string, lines: string[]) => { banner = { title, lines, t: 0 }; },
     shake: (s = 0.3) => { state.shake = Math.max(state.shake, s); },
     flash: (a = 0.4) => { state.flash = Math.max(state.flash, a); },
+    hitStop: (s = 0.06) => { freeze = Math.max(freeze, s); },
     stageStart: (stage: string) => track('stage_start', { stage }),
     stageComplete: (stage: string, score: number) => track('stage_complete', { stage, timeS: Math.round(R.playTime), score }),
   } satisfies Partial<typeof R>);
@@ -117,6 +118,7 @@ export function createGame(def: GameDef): void {
   let last = performance.now();
   let stepping = false;
   let manual = false;
+  let freeze = 0; // hit-stop seconds left: the scene draws with dt = 0, toasts/shake/flash keep running on rawDt
   function frame(now: number): void {
     if (manual && !stepping) { last = now; requestAnimationFrame(frame); return; }
     // under __advance the step is exactly 1/60: (now - last) would carry float rounding that depends on the wall clock
@@ -124,7 +126,8 @@ export function createGame(def: GameDef): void {
     state.t += rawDt; state.st += rawDt;
     stepTransition(rawDt);
     const paused = !!banner;
-    const dt = paused ? 0 : rawDt;
+    const frozen = freeze > 0; freeze = Math.max(0, freeze - rawDt);
+    const dt = paused || frozen ? 0 : rawDt;
     if (state.scene === 'play' && !paused) R.playTime += dt;
     ctx.save();
     ctx.translate(0, view.top);

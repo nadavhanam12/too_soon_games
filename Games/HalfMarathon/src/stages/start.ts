@@ -1,8 +1,8 @@
 // Stage 1 (km 0-3): weave through the start crowd. Three lanes, top-down, the runner seen from behind.
 // Slow runners come down the screen: a guy filming a story, a Brit with a pint, a hand-holding couple, a stag party,
 // a runner in a gyros costume. Once, a dad with a stroller overtakes you (no collision, just shame).
-import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx, rand } from '@tsg/index';
-import { G, registerStage, pxPerKm, hint, say, nudge, demo } from '../play';
+import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx, rand, shadowText, easeOB } from '@tsg/index';
+import { G, registerStage, pxPerKm, hint, say, nudge, demo, impact, runnerSq } from '../play';
 import { LINES } from '../content';
 import { C, baby, bubble, person, pint, runnerBack } from '../art';
 
@@ -11,7 +11,7 @@ type Kind = 'story' | 'pint' | 'couple' | 'stag' | 'costume';
 interface Obs { kind: Kind; lane: number; y: number; hit?: boolean; line: string; passed?: boolean }
 let s = init();
 function init() { return { lane: 1, x: W / 2, obs: [] as Obs[], spawn: 1.0, stun: 0, swipeX: null as number | null, stroller: null as { x: number; y: number } | null, strollerDone: false }; }
-function lane(d: number): void { const n = clamp(s.lane + d, 0, 2); if (n !== s.lane) { s.lane = n; sfx.whoosh?.(); } }
+function lane(d: number): void { const n = clamp(s.lane + d, 0, 2); if (n !== s.lane) { s.lane = n; sfx.whoosh?.(); impact(-0.12); } }
 const lanesOf = (o: Obs): number[] => (o.kind === 'couple' || o.kind === 'stag' ? [o.lane, o.lane + 1] : [o.lane]);
 
 registerStage('start', {
@@ -40,7 +40,7 @@ registerStage('start', {
     for (const o of s.obs) {
       o.y += (SCROLL * G.f - 70) * dt;
       if (!o.hit && Math.abs(o.y - PY) < 28 && lanesOf(o).some((l) => Math.abs(LANES[l]! - s.x) < 34)) {
-        o.hit = true; s.stun = 0.75; R.shake(0.25); sfx.hit?.(); say(pick(LINES.startHit), 1.4, true); nudge();
+        o.hit = true; s.stun = 0.75; R.shake(0.25); impact(0.35); sfx.hit?.(); say(pick(LINES.startHit), 1.4, true); nudge();
       }
       if (!o.passed && o.y > PY + 30) { o.passed = true; if (!o.hit && rand() < 0.25) say(pick(LINES.startPass), 1.1); }
     }
@@ -98,8 +98,8 @@ registerStage('start', {
       ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(x - 12, y - 10, 4, 0, 7); ctx.arc(x + 12, y - 10, 4, 0, 7); ctx.fill();
       ctx.save(); ctx.translate(x, y + 26); ctx.scale(1.25, 1.25); person(0, 0, { shirt: '#3ddc84', hair: '#3a2a1a', back: true }); ctx.restore();
     }
-    runnerBack(s.x, PY, 1.35, G.t, G.f);
-    if (s.stun > 0) txt('ouch', s.x, PY - 52, 12, '#ffd23f', 'center', 900);
+    runnerBack(s.x, PY, 1.35, G.t, G.f, runnerSq());
+    if (s.stun > 0) { const k = 1 - s.stun / 0.75; shadowText('OUCH', s.x, PY - 56 - k * 18, 22 * easeOB(Math.min(1, k * 5)), '#ffd23f'); }
     ctx.restore();
     for (const o of s.obs) if ((o.kind === 'story' || o.kind === 'pint') && o.y > 90 && o.y < PY - 60) bubble(o.line, LANES[o.lane]!, o.y - 52, 11, '#fff', '#111', LANES[o.lane]!, o.y - 30);
     demo('swipe', W / 2, PY + 70);
