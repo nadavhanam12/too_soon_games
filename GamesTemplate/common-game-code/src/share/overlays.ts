@@ -29,9 +29,11 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html = '
 }
 
 // ---------- share block ----------
+// One share button (DECISIONS 68): the system share sheet where the browser has one (it already lists WhatsApp,
+// Messages, Instagram...), otherwise the audience's messaging app (wa.me / sms:), and on a desktop without either
+// it copies. Under it, "Copy link".
 const shareBox = el('div', 'tsg-share');
 const central = el('a', 'tsg-btn tsg-central'); central.target = '_blank'; central.rel = 'noopener';
-const sysBtn = el('button', 'tsg-btn tsg-sys'); sysBtn.type = 'button';
 const copyBtn = el('button', 'tsg-btn tsg-copy'); copyBtn.type = 'button';
 let shareData = { text: '', url: '' };
 let onShare: ((c: Channel) => void) | null = null;
@@ -50,16 +52,15 @@ function copyText(s: string): void {
 }
 
 export const shareOverlay = {
-  /** y = top of the block in safe units; it takes 108 units: central 50, gap 10, second row 44 (+4). */
+  /** y = top of the block in safe units; it takes 108 units: share button 50, gap 10, copy row 44 (+4). */
   show(data: { text: string; url: string }, y: number, cb?: (c: Channel) => void): void {
     shareData = data; onShare = cb || null;
-    const phone = isPhone();
-    const centralIsCopy = preset.central === 'sms' && !phone;
-    central.textContent = centralIsCopy ? strs.copy : preset.centralLabel[lang];
+    const system = typeof navigator.share === 'function';
+    const centralIsCopy = !system && preset.central === 'sms' && !isPhone();
+    central.textContent = system ? strs.shareSystem : centralIsCopy ? strs.copy : preset.centralLabel[lang];
     central.style.background = preset.centralColor; central.style.color = preset.centralInk;
-    central.href = centralIsCopy ? '#' : centralHref(preset.central, data.text);
-    central.dataset.channel = centralIsCopy ? 'copy' : preset.central;
-    sysBtn.textContent = strs.shareSystem; sysBtn.hidden = !navigator.share;
+    central.href = system || centralIsCopy ? '#' : centralHref(preset.central, data.text);
+    central.dataset.channel = system ? 'system' : centralIsCopy ? 'copy' : preset.central;
     copyBtn.textContent = strs.copy; copyBtn.hidden = centralIsCopy;
     shareBox.hidden = false; shareBox.dataset.y = String(y);
     this.layout();
@@ -73,18 +74,17 @@ export const shareOverlay = {
 };
 central.addEventListener('click', (e) => {
   const ch = central.dataset.channel as Channel;
-  if (ch === 'copy') { e.preventDefault(); copyText(shareData.text); }
   track('share_click', { channel: ch }); onShare?.(ch);
-});
-sysBtn.addEventListener('click', () => {
-  track('share_click', { channel: 'system' }); onShare?.('system');
-  navigator.share({ title, text: shareData.text }).then(() => track('share_complete', { channel: 'system' })).catch((e: { name?: string }) => {
-    if (e && e.name === 'AbortError') return;
-    window.open(centralHref(preset.central === 'sms' ? 'whatsapp' : preset.central, shareData.text), '_blank', 'noopener');
+  if (ch === 'copy') { e.preventDefault(); copyText(shareData.text); return; }
+  if (ch !== 'system') return; // a real wa.me / sms: link
+  e.preventDefault();
+  navigator.share({ title, text: shareData.text }).then(() => track('share_complete', { channel: 'system' })).catch((err: { name?: string }) => {
+    if (err && err.name === 'AbortError') return;
+    window.open(centralHref(preset.central === 'sms' && !isPhone() ? 'whatsapp' : preset.central, shareData.text), '_blank', 'noopener');
   });
 });
 copyBtn.addEventListener('click', () => { track('share_click', { channel: 'copy' }); onShare?.('copy'); copyText(shareData.text); });
-shareBox.append(central, sysBtn, copyBtn);
+shareBox.append(central, copyBtn);
 
 // ---------- follow block ----------
 const followBox = el('div', 'tsg-follow');

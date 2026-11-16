@@ -13,6 +13,6 @@ export const theme: Theme = {
     if (scene === 'lose') { fillBg('#3a1414', '#7a3a1a'); return; }
     if (scene === 'result') { fillBg('#1f7fbf', '#8fd3f4'); return; }
     fillBg('#0b2545', '#13406e');
-    if (scene === 'title' || scene === 'community') sun(300, 40, 26, t);
+    if (scene === 'title') sun(300, 40, 26, t);
   },
 };
