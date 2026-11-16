@@ -6,8 +6,8 @@
 // where it froze when you walked into the store. Caught = WASTED.
 import { R, W, ctx, input, pick, rr, txt, clamp, sfx } from '@tsg/index';
 import { G, registerStage, stageDone, fail, addScore, say, hud, hint, demoDrag, LEG_TARGET_S, setPlaceLabels } from './play';
-import { D, ev, resetWorld, stepWorld, renderWorld, renderStick, addPickups, addLetters, addHr, addChaser, behind, floatText, type ChaserKind } from './drive';
-import { PLACES, type PlaceId } from './map';
+import { D, ev, resetWorld, stepWorld, renderWorld, renderStick, addPickups, addLetters, addHr, addChaser, behind, floatText, stickPos, type ChaserKind } from './drive';
+import { PLACES, type PlaceId } from './city';
 import { BANNERS, HINT, LINES, PLACE_NAME } from './content';
 import { C } from './art';
 import { ptxt } from './pixel';
@@ -63,16 +63,15 @@ function commonEvents(): void {
 }
 function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; input.taps.length = 0; }
 const hintFor = (): string => (D.usedKeys ? HINT.keys : HINT.touch);
-const seedFor = (n: number): number => (Date.now() & 0xffff) * 31 + n;
 
 // ---------- leg 1: the commute ----------
 registerStage('commute', {
   enter() {
     beat = null; crashCd = 0; timers = [];
-    resetWorld('home', 'office', seedFor(1));
+    resetWorld('home', 'office');
     D.goal = 'office';
     const a = PLACES.home, b = PLACES.office;
-    addPickups(14, 'cash', Math.min(a.x, b.x) - 120, Math.min(a.y, b.y) - 120, Math.max(a.x, b.x) + 120, Math.max(a.y, b.y) + 120);
+    addPickups(14, 'cash', Math.min(a.x, b.x) - 30, Math.min(a.y, b.y) - 30, Math.max(a.x, b.x) + 30, Math.max(a.y, b.y) + 30);
     addLetters('WA', a, b);
     commonEvents();
     ev.arrive = (id) => { if (id === 'office') arriveEnd('PARKING', 0, () => say(LINES.arriveOffice[0]!, 1.6, true)); };
@@ -84,7 +83,7 @@ registerStage('commute', {
     stepWorld(dt, { chasersOn: false });
     if (G.t > 6 && G.t % 11 < dt) say(pick(LINES.commute));
   },
-  render() { renderWorld(['office']); renderBeat(); hud('office'); renderStick(); demoDrag(W / 2, 470); hint(hintFor()); },
+  render() { renderWorld(['office']); renderBeat(); hud('office'); renderStick(); demoDrag(stickPos().x, stickPos().y); hint(hintFor()); },
 });
 
 // ---------- leg 2: launch line (forced detour) ----------
@@ -94,15 +93,16 @@ registerStage('launch', {
   enter() {
     beat = null; timers = []; detourDone = false; fuelWarned = false; noteCd = 0; nagCd = 0;
     if (!G.branch) G.branch = 'sick';
-    resetWorld('office', 'store', seedFor(2));
+    resetWorld('office', 'store');
     const a = PLACES.office, b = PLACES.store, dt = PLACES[detourId()];
     D.goal = detourId();
-    addPickups(10, 'can', Math.min(a.x, b.x, dt.x) - 120, Math.min(a.y, b.y, dt.y) - 120, Math.max(a.x, b.x, dt.x) + 120, Math.max(a.y, b.y, dt.y) + 120);
+    addPickups(10, 'can', Math.min(a.x, b.x, dt.x) - 30, Math.min(a.y, b.y, dt.y) - 30, Math.max(a.x, b.x, dt.x) + 30, Math.max(a.y, b.y, dt.y) + 30);
     addLetters('ST', a, dt);
     commonEvents();
     if (G.branch === 'sick') {
       G.note = false;
-      addHr({ x: (a.x + dt.x) / 2, y: dt.y - 200 });
+      addHr({ x: dt.x - 100, y: dt.y + 60 });   // starts beyond the clinic, away from the way in, and roams toward you
+      D.avoidHr = true;
       ev.spotted = () => {
         if (beat) return;
         if (!G.note) { sfx.bad?.(); fail('fired'); return; }
@@ -118,13 +118,13 @@ registerStage('launch', {
           say(LINES.doctor[0]!, 1.4, true);
           startBeat('BRIBING', 1.8, () => {
             say(LINES.doctor[1]!, 2.4, true); floatText(`-$${G.money}`, D.p.x, D.p.y - 24, C.red);
-            G.money = 0; G.note = true; detourDone = true; D.goal = 'store'; sfx.cough?.();
+            G.money = 0; G.note = true; detourDone = true; D.goal = 'store'; D.avoidHr = false; sfx.cough?.();
             later(2.6, () => say(LINES.noteOk, 2.2, true));
           });
         } else {
           startBeat('PUMPING', 1.6, () => {
             G.fuel = 1; detourDone = true; D.goal = 'store'; say(pick(LINES.gas), 2.2, true); sfx.pump?.();
-            later(0.9, () => { const sp = behind(340); addChaser('cop', sp.x, sp.y, 0.6, 0.8); G.stars = 1; sfx.siren?.(); say(LINES.sirens, 1.8, true); });
+            later(0.9, () => { const sp = behind(85); addChaser('cop', sp.x, sp.y, 0.6, 0.8); G.stars = 1; sfx.siren?.(); say(LINES.sirens, 1.8, true); });
           });
         }
       } else if (id === 'store' && detourDone) {
@@ -139,9 +139,9 @@ registerStage('launch', {
     if (stepBeat(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: true });
     // driving past the store before the detour stop
-    if (!detourDone && nagCd <= 0 && Math.hypot(PLACES.store.x - D.p.x, PLACES.store.y - D.p.y) < 60) { nagCd = 4; say(G.branch === 'sick' ? LINES.noteFirst : LINES.gasFirst, 2, true); }
+    if (!detourDone && nagCd <= 0 && Math.hypot(PLACES.store.x - D.p.x, PLACES.store.y - D.p.y) < 15) { nagCd = 4; say(G.branch === 'sick' ? LINES.noteFirst : LINES.gasFirst, 2, true); }
     if (G.branch === 'sick') {
-      if (!G.note && D.hr && Math.hypot(D.hr.x - D.p.x, D.hr.y - D.p.y) < 180 && nagCd <= 0) { nagCd = 5; say(pick(LINES.hrClose), 1.8, true); }
+      if (!G.note && D.hr && Math.hypot(D.hr.x - D.p.x, D.hr.y - D.p.y) < 45 && nagCd <= 0) { nagCd = 5; say(pick(LINES.hrClose), 1.8, true); }
       else if (G.t > 5 && G.t % 12 < dt) say(pick(LINES.hr));
     } else {
       G.fuel -= dt / 50;
@@ -162,17 +162,17 @@ registerStage('home', {
     beat = null; timers = [];
     if (!G.branch) G.branch = 'sick';
     if (!G.store) G.store = 'steal';
-    resetWorld('store', 'home', seedFor(3));
+    resetWorld('store', 'home');
     D.goal = 'home';
     const a = PLACES.store, b = PLACES.home;
-    addPickups(8, 'can', Math.min(a.x, b.x) - 120, Math.min(a.y, b.y) - 120, Math.max(a.x, b.x) + 120, Math.max(a.y, b.y) + 120);
+    addPickups(8, 'can', Math.min(a.x, b.x) - 30, Math.min(a.y, b.y) - 30, Math.max(a.x, b.x) + 30, Math.max(a.y, b.y) + 30);
     addLetters('ED', a, b);
     commonEvents();
     const kind: ChaserKind = G.store === 'loan' ? 'shark' : G.store === 'steal' ? 'cop' : 'spouse';
     G.stars = (G.store === 'steal' ? 1 : 0) + (G.branch === 'quit' ? 1 : 0);
-    const sp = behind(380); addChaser(kind, sp.x, sp.y, 0.6, 1.2);
+    const sp = behind(95); addChaser(kind, sp.x, sp.y, 0.6, 1.2);
     if (G.branch === 'quit') { // the gas-theft cop resumes where it froze, but never right on your bumper
-      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 300 ? cp : behind(520); addChaser('cop', c.x, c.y, 0.6, 1.2);
+      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 75 ? cp : behind(130); addChaser('cop', c.x, c.y, 0.6, 1.2);
     }
     ev.caught = (k) => fail(k);
     ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(['TOUCH GRASS!', 'THE RING?!', 'COME BACK!']), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(['PAY UP!', 'KNEECAPS!']), x, y - 26, C.yellow); else sfx.siren?.(); };

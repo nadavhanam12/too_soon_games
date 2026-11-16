@@ -5,8 +5,8 @@
 // Fails (fired / out of fuel / caught) go through R.fail → the template's lose screen, headed WASTED.
 import { R, W, view, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, type Scene } from '@tsg/index';
 import type { Branch, StoreChoice, TradeItem } from './content';
-import { D, MAX_V } from './drive';
-import { PLACES, nodeC, nodeOf, type PlaceId } from './map';
+import { D, MAX_V, gpsTarget, worldReady } from './drive';
+import { PLACES, roadLine, nodeOf, type PlaceId } from './city';
 import { C } from './art';
 import { ptxt } from './pixel';
 import { loadPortraits } from './portraits';
@@ -111,7 +111,7 @@ export function hud(goal: PlaceId | null, opts: { fuel?: boolean } = {}): void {
     ptxt(has ? PW[i]! : '_', 17 + i * 16, 37, 1, has ? C.pink : '#777');
   }
   if (goal) {
-    const g = PLACES[goal], d = Math.round(Math.hypot(g.x - D.p.x, g.y - D.p.y) / 8);
+    const g = PLACES[goal], d = Math.round(Math.hypot(g.x - D.p.x, g.y - D.p.y) / 2);   // 1 unit ≈ 0.5 m
     txt(`▶ ${placeLabel(goal)} ${d}m`, 116, 37, 11, C.yellow, 'left', 900);
   }
   // row 2, right: fuel gauge (quit branch, leg 2) or the sick note badge (sick branch, leg 2)
@@ -176,7 +176,9 @@ export const playScene: Scene = {
     }
   },
   draw(dt) {
-    if (dt > 0 && !G.ended) {
+    // a driving leg waits (clock stopped) until the 3D city has loaded; drive.renderWorld shows the loading card
+    const waiting = !worldReady() && (G.stage === 'commute' || G.stage === 'launch' || G.stage === 'home');
+    if (dt > 0 && !G.ended && !waiting) {
       G.playT += dt; G.t += dt;
       stages[G.stage]!.step(dt);
     } else if (dt > 0 && G.outro > 0) {
@@ -192,15 +194,20 @@ export const playScene: Scene = {
 // debug hooks specific to this game (docs/CONTRACTS.md lists the template's)
 const w = window as unknown as Record<string, unknown>;
 w.__stage = (name: StageName, branch?: Branch, store?: StoreChoice) => { if (branch) G.branch = branch; if (store) G.store = store; if (stages[name]) setStage(name); };
-w.__world = () => ({ stage: G.stage, branch: G.branch, store: G.store, score: Math.round(G.score), money: G.money, letters: G.letters.join(''), note: G.note, fuel: +G.fuel.toFixed(2), stars: G.stars, heat: +D.heat.toFixed(2), car: { x: Math.round(D.p.x), y: Math.round(D.p.y), v: Math.round(D.p.v) }, goal: D.goal, chasers: D.chasers.map((c) => ({ k: c.kind, d: Math.round(Math.hypot(c.x - D.p.x, c.y - D.p.y)) })), hr: D.hr ? Math.round(Math.hypot(D.hr.x - D.p.x, D.hr.y - D.p.y)) : null, maxV: MAX_V });
+w.__world = () => ({ stage: G.stage, branch: G.branch, store: G.store, score: Math.round(G.score), money: G.money, letters: G.letters.join(''), note: G.note, fuel: +G.fuel.toFixed(2), stars: G.stars, heat: +D.heat.toFixed(2), car: { x: Math.round(D.p.x), y: Math.round(D.p.y), v: Math.round(D.p.v) }, goal: D.goal, chasers: D.chasers.map((c) => ({ k: c.kind, d: Math.round(Math.hypot(c.x - D.p.x, c.y - D.p.y)) })), hr: D.hr ? Math.round(Math.hypot(D.hr.x - D.p.x, D.hr.y - D.p.y)) : null, npcs: D.npcs.length, maxV: MAX_V });
+w.__stages = (): StageName[] => ORDER; // the story arc's stages in order (bugcheck playthrough)
+/** Read-only view for the playthrough bot: the car and the point the GPS arrow aims at. */
+w.__peek = () => ({ car: { x: D.p.x, y: D.p.y, a: D.p.a, v: D.p.v }, gps: D.goal ? gpsTarget(D.goal) : null, control: D.control && worldReady() });
+/** Lose right now (the playthrough's forceLose: tests "retry from the stage" in every stage, even the ones you can't lose). */
+w.__lose = () => fail('cop');
 /** Put the HR minivan right next to the car (spotting test). */
 w.__hrHere = () => {
   const hr = D.hr; if (!hr) return;
-  const [i, j] = nodeOf(D.p.x, D.p.y), dx = D.p.x - nodeC(i), dy = D.p.y - nodeC(j);
+  const [i, j] = nodeOf(D.p.x, D.p.y), dx = D.p.x - roadLine(i), dy = D.p.y - roadLine(j);
   const hz = Math.abs(dx) > Math.abs(dy), sgn = Math.sign(hz ? dx : dy) || 1;
-  hr.from = [i, j]; hr.to = hz ? [i + sgn, j] : [i, j + sgn]; hr.s = Math.max(0, Math.abs(hz ? dx : dy) - 50); hr.x = D.p.x - 50; hr.y = D.p.y;
+  hr.from = [i, j]; hr.to = hz ? [i + sgn, j] : [i, j + sgn]; hr.s = Math.max(0, Math.abs(hz ? dx : dy) - 12); hr.x = D.p.x - 12; hr.y = D.p.y;
 };
 /** Put the first chaser right next to the car (catch test). */
-w.__chaserHere = () => { const c = D.chasers[0]; if (c) { c.x = D.p.x + 30; c.y = D.p.y; c.grace = 0; } };
+w.__chaserHere = () => { const c = D.chasers[0]; if (c) { c.x = D.p.x + 7.5; c.y = D.p.y; c.grace = 0; } };
 /** Teleport the car next to the current goal (flow testing only). */
-w.__warp = () => { if (!D.goal) return; const g = PLACES[D.goal]; D.p.x = g.x + 20; D.p.y = g.y; D.cam.x = D.p.x; D.cam.y = D.p.y; for (const c of D.chasers) { c.x = g.x + 400; c.y = g.y; c.grace = 3; } if (D.hr) { D.hr.from = [0, 0]; D.hr.to = [1, 0]; D.hr.s = 0; D.hr.x = 32; D.hr.y = 32; } };
+w.__warp = () => { if (!D.goal) return; const g = PLACES[D.goal]; D.p.x = g.x + 5; D.p.y = g.y; D.cam.x = D.p.x; D.cam.y = D.p.y; for (const c of D.chasers) { c.x = g.x + 100; c.y = g.y; c.grace = 3; } if (D.hr) { D.hr.from = [-6, -6]; D.hr.to = [-5, -6]; D.hr.s = 0; D.hr.x = roadLine(-6); D.hr.y = roadLine(-6); } };

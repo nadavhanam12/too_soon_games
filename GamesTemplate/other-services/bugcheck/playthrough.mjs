@@ -94,7 +94,9 @@ export async function playthrough({ browser, base, GAME, OUT, add }) {
         const cur = r.reached[r.reached.length - 1];
         if (snap.banner) { await io.releaseAll(); await io.press('Enter'); }
         else {
-          if (shots && !shot && tStage >= SHOT_AT) { shot = true; cur.shot = `playthrough/${r.reached.length}-${id}.png`; await page.screenshot({ path: join(OUT, cur.shot) }); }
+          // a screenshot blurs the page and the template then drops held keys: release them first so the bot
+          // presses them again on its next tick, and the run with screenshots matches the one without
+          if (shots && !shot && tStage >= SHOT_AT) { shot = true; cur.shot = `playthrough/${r.reached.length}-${id}.png`; await io.releaseAll(); await page.screenshot({ path: join(OUT, cur.shot) }); }
           const bot = mod.bot?.[id];
           if (bot) await bot({ world: snap.world, peek: snap.peek, t: tStage }, io);
           else if (!r.idle.includes(id)) r.idle.push(id);

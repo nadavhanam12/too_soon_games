@@ -32,7 +32,7 @@
   "score": {
     "label": "points you scored on the way to launch day",
     "max": 10000,
-    "minDurationS": 120,
+    "minDurationS": 35,
     "higherIsBetter": true
   },
   "share": {

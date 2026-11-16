@@ -6,6 +6,7 @@ export { input, takeTap, clearTaps, keyHeld, keyLeft, keyRight, setPointerInterc
 export { scenes, S, state, go, goNow, easeO, easeOB, type Scene } from './core/scenes';
 export * from './draw/prims';
 export { getSeed } from './core/rng';
+export { loadLazy } from './core/lazy';
 export { defaultTheme, type Theme, type ThemeColors } from './draw/theme';
 export { sfx, music, tone, noise, after, type MusicDef, type MusicMode } from './audio/synth';
 export { track, type EventName } from './analytics/track';

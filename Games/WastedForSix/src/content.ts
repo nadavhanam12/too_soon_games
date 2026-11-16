@@ -17,13 +17,13 @@ export type TradeItem = 'console' | 'couch' | 'ring';
 
 // ---------- driving legs ----------
 export const BANNERS = {
-  commute: ['1 · THE COMMUTE', ['Get to the office. Don\'t be late.', 'Drag anywhere to steer. Let go to brake.', 'Grab cash. Look out for graffiti.']],
+  commute: ['1 · THE COMMUTE', ['Get to the office. Don\'t be late.', 'Drag the stick (bottom left) to steer.', 'Grab cash. Look out for graffiti.']],
   launchSick: ['2 · LAUNCH LINE', ['Get to the game store.', 'First: a doctor\'s note. HR is out looking for you.', 'Don\'t let the HR minivan see you before you have it.']],
   launchQuit: ['2 · LAUNCH LINE', ['Get to the game store.', 'No job, no money, and the tank is draining.', 'Stop at the gas station first.']],
   home: ['3 · THE WAY HOME', ['Get home. Don\'t get caught.', 'Remember the letters.']],
 } as const satisfies Record<string, readonly [string, readonly string[]]>;
 
-export const HINT = { touch: 'Drag anywhere to steer · let go to brake', keys: 'Arrows / WASD to drive' };
+export const HINT = { touch: 'Drag the stick to steer · let go to coast', keys: 'Arrows / WASD drive · Space drift' };
 
 export const PLACE_NAME = { home: 'HOME', office: 'OFFICE', clinic: 'DOCTOR', gas: 'GAS', store: 'GAME STORE' } as const;
 

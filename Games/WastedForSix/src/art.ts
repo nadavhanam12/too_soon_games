@@ -31,14 +31,6 @@ export function carSprite(kind: CarKind, color = '#c0c0c0', flash = 0): HTMLCanv
   }
 }
 function shade(hex: string): string { const n = parseInt(hex.slice(1), 16); const f = (v: number) => Math.round(v * 0.75); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
-export const NPC_COLORS = ['#e86aa6', '#f2a65a', '#9b7fd1', '#e9d36b', '#c96b5b', '#7aa7d9', '#6fbf73', '#d9d2c5'];
-
-/** Draw a car at world/screen position, angle a (0 = east). Sprite pixel = 2 logical px. */
-export function drawCar(kind: CarKind, x: number, y: number, a: number, color?: string, flash = 0): void {
-  ctx.fillStyle = 'rgba(0,0,0,.35)';
-  ctx.save(); ctx.translate(x + 3, y + 4); ctx.rotate(a + Math.PI / 2); ctx.fillRect(-8, -13, 16, 26); ctx.restore();
-  blit(carSprite(kind, color, flash), x, y, 2, a + Math.PI / 2);
-}
 
 // ---------- the fan: tired guy, wrinkled blue shirt, lanyard, coffee ----------
 export function guy(x: number, y: number, p: number, opts: { cup?: boolean; arms?: 'up' | 'down'; t?: number } = {}): void {
@@ -127,7 +119,7 @@ export function cutPhone(st: number): void {
   rr(-96, -140, 192, 250, 6, '#9fc49a');
   ptxt('NEW MESSAGE', 0, -118, 2, '#1f3a1f');
   ptxt('FROM: BOSS', 0, -92, 2, '#1f3a1f');
-  const lines = ['PER MY LAST', 'EMAIL, I NEED', 'YOU IN TODAY.', '9:00 SHARP.', '', 'NO WASTING', 'TIME ;)'];
+  const lines = ['PER MY LAST', 'EMAIL, I NEED', 'YOU IN TODAY.', '9:00 SHARP.', '', 'NO WASTING', 'TIME :)'];
   lines.forEach((l, i) => ptxt(l, 0, -56 + i * 22, 2, '#1f3a1f'));
   rr(-40, 126, 80, 24, 12, '#44444f');
   ctx.restore();

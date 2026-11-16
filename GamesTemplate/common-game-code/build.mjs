@@ -3,9 +3,11 @@
 //   node build.mjs build <GameId>   → ../dist/<slug>/index.html (+ assets/)
 //   node build.mjs dev   <GameId>   → watch + serve http://127.0.0.1:5173/<slug>/
 //   node build.mjs check <GameId>   → tsc over the template + the game
+// Lazy modules (DECISIONS 72): every Games/<GameId>/src/lazy/<name>.ts is bundled on its own to <slug>/lazy/<name>.js,
+// outside index.html and outside its 300 KB budget. The game loads it after the first frame (loadLazy in the template).
 import { build as esbuild, context } from 'esbuild';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +30,8 @@ const entry = join(GAME_DIR, 'src', 'main.ts');
 if (!existsSync(entry)) die(`missing ${entry}`);
 const slug = cfg.slug;
 const OUT = join(DIST, slug);
+const LAZY_DIR = join(GAME_DIR, 'src', 'lazy');
+const lazyEntries = existsSync(LAZY_DIR) ? readdirSync(LAZY_DIR).filter((f) => f.endsWith('.ts')).map((f) => join(LAZY_DIR, f)) : [];
 
 function die(msg) { console.error('[build] ' + msg); process.exit(1); }
 function readJson(p, fallback) { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; } }
@@ -47,9 +51,9 @@ const env = (dev) => ({
   studioLogo,
 });
 
-function esbuildOptions(dev) {
+function esbuildOptions(dev, entryPoint = entry) {
   return {
-    entryPoints: [entry],
+    entryPoints: [entryPoint],
     bundle: true,
     write: false,
     outfile: join(HERE, '.out', 'bundle.js'),
@@ -61,6 +65,7 @@ function esbuildOptions(dev) {
     legalComments: 'none',
     define: { TSG_ENV: JSON.stringify(env(dev)) },
     alias: { '@tsg': join(HERE, 'src') },
+    nodePaths: [join(HERE, 'node_modules')],   // game folders have no node_modules of their own (three.js lives here)
     logLevel: 'silent',
   };
 }
@@ -80,8 +85,17 @@ function renderHtml(js) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => (k in vars ? vars[k] : ''));
 }
 
+/** One lazy module → <slug>/lazy/<name>.js. */
+function writeLazy(file, js, dev) {
+  const name = file.replace(/^.*[\\/]/, '').replace(/\.ts$/, '');
+  mkdirSync(join(OUT, 'lazy'), { recursive: true });
+  writeFileSync(join(OUT, 'lazy', name + '.js'), js);
+  console.log(`[build] ${slug}/lazy/${name}.js ${(Buffer.byteLength(js) / 1024).toFixed(1)} KB (loaded after the first frame)${dev ? ' (dev, unminified)' : ''}`);
+}
+
 function writeOut(js, dev) {
-  rmSync(OUT, { recursive: true, force: true });
+  // keep lazy/ (built by its own esbuild run, which may finish first)
+  if (existsSync(OUT)) for (const f of readdirSync(OUT)) if (f !== 'lazy') rmSync(join(OUT, f), { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
   const html = renderHtml(js);
   writeFileSync(join(OUT, 'index.html'), html);
@@ -95,9 +109,14 @@ function writeOut(js, dev) {
 }
 
 async function doBuild(dev = false) {
+  rmSync(OUT, { recursive: true, force: true });
   const r = await esbuild(esbuildOptions(dev));
   const js = r.outputFiles.find((f) => f.path.endsWith('.js'))?.text ?? '';
   writeOut(js, dev);
+  for (const f of lazyEntries) {
+    const lr = await esbuild(esbuildOptions(dev, f));
+    writeLazy(f, lr.outputFiles.find((o) => o.path.endsWith('.js'))?.text ?? '', dev);
+  }
 }
 
 function doCheck() {
@@ -105,7 +124,7 @@ function doCheck() {
   const tmp = join(HERE, `.tsconfig.${gameId}.json`);
   writeFileSync(tmp, JSON.stringify({
     extends: './tsconfig.base.json',
-    compilerOptions: { paths: { '@tsg/*': ['./src/*'] } },
+    compilerOptions: { paths: { '@tsg/*': ['./src/*'], three: ['./node_modules/@types/three'], 'three/*': ['./node_modules/@types/three/*'] } },
     include: ['src/**/*.ts', `../../Games/${gameId}/src/**/*.ts`, `../../Games/${gameId}/*.d.ts`],
   }, null, 2));
   const tsc = join(HERE, 'node_modules', 'typescript', 'bin', 'tsc');
@@ -122,6 +141,13 @@ async function doDev() {
     plugins: [{ name: 'tsg-html', setup(b) { b.onEnd((r) => { if (r.errors.length) { console.error(r.errors.map((e) => e.text).join('\n')); return; } const js = r.outputFiles?.find((f) => f.path.endsWith('.js'))?.text ?? ''; writeOut(js, true); }); } }],
   });
   await ctx.watch();
+  for (const f of lazyEntries) {
+    const lctx = await context({
+      ...esbuildOptions(true, f),
+      plugins: [{ name: 'tsg-lazy', setup(b) { b.onEnd((r) => { if (r.errors.length) { console.error(r.errors.map((e) => e.text).join('\n')); return; } writeLazy(f, r.outputFiles?.find((o) => o.path.endsWith('.js'))?.text ?? '', true); }); } }],
+    });
+    await lctx.watch();
+  }
   const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.webp': 'image/webp', '.woff2': 'font/woff2' };
   createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
