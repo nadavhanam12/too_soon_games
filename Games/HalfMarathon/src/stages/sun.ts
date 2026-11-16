@@ -13,6 +13,7 @@ function init() { return { heat: 0.25, over: 0, trip: 0, cats: [] as Cat[], catI
 const holding = (): boolean => input.down || keyHeld(' ', 'ArrowUp', 'ArrowRight');
 
 registerStage('sun', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   step(dt) {
     input.taps.length = 0;

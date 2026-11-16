@@ -23,6 +23,7 @@ function doPunch(side: number): void {
 }
 
 registerStage('cockpit', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   key(e) {
     if (!fighting()) return false;

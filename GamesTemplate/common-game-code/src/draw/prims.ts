@@ -1,10 +1,12 @@
 // Drawing primitives and small math helpers shared by every game.
 import { ctx } from '../core/canvas';
+import { rand } from '../core/rng';
 
-export const rnd = (a: number, b: number): number => a + Math.random() * (b - a);
+export { rand };
+export const rnd = (a: number, b: number): number => a + rand() * (b - a);
 export const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-export const pick = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)] as T;
+export const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)] as T;
 export const fmtTime = (s: number): string => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 export const fmtInt = (n: number): string => Math.round(n).toLocaleString('en-US');
 

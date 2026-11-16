@@ -15,6 +15,8 @@ export interface Stage {
   /** Logic + input; sets G.f. Not called while the template's stage banner pauses the game. */
   step(dt: number): void;
   render(): void;
+  /** Read-only snapshot of the stage's state for the bugcheck playthrough bot (playthrough.mjs). */
+  peek?(): unknown;
   /** Raw keydown while this stage runs; return true to swallow the key. */
   key?(e: KeyboardEvent): boolean;
 }
@@ -186,5 +188,7 @@ export const playScene: Scene = {
 // debug hooks specific to this game (docs/CONTRACTS.md lists the template's)
 const w = window as unknown as Record<string, unknown>;
 w.__stage = (name: StageName) => { if (stages[name]) setStage(name); };
+w.__stages = (): StageName[] => ORDER; // the story arc's stages in order (bugcheck playthrough)
+w.__peek = () => stages[G.stage]?.peek?.();
 w.__world = () => ({ stage: G.stage, km: +G.km.toFixed(3), raceT: Math.round(G.raceT), f: +G.f.toFixed(2), playT: +G.playT.toFixed(1), highFive: G.highFive });
 w.__setRace = (sec: number) => { G.raceT = sec; };

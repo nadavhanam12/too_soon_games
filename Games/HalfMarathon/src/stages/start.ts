@@ -1,7 +1,7 @@
 // Stage 1 (km 0-3): weave through the start crowd. Three lanes, top-down, the runner seen from behind.
 // Slow runners come down the screen: a guy filming a story, a Brit with a pint, a hand-holding couple, a stag party,
 // a runner in a gyros costume. Once, a dad with a stroller overtakes you (no collision, just shame).
-import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx, rand } from '@tsg/index';
 import { G, registerStage, pxPerKm, hint, say, nudge, demo } from '../play';
 import { LINES } from '../content';
 import { C, baby, bubble, person, pint, runnerBack } from '../art';
@@ -15,6 +15,7 @@ function lane(d: number): void { const n = clamp(s.lane + d, 0, 2); if (n !== s.
 const lanesOf = (o: Obs): number[] => (o.kind === 'couple' || o.kind === 'stag' ? [o.lane, o.lane + 1] : [o.lane]);
 
 registerStage('start', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   key(e) { if (e.key === 'ArrowLeft' || e.key === 'a') { lane(-1); return true; } if (e.key === 'ArrowRight' || e.key === 'd') { lane(1); return true; } return false; },
   step(dt) {
@@ -29,7 +30,7 @@ registerStage('start', {
     s.spawn -= dt;
     if (s.spawn <= 0 && G.km < 2.8) {
       s.spawn = rnd(0.75, 1.1);
-      const r = Math.random();
+      const r = rand();
       const kind: Kind = r < 0.25 ? 'story' : r < 0.45 ? 'pint' : r < 0.62 ? 'costume' : r < 0.82 ? 'couple' : 'stag';
       const wide = kind === 'couple' || kind === 'stag';
       const ln = wide ? Math.floor(rnd(0, 2)) : Math.floor(rnd(0, 3));
@@ -41,7 +42,7 @@ registerStage('start', {
       if (!o.hit && Math.abs(o.y - PY) < 28 && lanesOf(o).some((l) => Math.abs(LANES[l]! - s.x) < 34)) {
         o.hit = true; s.stun = 0.75; R.shake(0.25); sfx.hit?.(); say(pick(LINES.startHit), 1.4, true); nudge();
       }
-      if (!o.passed && o.y > PY + 30) { o.passed = true; if (!o.hit && Math.random() < 0.25) say(pick(LINES.startPass), 1.1); }
+      if (!o.passed && o.y > PY + 30) { o.passed = true; if (!o.hit && rand() < 0.25) say(pick(LINES.startPass), 1.1); }
     }
     // the stroller dad overtakes once, around km 1.4, in a lane next to you
     if (!s.strollerDone && G.km > 1.4) { s.strollerDone = true; s.stroller = { x: LANES[s.lane === 0 ? 1 : s.lane - 1]!, y: H + 60 }; say(pick(LINES.stroller), 1.8, true); }

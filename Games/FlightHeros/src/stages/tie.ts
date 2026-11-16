@@ -1,5 +1,5 @@
 // Stage 4: wrap the headphone cable around him (24 taps in rhythm; hold during rages), then the "tied" interlude.
-import { R, W, SAFE_H as H, ctx, input, state, rr, txt, clamp, rnd, pick, fmtInt, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, input, state, rr, txt, clamp, rnd, pick, fmtInt, sfx, rand } from '@tsg/index';
 import { G, registerStage, stageDone, strip } from '../play';
 import { LINES } from '../content';
 import { bubble, person, btn, tiedGuy } from '../art';
@@ -10,6 +10,7 @@ function init() { return { loops: 0, time: 0, rage: 0, rageT: rnd(3, 4.2), hold:
 const holding = (): boolean => (input.down && Math.abs(input.px - B.x) < B.w / 2 && Math.abs(input.py - B.y) < B.h / 2 + 12) || !!input.keys['ArrowDown'] || !!input.keys[' '];
 
 registerStage('tie', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   step(dt) {
     s.time += dt; s.str = Math.max(0, s.str - dt); s.pop = Math.max(0, s.pop - dt * 6); s.jam = Math.max(0, s.jam - dt);
@@ -24,7 +25,7 @@ registerStage('tie', {
     const p = input.taps.shift(); input.taps.length = 0;
     if (p) {
       if (!rg && (p.key || (Math.abs(p.x - B.x) < B.w / 2 + 15 && Math.abs(p.y - B.y) < B.h / 2 + 15))) {
-        if (s.time - s.lastTap < 0.22) { s.jam = 0.5; if (s.loops > 0 && Math.random() < 0.5) s.loops--; sfx.bad?.(); R.say('לאט! הכבל מסתבך', 0.8); }
+        if (s.time - s.lastTap < 0.22) { s.jam = 0.5; if (s.loops > 0 && rand() < 0.5) s.loops--; sfx.bad?.(); R.say('לאט! הכבל מסתבך', 0.8); }
         else { s.loops++; s.pop = 1; sfx.tick?.(); R.shake(0.06); if (s.loops % 6 === 0) R.say(pick(LINES.loop), 1); }
         s.lastTap = s.time;
       } else if (rg) R.say('הוא משתולל! לחץ והחזק', 0.9);
@@ -57,6 +58,7 @@ registerStage('tie', {
 let tiedT = 0;
 registerStage('tied', {
   enter() { tiedT = 0; },
+  peek: () => ({ tiedT }), // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   step(dt) {
     tiedT += dt;
     const tapped = input.taps.length > 0; input.taps.length = 0;

@@ -1,7 +1,8 @@
 // createGame(): wires config, theme, content, scenes, overlays, analytics and the main loop.
 import { ctx, fit, initCanvas, view, W, SAFE_H } from './canvas';
 import { initInput, input, takeTap } from './input';
-import { drawTransition, go, goNow, onSceneChange, S, scenes, state, stepTransition, type Scene } from './scenes';
+import { drawTransition, go, goNow, inTransition, onSceneChange, S, scenes, state, stepTransition, type Scene } from './scenes';
+import { getSeed, setSeed } from './rng';
 import { R, type Content, type Hooks, type RunResult } from './runtime';
 import { env, validateConfig, type GameConfig } from '../config';
 import { defaultTheme, type Theme } from '../draw/theme';
@@ -94,7 +95,12 @@ export function createGame(def: GameDef): void {
   const fakeRun = (): RunResult => ({ score: Math.min(42, cfg.score.max), durationS: 42, won: true, stage: '1' });
   w.__go = (s: string) => { if (!R.run && s !== 'play' && s !== 'cutscene' && s !== 'title') R.run = fakeRun(); goNow(s); };
   w.__advance = (sec: number) => { stepping = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) frame(last + 1000 / 60); stepping = false; };
-  w.__state = () => ({ scene: state.scene, st: state.st, playTime: R.playTime, run: R.run, best: R.best, players: R.players, H: view.H, top: view.top, scale: view.scale, S: { ...S } });
+  // manual clock: the real requestAnimationFrame loop stops moving the game, only __advance does (the playthrough
+  // needs this, or real frames between two __advance calls would make a seeded run differ from the next one)
+  w.__manual = (on: boolean) => { manual = on; };
+  // __seed(n) restarts the stream: the frames drawn before the clock went manual have already used some of it
+  w.__seed = (n?: number) => { if (n) setSeed(n); return getSeed(); };
+  w.__state = () => ({ scene: state.scene, st: state.st, playTime: R.playTime, run: R.run, best: R.best, players: R.players, H: view.H, top: view.top, scale: view.scale, banner: !!banner, inTransition: inTransition(), S: { ...S } });
   w.__scenes = () => Object.keys(scenes);
   w.__fit = fit;
   w.__music = () => ({ mode: music.mode, on: music.on, files: Object.fromEntries(Object.entries(music.tracks).map(([k, a]) => [k, { paused: a!.paused, volume: +a!.volume.toFixed(2), missing: !!a!.dataset.missing }])) });
@@ -110,8 +116,11 @@ export function createGame(def: GameDef): void {
   // ---------- main loop ----------
   let last = performance.now();
   let stepping = false;
+  let manual = false;
   function frame(now: number): void {
-    const rawDt = clamp((now - last) / 1000, 0, 0.05); last = now;
+    if (manual && !stepping) { last = now; requestAnimationFrame(frame); return; }
+    // under __advance the step is exactly 1/60: (now - last) would carry float rounding that depends on the wall clock
+    const rawDt = stepping ? 1 / 60 : clamp((now - last) / 1000, 0, 0.05); last = now;
     state.t += rawDt; state.st += rawDt;
     stepTransition(rawDt);
     const paused = !!banner;

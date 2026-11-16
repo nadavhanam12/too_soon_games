@@ -24,6 +24,8 @@ tsconfig.json    extends the template's base config
 Shared screens (title, cutscene, lose, result, board, facts, community), share, leaderboard,
 analytics, audio and the build come from `GamesTemplate/common-game-code` - never copy them here (rule 6).
 
+- `playthrough.mjs` (not built): the arc as it is (one endless stage, RULES 2א's counter-example) for the bugcheck playthrough; no bot, the run ends at the floor anyway (RULES 21ב).
+
 ## Commands (from `GamesTemplate/common-game-code`)
 
 ```

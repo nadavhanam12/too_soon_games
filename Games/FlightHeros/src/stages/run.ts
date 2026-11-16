@@ -1,5 +1,5 @@
 // Stage 1: run down the aisle. Three lanes, falling suitcases, panicking passengers, the stewardess doing the safety speech.
-import { R, W, SAFE_H as H, ctx, state, input, rr, txt, clamp, lerp, rnd, pick, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, state, input, rr, txt, clamp, lerp, rnd, pick, sfx, rand } from '@tsg/index';
 import { G, registerStage, stageDone } from '../play';
 import { LINES } from '../content';
 import { bubble, person, suitcase, DAD } from '../art';
@@ -16,6 +16,7 @@ function init() {
 function lane(d: number): void { s.lane = clamp(s.lane + d, 0, 2); sfx.whoosh?.(); }
 
 registerStage('run', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   key(e) { if (e.key === 'ArrowLeft' || e.key === 'a') { lane(-1); return true; } if (e.key === 'ArrowRight' || e.key === 'd') { lane(1); return true; } return false; },
   step(dt) {
@@ -28,8 +29,8 @@ registerStage('run', {
     s.stun = Math.max(0, s.stun - dt);
     s.spawn -= dt;
     if (s.spawn <= 0 && s.dist < s.total - 420) {
-      const wide = Math.random() < 0.35 && s.time - s.lastSpawn > 1.6; s.spawn = rnd(0.72, 1.05); s.lastSpawn = s.time;
-      s.obs.push({ side: Math.random() < 0.5 ? -1 : 1, wide, y: -60, t: 0, col: pick(['#c8102e', '#222', '#0d6efd', '#8a2be2', '#ff8c00', '#00a86b']) });
+      const wide = rand() < 0.35 && s.time - s.lastSpawn > 1.6; s.spawn = rnd(0.72, 1.05); s.lastSpawn = s.time;
+      s.obs.push({ side: rand() < 0.5 ? -1 : 1, wide, y: -60, t: 0, col: pick(['#c8102e', '#222', '#0d6efd', '#8a2be2', '#ff8c00', '#00a86b']) });
     }
     s.rspawn -= dt;
     if (s.rspawn <= 0 && s.dist < s.total - 500) { s.rspawn = rnd(1.7, 2.6); const l = Math.floor(rnd(0, 3)); s.runners.push({ lane: l, y: -70, x: LANES[l]!, shirt: pick(['#ff8c00', '#c8102e', '#ffffff', '#8a2be2', '#3ddc84', '#ffb400']), hair: pick<string | false>(['#222', '#3a2a1a', '#c9a15a', false]), s: pick(LINES.pass), bt: rnd(0, 0.5), v: rnd(90, 140) }); }

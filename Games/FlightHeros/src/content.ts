@@ -73,7 +73,7 @@ function apron(st: number, boarding: boolean): void {
     for (const [who, s2, tt] of line) { const p = pos[who]; if (st > tt && st < tt + 2.2 && p) { const hy = p[1] - (who < 2 ? 26 : 34); bubble(s2, p[0], hy - 34, 12, '#fff', '#111', p[0], hy - 4); } }
   } else if (st < 2.4 && pos[3]) { const [fx, fy] = pos[3]!; bubble('תעלו, אני אחרון עם המזוודה. יאלה הביתה!', fx, fy - 72, 12, '#2f6fdd', '#fff', fx, fy - 40); }
 }
-function cabin(st: number, chaos: boolean, heavy: boolean): void {
+function cabin(st: number, chaos: boolean, heavy: boolean): void { // the cabin shake uses Math.random: drawing jitter only, not gameplay
   ctx.save(); if (chaos && heavy) ctx.translate((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12);
   ctx.fillStyle = '#e9eef3'; ctx.fillRect(-10, -10, W + 20, 470);
   rr(-10, 60, W + 20, 90, 0, '#cfd8e2'); for (let i = 0; i < 4; i++) rr(i * 95 - 5, 70, 88, 70, 8, '#dfe6ee');

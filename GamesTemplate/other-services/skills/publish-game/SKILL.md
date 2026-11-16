@@ -70,7 +70,8 @@ After a real (non-dry) publish:
 
 ## 4. Report back (Hebrew, short)
 
-Public URL, version, bugcheck result (green / skipped-with-reason), API registration result, deploy id,
+The handover card first (RULES 21ב): copy it from the end of `out/report.md`, look at `out/playthrough/*.png` against the
+arc lines, and fill in "Guessed" and "Still broken" yourself. Then: public URL, version, bugcheck result (green / skipped-with-reason), API registration result, deploy id,
 verify results, the phone checklist, and whether the reminder was created. For `--dry-run`: what would
 happen and that nothing was deployed.
 

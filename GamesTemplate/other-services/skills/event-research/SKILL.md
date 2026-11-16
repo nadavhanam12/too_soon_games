@@ -83,6 +83,7 @@ For each (A/B/C):
 - 1–3 minute fit (stages or endless, how a run ends, what the score is)
 - **Stage skeleton** (RULES 2א as a work plan): 3–5 rows, one per stage:
   `# · stage name · real moment it expresses (source #) · player action · fail condition · target length (s) · score contribution`
+  (the chosen idea's rows become `arc.stages` in `Games/<GameId>/playthrough.mjs`, RULES 21ב)
   If the last stage ends mid-mashing (sprint, rapid taps, hold), add an end-moment row (RULES 13ג): 1.2–2 s in-game
   "FINISH!" beat, taps swallowed, then `R.win()`/`R.fail()`.
 - **Reuse map:** for each stage, the closest existing code and how far it is from it:

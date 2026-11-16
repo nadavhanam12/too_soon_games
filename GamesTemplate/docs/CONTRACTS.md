@@ -54,8 +54,13 @@
 `POST /v1/games/:slug/scores`, `POST /v1/games/:slug/events`, `PUT /v1/admin/games/:slug` (header `x-admin-key`).
 
 ## hooks לבדיקות (בכל build של משחק, על `window`)
-`__go(scene)`, `__advance(seconds)`, `__state()`, `__scenes()` (רשימת כל המסכים), `__music()` (מצב המוזיקה והקבצים). הפרמטר `#scene=<name>` ב־URL פותח
-במסך. `?c=<score>&n=<nick>&u=<id>` = קישור אתגר.
+`__go(scene)`, `__advance(seconds)`, `__state()` (כולל `banner`), `__scenes()` (רשימת כל המסכים), `__music()` (מצב המוזיקה והקבצים),
+`__manual(on)` (השעון האמיתי מפסיק להזיז את המשחק, רק `__advance`), `__seed(n?)` (קורא או מאתחל את ה־seed). הפרמטר `#scene=<name>` ב־URL פותח
+במסך. `?c=<score>&n=<nick>&u=<id>` = קישור אתגר. `?seed=<n>` = ריצה חוזרת (החלטה 69).
+
+**משחק עם שלבים** מוסיף (ב־`play.ts`): `__stages()` (השלבים לפי הסדר), `__stage(name)`, `__world()` (כולל `stage`),
+`__peek()` (מצב השלב הנוכחי לקריאה בלבד, מ־`peek()` של השלב, בשביל הבוט). הבוט וקשת העלילה: `Games/<GameId>/playthrough.mjs`
+(ARCHITECTURE.md, "כלי בדיקת הבאגים").
 
 ## קישור אתגר ב־`_worker.js` של האתר
 בקשה ל־`/<slug>/` עם `c` מספרי: מביא את ה־HTML מ־`env.ASSETS`, מחליף `og:title` ל־

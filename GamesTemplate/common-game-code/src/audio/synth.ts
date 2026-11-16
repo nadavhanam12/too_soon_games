@@ -1,6 +1,5 @@
 // Synth-only audio (no files): one-shot sfx + a step-sequencer music loop. Ported from FallingCEO.
 // Everything waits for the first pointerdown (AudioContext resume). `M` toggles music.
-import { rnd } from '../draw/prims';
 
 let AC: AudioContext | null = null;
 let MASTER: GainNode | null = null;
@@ -19,7 +18,9 @@ export function ac(): AudioContext {
 export function unlockAudio(): void {
   window.addEventListener('pointerdown', () => { try { ac().resume(); } catch { /* ignore */ } }, { once: true });
 }
-const vary = (v: number, p = 0.05): number => v * (1 + rnd(-p, p));
+// Pitch jitter for sounds. Math.random, not the seeded rand(): the music sequencer calls this on real-time timers,
+// which would shift the gameplay stream and break same-seed runs (DECISIONS 69).
+const vary = (v: number, p = 0.05): number => v * (1 + (Math.random() * 2 - 1) * p);
 
 export function tone(f: number, d: number, type: OscillatorType = 'square', g = 0.06, o: { slide?: number } = {}): void {
   try {

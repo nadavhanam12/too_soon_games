@@ -11,6 +11,8 @@ export interface Stage {
   /** Logic + input. Not called while the template's stage banner pauses the game. */
   step(dt: number): void;
   render(): void;
+  /** Read-only snapshot of the stage's state for the bugcheck playthrough bot (playthrough.mjs). */
+  peek?(): unknown;
   /** Raw keydown while this stage runs; return true to swallow the key. */
   key?(e: KeyboardEvent): boolean;
 }
@@ -26,10 +28,11 @@ export const G = {
   ended: false,
   ps: { x: 0, y: 0 },              // where the held pointer went down
   wasDown: false,
-  sh: () => (state.shake > 0 ? (Math.random() - 0.5) * 10 : 0),
+  sh: () => (state.shake > 0 ? (Math.random() - 0.5) * 10 : 0), // drawing jitter only, not gameplay: stays off the seeded stream
 };
 const DROP: ReadonlySet<StageName> = new Set(['run', 'door', 'cockpit', 'tie', 'tied']);
 const NEXT: Record<StageName, StageName | null> = { run: 'door', door: 'cockpit', cockpit: 'tie', tie: 'tied', tied: 'fly', fly: null };
+const ORDER: StageName[] = ['run', 'door', 'cockpit', 'tie', 'tied', 'fly'];
 const stages: Partial<Record<StageName, Stage>> = {};
 let retryAlt = 34000;
 
@@ -107,5 +110,7 @@ export const playScene: Scene = {
 const w = window as unknown as Record<string, unknown>;
 w.__setAlt = (v: number) => { G.alt = v; };
 w.__stage = (name: StageName) => { if (stages[name]) setStage(name); };
+w.__stages = (): StageName[] => ORDER; // the story arc's stages in order (bugcheck playthrough)
+w.__peek = () => stages[G.stage]?.peek?.();
 w.__world = () => ({ stage: G.stage, score: G.score, alt: G.alt, playT: G.playT, stageScore: { ...G.stageScore } });
 void S; void H; void STAGE_NAMES;

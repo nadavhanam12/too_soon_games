@@ -25,6 +25,7 @@ function step(foot: 1 | 2): void {
 }
 
 registerStage('wall', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); popAt.fill(-1); },
   key(e) { if (e.key === 'ArrowLeft' || e.key === 'a') { step(1); return true; } if (e.key === 'ArrowRight' || e.key === 'd') { step(2); return true; } return false; },
   step(dt) {

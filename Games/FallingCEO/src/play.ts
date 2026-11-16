@@ -1,5 +1,5 @@
 // The play scene: Icy Tower in reverse. World y grows downward; the floor (Nov 12 boardroom) rises.
-import { R, S, W, SAFE_H as H, ctx, state, input, keyLeft, keyRight, setPointerIntercept, onKeyDown, fullBleed, txt, font, rnd, clamp, lerp, pick, fmtTime, sfx, type Scene } from '@tsg/index';
+import { R, S, W, SAFE_H as H, ctx, state, input, keyLeft, keyRight, setPointerIntercept, onKeyDown, fullBleed, txt, font, rnd, clamp, lerp, pick, fmtTime, sfx, type Scene, rand } from '@tsg/index';
 import { ink, inkCirc, inkRect, jit, marker, markerCirc, hatch, paper, sticker, INK, NV, tickInk } from './kit';
 import { ceo, chart, chip, trumpFace, woman, type Pose } from './art';
 
@@ -43,18 +43,18 @@ const sideDir = (): number => { let d = 0; for (const v of sideHeld.values()) d 
 
 const LVL = (): number => clamp(PLAYT / 150, 0, 1);
 function ptype(): Kind {
-  const l = LVL(), r = Math.random();
+  const l = LVL(), r = rand();
   const w: Record<Kind, number> = { chip: lerp(0.38, 0.28, l), trump: lerp(0.07, 0.03, l), buy: lerp(0.09, 0.05, l), sorry: lerp(0.12, 0.1, l), rack: lerp(0.08, 0.05, l), keynote: lerp(0.08, 0.05, l), sign: 0.08, news: lerp(0.1, 0.36, l), gold: 0 };
   let acc = 0; for (const k of Object.keys(w) as Kind[]) { acc += w[k]; if (r < acc) return k; } return 'news';
 }
 function mk(k: Kind, y: number, x?: number): Plat {
   const d = PT[k], w = rnd(d.w[0], d.w[1]) * (k === 'gold' ? 1 : lerp(1, 0.72, LVL()));
-  if (x == null) { lastSide = Math.random() < 0.8 ? -lastSide : lastSide; x = lastSide < 0 ? rnd(12, W / 2 - w * 0.6) : rnd(W / 2 - w * 0.4, W - 12 - w); }
+  if (x == null) { lastSide = rand() < 0.8 ? -lastSide : lastSide; x = lastSide < 0 ? rnd(12, W / 2 - w * 0.6) : rnd(W / 2 - w * 0.4, W - 12 - w); }
   return { x, y, w, k, label: d.label(), hit: 0, gone: 0, wob: 0 };
 }
 function addRow(y: number): void {
   const k = ptype();
-  if (k === 'rack') { const x = Math.random() < 0.5 ? rnd(12, 120) : rnd(180, W - 72); const dir = x < W / 2 ? 1 : -1; for (let i = 0; i < 3; i++) P.plats.push(mk('rack', y - i * 52, x + dir * i * 44)); return; }
+  if (k === 'rack') { const x = rand() < 0.5 ? rnd(12, 120) : rnd(180, W - 72); const dir = x < W / 2 ? 1 : -1; for (let i = 0; i < 3; i++) P.plats.push(mk('rack', y - i * 52, x + dir * i * 44)); return; }
   P.plats.push(mk(k, y));
 }
 function initPlay(): void {
@@ -107,19 +107,19 @@ function stepPlay(dt: number): void {
   if (P.jumpFx > 0) P.jumpFx -= dt;
   if (P.inv > 0) P.inv -= dt;
   const has = (k: Npc['k']) => P.npcs.some((n) => n.k === k);
-  if (PLAYT >= 20 && !has('agent')) { P.agentT -= dt; if (P.agentT <= 0) { P.agentT = rnd(9, 14); const dir = Math.random() < 0.5 ? 1 : -1; P.npcs.push({ k: 'agent', x: dir > 0 ? -40 : W + 40, y: P.y + rnd(-220, 120), vx: dir * rnd(90, 130), t: 0, on: false, timer: 0, side: dir }); } }
-  if (PLAYT >= 75 && !has('vp')) { P.vpT -= dt; if (P.vpT <= 0) { P.vpT = rnd(11, 16); const dir = Math.random() < 0.5 ? 1 : -1; P.npcs.push({ k: 'vp', x: dir > 0 ? -40 : W + 40, y: P.y + rnd(-260, 80), vx: dir * rnd(55, 85), t: 0, on: false, timer: 0, side: dir }); } }
+  if (PLAYT >= 20 && !has('agent')) { P.agentT -= dt; if (P.agentT <= 0) { P.agentT = rnd(9, 14); const dir = rand() < 0.5 ? 1 : -1; P.npcs.push({ k: 'agent', x: dir > 0 ? -40 : W + 40, y: P.y + rnd(-220, 120), vx: dir * rnd(90, 130), t: 0, on: false, timer: 0, side: dir }); } }
+  if (PLAYT >= 75 && !has('vp')) { P.vpT -= dt; if (P.vpT <= 0) { P.vpT = rnd(11, 16); const dir = rand() < 0.5 ? 1 : -1; P.npcs.push({ k: 'vp', x: dir > 0 ? -40 : W + 40, y: P.y + rnd(-260, 80), vx: dir * rnd(55, 85), t: 0, on: false, timer: 0, side: dir }); } }
   for (const n of P.npcs) {
     n.t += dt;
     if (n.on) {
       n.x = lerp(n.x, clamp(P.x + n.side * 30, 14, W - 14), 1 - Math.pow(0.001, dt)); n.y = lerp(n.y, P.y, 1 - Math.pow(0.0005, dt)); n.timer -= dt;
       n.buzz = (n.buzz || 0) - dt; if (n.buzz <= 0) { n.buzz = 3; R.shake(0.18); try { navigator.vibrate?.(120); } catch { /* ignore */ } }
-      if (Math.random() < dt * 2) P.parts.push({ x: n.x, y: n.y - 60, vx: rnd(-15, 15), vy: -40, life: 0.8, col: '#ff6fae', r: 3 });
+      if (rand() < dt * 2) P.parts.push({ x: n.x, y: n.y - 60, vx: rnd(-15, 15), vy: -40, life: 0.8, col: '#ff6fae', r: 3 });
       if (n.timer <= 0) { n.timer = 10; P.floor -= 90; R.shake(0.35); sfx.thud?.(); news(n.k === 'agent' ? 'SEEN TOGETHER AGAIN. "ALLEGED AGENT"' : 'SEEN TOGETHER AGAIN. "VP, HEALTH CARE"', 2.6); R.say('Headline. The floor rises.', 1.2); }
       continue;
     }
     n.x += n.vx * dt; if (n.k === 'vp') n.y += Math.sin(n.t * 2) * 18 * dt;
-    if (n.k === 'agent' && Math.random() < dt * 3) P.parts.push({ x: n.x - 10, y: n.y - 30, vx: -n.vx * 0.3 + rnd(-20, 20), vy: rnd(20, 60), life: rnd(0.6, 1.1), col: '#fffdf5', r: 3 });
+    if (n.k === 'agent' && rand() < dt * 3) P.parts.push({ x: n.x - 10, y: n.y - 30, vx: -n.vx * 0.3 + rnd(-20, 20), vy: rnd(20, 60), life: rnd(0.6, 1.1), col: '#fffdf5', r: 3 });
     if (P.inv <= 0 && Math.abs(n.x - P.x) < 22 && Math.abs(n.y - 24 - (P.y - 26)) < 30) {
       P.inv = 1.2; n.on = true; n.timer = 10; n.side = n.x < P.x ? -1 : 1; n.vx = 0;
       P.vy = -950; P.canJump = true; burst(P.x, P.y - 30, 14, '#ff6fae', 220); sfx.boing?.(1.8);
@@ -151,7 +151,7 @@ function stepPlay(dt: number): void {
   genPlats();
   for (const q of P.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 500 * dt; q.life -= dt; } P.parts = P.parts.filter((q) => q.life > 0);
   if (P.planeX !== null) { P.planeX += 220 * dt; if (P.planeX > W + 60) P.planeX = null; }
-  if (P.envT > 0) { P.envT -= dt; if (Math.random() < dt * 1.6) P.env.push({ x: rnd(20, W - 20), y: P.cam - 40, vy: rnd(160, 240), r: 0 }); }
+  if (P.envT > 0) { P.envT -= dt; if (rand() < dt * 1.6) P.env.push({ x: rnd(20, W - 20), y: P.cam - 40, vy: rnd(160, 240), r: 0 }); }
   for (const e of P.env) { e.y += e.vy * dt; e.r += dt * 3; if (Math.abs(e.x - P.x) < 18 && Math.abs(e.y - (P.y - 28)) < 22) { e.y = 1e9; P.vy = Math.max(P.vy, 0) + 260; sfx.hurt?.(); R.say('Subpoena! Pushed down.', 0.9); } }
   P.env = P.env.filter((e) => e.y < P.floor && e.y < P.cam + H + 60);
   P.cap = 5 * clamp((P.floor - P.y) / START_GAP, 0, 1.1);

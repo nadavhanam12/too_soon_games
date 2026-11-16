@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 // Bug check for one game (docs/ARCHITECTURE.md "כלי בדיקת הבאגים", docs/CONTRACTS.md).
 //   node run.mjs <GameId> [--server] [--quick]
-// Sections: static → build → scenes (desktop) → mobile (3 phones, touch) → perf → server.
-// Writes out/report.md + out/<viewport>/<scene>.png. Exit 1 on any RED.
+// Sections: static → build → scenes (desktop) → mobile (3 phones, touch) → perf → playthrough → server.
+// Writes out/report.md (ending with the handover card, RULES 21ב) + out/<viewport>/<scene>.png + out/playthrough/.
+// Exit 1 on any RED. --quick skips the playthrough.
 import { chromium, devices } from 'playwright';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handoverCard, playthrough } from './playthrough.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = resolve(HERE, '..', '..');
@@ -89,6 +91,7 @@ const base = `http://127.0.0.1:${port}/${slug}/`;
 
 // ---------- 3+4. scenes on desktop and phones ----------
 let browser = null;
+let playCard = null;
 try { browser = await chromium.launch({ channel: 'chrome' }); } catch { try { browser = await chromium.launch(); } catch (e) { add('scenes', 'launch browser', 'red', String(e.message).split('\n')[0]); } }
 
 const viewports = quick
@@ -109,7 +112,8 @@ if (browser) {
     const errors = [];
     page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
-    page.on('requestfailed', (r) => { if (!r.url().includes(API)) errors.push('request failed: ' + r.url()); });
+    // ERR_ABORTED is expected: the perf check reloads the page while audio is still loading, which cancels it
+    page.on('requestfailed', (r) => { const why = r.failure()?.errorText || ''; if (!r.url().includes(API) && !/ERR_ABORTED/.test(why)) errors.push('request failed: ' + r.url() + ' ' + why); });
     const dir = join(OUT, name); mkdirSync(dir, { recursive: true });
     try {
       await page.goto(base + '?c=42&n=Test&u=abcd1234', { waitUntil: 'load', timeout: 15000 });
@@ -170,6 +174,8 @@ if (browser) {
     if (resourceErrors.length) add(S, `${name}: ${resourceErrors.length} resources failed to load (fonts/CDN offline?)`, 'yellow', resourceErrors[0]);
     await context.close();
   }
+  // ---------- 4b. playthrough (story arc, bot run to the end, same seed twice, lose → retry) ----------
+  if (!quick) playCard = await playthrough({ browser, base, GAME, OUT, add });
   await browser.close();
 }
 
@@ -200,7 +206,8 @@ for (const sec of [...new Set(results.map((r) => r.section))]) {
   for (const r of results.filter((x) => x.section === sec)) lines.push(`- ${r.status === 'green' ? '🟢' : r.status === 'yellow' ? '🟡' : '🔴'} ${r.name}${r.note ? ` — ${r.note}` : ''}`);
   lines.push('');
 }
-lines.push('Screenshots: `out/<viewport>/<scene>.png`');
+lines.push('Screenshots: `out/<viewport>/<scene>.png`', '');
+lines.push(...handoverCard({ cfg, results, card: playCard, quick }));
 writeFileSync(join(OUT, 'report.md'), lines.join('\n'));
 console.log(`\n${reds.length ? 'RED' : 'GREEN'} — ${reds.length} red, ${yellows.length} yellow. Report: ${join(OUT, 'report.md')}`);
 process.exit(reds.length ? 1 : 0);

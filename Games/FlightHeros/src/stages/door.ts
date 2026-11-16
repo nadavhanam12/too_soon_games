@@ -1,5 +1,5 @@
 // Stage 2: the locked cockpit door. First push the trolley guy (3 taps), then a 5-ring lock-timing puzzle with turbulence.
-import { R, W, SAFE_H as H, ctx, input, rr, circ, txt, rnd, pick, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, input, rr, circ, txt, rnd, pick, sfx, rand } from '@tsg/index';
 import { G, registerStage, stageDone, strip } from '../play';
 import { LINES } from '../content';
 import { bubble, person, suitcase } from '../art';
@@ -11,12 +11,13 @@ function init() {
 }
 
 registerStage('door', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   step(dt) {
     s.time += dt; s.fx = Math.max(0, s.fx - dt); s.bfx = Math.max(0, s.bfx - dt);
     s.turbT -= dt;
     if (s.turbT <= 0 && s.turb <= 0) { s.turb = rnd(0.9, 1.5); s.turbT = rnd(2.2, 3.8); sfx.rumble?.(); R.say(pick(LINES.turb), 1); }
-    if (s.turb > 0) { s.turb -= dt; s.jit = rnd(-0.9, 0.9); if (Math.random() < dt * 6) s.ang += rnd(-0.5, 0.5); } else s.jit = 0;
+    if (s.turb > 0) { s.turb -= dt; s.jit = rnd(-0.9, 0.9); if (rand() < dt * 6) s.ang += rnd(-0.5, 0.5); } else s.jit = 0;
     s.ang += s.speed * s.dir * dt * (s.turb > 0 ? 1.6 : 1);
     if (s.block <= 0 && s.bx < W) s.bx += 260 * dt;
     const tapped = input.taps.length > 0; input.taps.length = 0;

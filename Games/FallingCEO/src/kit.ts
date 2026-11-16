@@ -38,7 +38,7 @@ let paperC: HTMLCanvasElement | null = null;
 function makePaper(): HTMLCanvasElement {
   const c = document.createElement('canvas'); c.width = W; c.height = PH;
   const p = c.getContext('2d')!;
-  p.fillStyle = PAPER; p.fillRect(0, 0, W, PH);
+  p.fillStyle = PAPER; p.fillRect(0, 0, W, PH); // paper texture, drawn once: not gameplay, so Math.random below stays off the seeded stream
   for (let i = 0; i < 3200; i++) { p.fillStyle = `rgba(255,255,255,${Math.random() * 0.09})`; p.fillRect(Math.random() * W, Math.random() * PH, 1.5, 1.5); }
   p.strokeStyle = 'rgba(118,185,0,.22)'; p.lineWidth = 1.5;
   for (let i = 0; i < 36; i++) { let x = Math.random() * W, y = Math.random() * PH; p.beginPath(); p.moveTo(x, y); for (let k = 0; k < 4; k++) { if (k % 2) y += rnd(-70, 70); else x += rnd(-70, 70); p.lineTo(x, y); } p.stroke(); p.fillStyle = 'rgba(118,185,0,.35)'; p.fillRect(x - 2, y - 2, 4, 4); }

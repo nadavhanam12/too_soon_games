@@ -2,7 +2,7 @@
 // barrier; somewhere in it is the blonde with the RUN!!! sign holding the baby. Tap the baby (or ↑) for a high five:
 // the baby's high five takes a minute off the finish time. Miss them and the game ends on "the baby fell asleep".
 // After a high five, the baby runs onto the course in the last 300 m, overtakes you and crosses the line first.
-import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, lerp, rnd, pick, sfx, rand } from '@tsg/index';
 import { G, registerStage, pxPerKm, hint, say, demo, SEG } from '../play';
 import { LINES } from '../content';
 import { C, arch, baby, bubble, confetti, person, pint, runnerSide, seafront, wife } from '../art';
@@ -13,7 +13,7 @@ let s = init();
 function init() {
   const fans: Fan[] = [];
   for (let i = 0, wx = 0; wx < 2700; i++, wx += rnd(34, 44)) {
-    fans.push({ wx, blonde: Math.random() < 0.75, shirt: pick(['#c8102e', '#ffffff', '#2f6fdd', '#1aa36b', '#ffd23f']), sign: Math.random() < 0.12 ? pick(LINES.crowdSign) : undefined, pint: Math.random() < 0.3, sun: Math.random() < 0.6 });
+    fans.push({ wx, blonde: rand() < 0.75, shirt: pick(['#c8102e', '#ffffff', '#2f6fdd', '#1aa36b', '#ffd23f']), sign: rand() < 0.12 ? pick(LINES.crowdSign) : undefined, pint: rand() < 0.3, sun: rand() < 0.6 });
   }
   return { fans, sprint: 0.9, five: 0, missed: false, famWX: 0, wrongT: 0, fx: 0, babyRun: 0, spotted: false };
 }
@@ -31,6 +31,7 @@ function tryFive(x: number, y: number, key: boolean): boolean {
 }
 
 registerStage('finish', {
+  peek: () => ({ ...s, fans: undefined, famX: famX() }), // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() {
     s = init();
     s.famWX = (FAM_KM - SEG.finish.from) * pxPerKm(SCROLL) + W * 0.62;

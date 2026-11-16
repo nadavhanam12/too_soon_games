@@ -25,6 +25,8 @@ bus, retry from the stage). Score = seconds left before 3:00:00 at the finish; t
 Crossing km 21.1 starts a 1.6 s finish moment (`OUTRO_S`, `finishMoment()` in `src/play.ts`: FINISH! banner, confetti, runner slows, hints/HUD speed hidden, taps swallowed), then `R.win` (RULES 13ג).
 `resultWords` = finish time (`DNF` for 0). A decent player: ~1:30 race time, ~105 s real.
 
+- `playthrough.mjs` (not built): the story arc, one beat per stage, and the bot the bugcheck plays it with (RULES 21ב). Change it with the stages. Stage hooks: `__stages()`, `__peek()` (each stage's `peek`).
+
 ## Commands (from `GamesTemplate/common-game-code`)
 
 ```

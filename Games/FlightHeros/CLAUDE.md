@@ -28,6 +28,8 @@ Shared screens, share, leaderboard, analytics, audio and the build come from `Ga
 (rule 6). Music: the three mp3 loops of the itch version in `assets/audio/` (calm / tense / win), played by the
 template's file-music player with crossfades (`music.files` in main.ts, DECISIONS 45).
 
+- `playthrough.mjs` (not built): the story arc, one beat per stage, and the bot the bugcheck plays it with (RULES 21ב). Change it with the stages. Stage hooks: `__stages()`, `__peek()` (each stage's `peek`).
+
 ## Commands (from `GamesTemplate/common-game-code`)
 
 ```

@@ -1,7 +1,7 @@
 // Stage 2 (km 3-8): the water station. The volunteers' table slides by; tap to grab what is inside the orange ring.
 // Water / sports drink refill the thirst meter; local food (halloumi, gyros, loukoumades, Cypriot coffee) is a speed
 // boost; ouzo makes the road spin. A street cat walks the table and steals food before you get there.
-import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, rnd, pick, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, input, rr, txt, clamp, rnd, pick, sfx, rand } from '@tsg/index';
 import { G, registerStage, pxPerKm, hint, say, nudge, demo } from '../play';
 import { LINES } from '../content';
 import { C, FOOD, cat, item, person, runnerSide, seafront, type Item } from '../art';
@@ -12,12 +12,13 @@ interface Thief { x: number; t: number; target: Thing | null; dir: number; stole
 let s = init();
 function init() { return { things: [] as Thing[], nextX: W + 40, thirst: 0.65, boost: 0, wobble: 0, jitter: 0, grab: 0, thirstSaid: 0, thief: null as Thief | null, thiefIn: 3.5 }; }
 function roll(): Item {
-  const r = Math.random();
+  const r = rand();
   return r < 0.36 ? 'water' : r < 0.56 ? 'sports' : r < 0.66 ? 'halloumi' : r < 0.75 ? 'gyros' : r < 0.82 ? 'loukoumades' : r < 0.88 ? 'coffee' : 'ouzo';
 }
 const NAME: Record<string, string> = { halloumi: 'halloumi', gyros: 'gyros', loukoumades: 'loukoumades', coffee: 'coffee' };
 
 registerStage('water', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); for (let x = 200; x < W + 60; x += rnd(70, 100)) s.things.push({ kind: roll(), x }); s.nextX = W + 60; },
   step(dt) {
     const v = SCROLL * G.f;

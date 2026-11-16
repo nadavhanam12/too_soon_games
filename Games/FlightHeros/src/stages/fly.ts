@@ -1,5 +1,5 @@
 // Stage 5: stabilise the plane. Drag (or arrows) to pitch and bank; hold the horizon inside the frame for 8 seconds.
-import { R, W, SAFE_H as H, ctx, input, keyLeft, keyRight, keyHeld, rr, circ, txt, clamp, rnd, pick, fmtInt, sfx } from '@tsg/index';
+import { R, W, SAFE_H as H, ctx, input, keyLeft, keyRight, keyHeld, rr, circ, txt, clamp, rnd, pick, fmtInt, sfx, rand } from '@tsg/index';
 import { G, registerStage, stageDone } from '../play';
 import { LINES } from '../content';
 import { bubble, person, hzn, DAD } from '../art';
@@ -9,6 +9,7 @@ let s = init();
 function init() { return { pitch: -0.75, bank: 0.5, stable: 0, time: 0, wind: 0, jx: 0, jy: 0, up: false }; }
 
 registerStage('fly', {
+  peek: () => s, // read-only state for the bugcheck playthrough bot (playthrough.mjs)
   enter() { s = init(); },
   step(dt) {
     s.time += dt;
@@ -27,7 +28,7 @@ registerStage('fly', {
     if (ok || s.pitch > 0.05) G.alt += Math.max(0, s.pitch + 0.02) * 260 * dt;
     G.alt = Math.min(G.alt, MAX_ALT);
     s.up = G.alt - prev >= -0.01; G.altUp = s.up;
-    if (!ok && s.time > 1 && Math.random() < dt * 0.3) R.say(pick(LINES.flyShout), 1.6);
+    if (!ok && s.time > 1 && rand() < dt * 0.3) R.say(pick(LINES.flyShout), 1.6);
     if (s.stable >= NEED) { const sc = Math.max(300, 1600 - Math.floor(s.time * 12)); stageDone('fly', sc); }
   },
   render() {
