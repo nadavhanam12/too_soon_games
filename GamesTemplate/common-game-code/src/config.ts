@@ -36,10 +36,11 @@ export interface Env {
   buildTime: string;
   dev: boolean;
   studio: StudioLinks;
+  studioLogo: string;    // data URI of the studio logo (the site logo, frontend/src/assets/logo.png)
 }
 
 declare const TSG_ENV: Env;
-export const env: Env = typeof TSG_ENV !== 'undefined' ? TSG_ENV : { apiBase: '', publicBase: '', buildTime: '', dev: true, studio: {} };
+export const env: Env = typeof TSG_ENV !== 'undefined' ? TSG_ENV : { apiBase: '', publicBase: '', buildTime: '', dev: true, studio: {}, studioLogo: '' };
 
 export function validateConfig(c: GameConfig): string[] {
   const errs: string[] = [];

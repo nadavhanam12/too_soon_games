@@ -1,4 +1,4 @@
-// Night-sky theme of "חופשה בטוחה": navy gradient with drifting clouds, amber buttons, red tint on the lose screen.
+// Night-sky theme of "Not On My Flight": navy gradient with drifting clouds, amber buttons, red tint on the lose screen.
 import { defaultTheme, fillBg, type Theme } from '@tsg/index';
 import { clouds } from './art';
 

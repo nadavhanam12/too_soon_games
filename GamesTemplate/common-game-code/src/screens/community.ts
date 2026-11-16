@@ -5,11 +5,11 @@ import { R } from '../core/runtime';
 import { inBtn, wrap } from '../draw/prims';
 import { track } from '../analytics/track';
 import { getNick } from '../storage/storage';
-import { followOverlay, shareOverlay } from '../share/overlays';
+import { followOverlay, moreGamesOverlay, shareOverlay } from '../share/overlays';
 import { challengeUrl, shareText } from '../share/share';
 import { sfx } from '../audio/synth';
 
-/** community: follow block (top), share block (middle), play again (bottom). docs/SHARE.md layout. */
+/** community: follow block (top), share block (middle), "More games" link to the site home, play again (bottom). docs/SHARE.md layout. */
 export const communityScene: Scene = {
   enter() {
     const run = R.run || { score: R.best, durationS: 0, won: true };
@@ -17,8 +17,9 @@ export const communityScene: Scene = {
     const text = shareText(R.cfg, { result: R.content.result.resultWords(run), rank: R.content.result.rankFor(run.score), url });
     followOverlay.show(186);
     shareOverlay.show({ text, url }, 348);
+    moreGamesOverlay.show(484);
   },
-  exit() { followOverlay.hide(); shareOverlay.hide(); },
+  exit() { followOverlay.hide(); shareOverlay.hide(); moreGamesOverlay.hide(); },
   draw() {
     const th = R.theme, c = R.content.community, s = R.strs, st = state.st;
     th.bg(st, 'community');

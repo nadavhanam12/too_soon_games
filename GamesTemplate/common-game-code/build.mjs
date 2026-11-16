@@ -33,12 +33,18 @@ function die(msg) { console.error('[build] ' + msg); process.exit(1); }
 function readJson(p, fallback) { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; } }
 function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
+// The studio logo on the "More games" button (DECISIONS 71): the site logo, inlined as a data URI so it needs no request.
+const LOGO_PATH = join(HERE, '..', 'frontend', 'src', 'assets', 'logo.png');
+if (!existsSync(LOGO_PATH)) die(`missing studio logo ${LOGO_PATH}`);
+const studioLogo = 'data:image/png;base64,' + readFileSync(LOGO_PATH).toString('base64');
+
 const env = (dev) => ({
   apiBase: dev ? (process.env.API_BASE ?? 'http://127.0.0.1:8787') : (studio.apiBase || ''),
   publicBase: dev ? '' : (studio.publicBase || ''),
   buildTime: new Date().toISOString(),
   dev,
   studio: { instagram: studio.instagram || '', tiktok: studio.tiktok || '', x: studio.x || '', facebook: studio.facebook || '', youtube: studio.youtube || '', email: studio.email || '' },
+  studioLogo,
 });
 
 function esbuildOptions(dev) {

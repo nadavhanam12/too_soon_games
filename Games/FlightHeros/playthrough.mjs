@@ -1,4 +1,4 @@
-// FlightHeros ("חופשה בטוחה"): the story arc (RULES 2א) and the bot the bug check plays it with (RULES 21ב,
+// FlightHeros ("Not On My Flight"): the story arc (RULES 2א) and the bot the bug check plays it with (RULES 21ב,
 // DECISIONS 69). Not part of the build. The bot only presses keys and reads __world / __peek; forceLose is used only
 // to test the lose screen's "retry from the stage".
 

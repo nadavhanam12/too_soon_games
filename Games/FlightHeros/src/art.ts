@@ -1,4 +1,4 @@
-// Drawing kit of "חופשה בטוחה": the little people, the plane, flags, the cockpit horizon, the tied attacker.
+// Drawing kit of "Not On My Flight": the little people, the plane, flags, the cockpit horizon, the tied attacker.
 // Flat shapes, no outlines. Everything is in safe-zone logical units (360 wide).
 import { ctx, W, rr, circ, txt, rich, wrap, clamp } from '@tsg/index';
 
@@ -163,7 +163,7 @@ export function tiedGuy(loops: number, struggle: number, rage: boolean, label: s
 }
 
 /** The family and their colours (title, cutscene, result). */
-export const FAM = { dad: 'שמשון בוזגלו-שטרנליכט', mom: 'פנינה-רוז', boy: 'אוריאל-ג׳קי', girl: 'מזל-טוב' };
+export const FAM = { dad: "Shimshon Buzaglo-Sternlicht", mom: "Pnina-Rose", boy: "Uriel-Jackie", girl: "Mazal-Tov" };
 export const FC = { dad: '#6aa5ff', mom: '#c98bff', boy: '#ffa23a', girl: '#ff7cb8' };
 export const DAD: PersonOpts = { shirt: '#2f6fdd', glasses: true, hair: false };
 export const MOM: PersonOpts = { shirt: '#a64dff', longhair: true, hairCol: '#3a2a1a', hair: false, pants: '#a64dff' };

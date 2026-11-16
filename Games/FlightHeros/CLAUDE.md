@@ -1,18 +1,19 @@
-# חופשה בטוחה (FlightHeros)
+# Not On My Flight (FlightHeros)
 
-Hebrew five-stage arcade game about flight FZ1073 (Dubai → Tel Aviv, 30.9.2026), built on the shared template in
+English five-stage arcade game (audience `us`; adapted on 2026-11-17 from the Hebrew "חופשה בטוחה", which is in git
+history and was the live version at /safe-flight/ until the English one is published) about flight FZ1073 (Dubai → Tel Aviv, 30.9.2026), built on the shared template in
 `GamesTemplate/`. Read `GamesTemplate/docs/RULES.md` and `docs/CONTRACTS.md` before changing anything here.
 The pre-template single-file version (itch.io build, with the WhatsApp group links) stays in
 `GamesExamples/FlightHeros/` for reference only; this folder is the maintained game.
 
-The family (בוזגלו-שטרנליכט) is fictional; real details (the dentist, the headphones, 7500, Tabuk) appear in the
+The family (Buzaglo-Sternlicht) is fictional; real details (the dentist, the headphones, 7500, Tabuk) appear in the
 facts screen (`content.ts`). The attacker and captain are generic; no airline logo in gameplay. Bibi appears as a
 one-line public-figure cameo on the result screen.
 
 ## Layout
 
 ```
-game.json          id, slug "safe-flight", audience il/he, event source + date, score max 12000 / min 20 s, share text
+game.json          id, slug "safe-flight", audience us/en, event source + date, score max 12000 / min 20 s, share text
 src/main.ts        createGame({cfg, content, theme, scenes:{play}, music, hooks}) - title art, lose art, result celebration
 src/content.ts     every player-facing text: title, cutscene (5 steps), lose, result (RANKS), board, facts, community,
                    LINES (passengers, stewardess, trolley guy, captain, Bibi), BANNERS (stage intros)
@@ -42,7 +43,7 @@ Local API: register the slug once with `PUT /v1/admin/games/safe-flight` (`x-adm
 
 ## Flow
 
-`title` → `cutscene` (apron, boarding, seated, screams, kids; button "לא במשמרת שלי!") → `play` → `result` →
+`title` → `cutscene` (apron, boarding, seated, screams, kids; button "Not on my flight!") → `play` → `result` →
 `board` → `facts` → `community` → `title`. Altitude 0 at any point → `lose` (retry from the stage, altitude
 restored to `max(4000, altitude at stage start)`, score kept) or restart.
 
@@ -60,5 +61,19 @@ restored to `max(4000, altitude at stage start)`, score kept) or restart.
 
 ## Still missing for publishing
 
-`assets/cover.png` (1200x900) and `assets/og.png` (1200x630) referenced by `game.json`; the real article URL for
-`event.sourceUrl` (today a ynet placeholder); `status` is `draft`.
+Publish at the same address, `/safe-flight/`, replacing the live Hebrew version (DECISIONS 73). Before publishing:
+an English article URL for `event.sourceUrl` (today a Hebrew ynet placeholder); reset the `safe-flight` leaderboard
+(decided 2026-11-17: the Hebrew players' scores do not carry over; see "Leaderboard reset on publish" below); `games.json` still has the Hebrew entry (`/publish-game`
+rewrites it); `status` is `draft`. Cover, og and clip are already English (2026-11-17).
+
+### Leaderboard reset on publish (decided 2026-11-17)
+
+Right after the English version is deployed, not before (until then the live Hebrew game keeps its board). Back up D1
+first (the `deploy-server` skill's backup step), then from `GamesTemplate/server-and-data/worker`:
+
+```
+npx wrangler d1 execute toosoon --remote --command "DELETE FROM scores WHERE game_id = 'safe-flight';"
+```
+
+The board is cached for 10 s, so it shows empty within seconds. This clears scores only; the "N games played"
+counter (`games.plays`) and `players` are kept on purpose (decided 2026-11-17).

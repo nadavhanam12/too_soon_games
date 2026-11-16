@@ -49,7 +49,7 @@ registerStage('run', {
     s.obs = s.obs.filter((o) => o.y < H + 60);
     const curRow = Math.max(1, ROWS - Math.floor(s.dist / RH));
     if (curRow !== s.lastRow) { s.lastRow = curRow; if (curRow % 5 === 0) sfx.tick?.(); }
-    if (s.dist >= s.total - 70) { const sc = Math.max(300, 1800 - s.hits * 90 - Math.floor(s.time * 8)); sfx.ok?.(); R.say('הגעת לדלת! ' + (s.hits ? s.hits + ' מזוודות בראש' : 'בלי שריטה!') + ' +' + sc, 2); stageDone('run', sc); }
+    if (s.dist >= s.total - 70) { const sc = Math.max(300, 1800 - s.hits * 90 - Math.floor(s.time * 8)); sfx.ok?.(); R.say("Made it to the door! " + (s.hits ? s.hits + " suitcases to the head" : "Not a scratch!") + ' +' + sc, 2); stageDone('run', sc); }
   },
   render() {
     ctx.save(); ctx.translate(rnd(-2, 2) + Math.sin(s.time * 7) * 2 + G.sh(), rnd(-1, 1) + G.sh());
@@ -62,13 +62,13 @@ registerStage('run', {
       if (r > 0.35) person(34, y + 4, { sc: 0.7, shirt: ['#ff8c00', '#3ddc84', '#c8102e', '#ffffff', '#ffb400'][k % 5], hair: '#222' });
       if (r > 0.15) person(W - 34, y + 4, { sc: 0.7, shirt: ['#ffffff', '#c8102e', '#2f6fdd', '#3ddc84', '#8a2be2'][(k * 3) % 5] });
       ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(W / 2 - 100, y + 38, 200, 3);
-      if (rowNo % 5 === 0 || rowNo === 1) { rr(W / 2 - 34, y - 12, 68, 24, 12, 'rgba(15,26,43,.85)'); txt('שורה ' + rowNo, W / 2, y + 1, 13, '#ffb400', 'center', 900); }
+      if (rowNo % 5 === 0 || rowNo === 1) { rr(W / 2 - 34, y - 12, 68, 24, 12, 'rgba(15,26,43,.85)'); txt("Row " + rowNo, W / 2, y + 1, 13, '#ffb400', 'center', 900); }
     }
     const dy = PY + s.dist - ROWS * RH;
     if (dy > -260) {
       rr(-10, dy - 260, W + 20, 260, 0, '#c4ccd6'); rr(0, dy - 40, W, 40, 0, '#aab5c2');
       rr(W / 2 - 80, dy - 200, 160, 150, 12, '#5b6b7d'); rr(W / 2 - 66, dy - 186, 132, 122, 10, '#6f7f92'); rr(W / 2 - 40, dy - 170, 80, 36, 8, '#aeb9c6'); txt('COCKPIT', W / 2, dy - 152, 13, '#1b2a44', 'center', 900);
-      person(W / 2 - 120, dy - 120, { sc: 1.1, shirt: '#ff6a00', hair: '#3a2a1a' }); bubble('מהר! פה!', W / 2 - 120, dy - 170, 12, '#fff', '#111', W / 2 - 120, dy - 150);
+      person(W / 2 - 120, dy - 120, { sc: 1.1, shirt: '#ff6a00', hair: '#3a2a1a' }); bubble("Hurry! Here!", W / 2 - 120, dy - 170, 12, '#fff', '#111', W / 2 - 120, dy - 150);
     }
     for (const o of s.obs) {
       const w = o.wide ? 128 : 64, x = o.side < 0 ? W / 2 - 100 : W / 2 + 100 - w;
@@ -84,10 +84,10 @@ registerStage('run', {
     ctx.restore();
     ctx.restore();
     for (const r of s.runners) if (r.y > 110 && r.y < H - 60) bubble(r.s, r.x, r.y - 56, 12, '#fff', '#111', r.x, r.y - 30);
-    for (const w of s.stews) if (w.y > 110 && w.y < H - 60) bubble('הדיילת: ' + w.seq[w.k], w.x, w.y - 60, 12, '#fff', '#111', w.x, w.y - 32, '#c8102e');
+    for (const w of s.stews) if (w.y > 110 && w.y < H - 60) bubble("Attendant: " + w.seq[w.k], w.x, w.y - 60, 12, '#fff', '#111', w.x, w.y - 32, '#c8102e');
     const curRow = Math.max(1, ROWS - Math.floor(s.dist / RH));
     rr(20, H - 40, W - 40, 12, 6, 'rgba(0,0,0,.35)'); rr(20, H - 40, (W - 40) * clamp(s.dist / s.total, 0, 1), 12, 6, '#ffb400');
-    txt('שורה ' + curRow, 20, H - 52, 12, '#243357', 'left', 900); txt('קוקפיט', W - 20, H - 52, 11, '#243357', 'right', 400);
+    txt("Row " + curRow, 20, H - 52, 12, '#243357', 'left', 900); txt("Cockpit", W - 20, H - 52, 11, '#243357', 'right', 400);
     void state;
   },
 });

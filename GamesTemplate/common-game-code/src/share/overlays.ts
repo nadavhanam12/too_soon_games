@@ -150,6 +150,16 @@ export const sourceOverlay = makeLink('tsg-btn tsg-src', 44, 14, () => track('so
 export const reportOverlay = makeLink('tsg-link tsg-report', 20, 11);
 const srcLink = sourceOverlay.el, reportLink = reportOverlay.el;
 
+// ---------- "More games" button with the studio logo (community screen, every device; DECISIONS 70, 71) ----------
+// Same tab on purpose: the player is done with this game and goes to the studio home page.
+const moreLink = el('a', 'tsg-btn tsg-more');
+export const moreGamesOverlay = {
+  /** y = top; takes 44 units (bugcheck minimum tap target). */
+  show(y: number): void { moreLink.hidden = false; moreLink.dataset.y = String(y); this.layout(); },
+  hide(): void { moreLink.hidden = true; },
+  layout(): void { if (!moreLink.hidden) place(moreLink, 70, Number(moreLink.dataset.y || 484), W - 140, 44, 14); },
+};
+
 // ---------- desktop footer: logo + "More games" (outside the canvas) ----------
 const footer = el('div', 'tsg-footer');
 function layoutFooter(): void {
@@ -159,17 +169,19 @@ function layoutFooter(): void {
   if (!footer.hidden) { footer.style.top = r.top + r.height + 6 + 'px'; footer.style.left = r.left + 'px'; footer.style.width = r.width + 'px'; }
 }
 
-export function hideAllOverlays(): void { shareOverlay.hide(); followOverlay.hide(); nickOverlay.hide(); sourceOverlay.hide(); reportOverlay.hide(); }
+export function hideAllOverlays(): void { shareOverlay.hide(); followOverlay.hide(); nickOverlay.hide(); sourceOverlay.hide(); reportOverlay.hide(); moreGamesOverlay.hide(); }
 
 export function initOverlays(opts: { strings: Strings; preset: SharePreset; lang: 'he' | 'en'; title: string }): void {
   strs = opts.strings; preset = opts.preset; lang = opts.lang; title = opts.title;
   root = el('div', 'tsg-ov'); root.dir = lang === 'he' ? 'rtl' : 'ltr';
-  root.append(shareBox, followBox, nickBox, srcLink, reportLink);
+  root.append(shareBox, followBox, nickBox, srcLink, reportLink, moreLink);
   document.body.append(root, footer);
   const home = (env.publicBase || '').replace(/\/$/, '') + '/';
-  footer.innerHTML = `<a href="${home}">${strs.moreGames} →</a><span>Too Soon Games</span>`;
+  const arrow = lang === 'he' ? '←' : '→'; // points forward in the reading direction
+  footer.innerHTML = `<a href="${home}">${strs.moreGames} ${arrow}</a><span>Too Soon Games</span>`;
+  moreLink.href = home; moreLink.innerHTML = `<img src="${env.studioLogo}" alt="Too Soon Games"><span>${strs.moreGames} ${arrow}</span>`;
   hideAllOverlays();
-  const layoutAll = () => { shareOverlay.layout(); followOverlay.layout(); nickOverlay.layout(); sourceOverlay.layout(); reportOverlay.layout(); layoutFooter(); };
+  const layoutAll = () => { shareOverlay.layout(); followOverlay.layout(); nickOverlay.layout(); sourceOverlay.layout(); reportOverlay.layout(); moreGamesOverlay.layout(); layoutFooter(); };
   onResize(layoutAll);
   layoutAll();
   // keep overlays glued to the canvas while the keyboard opens/closes on phones

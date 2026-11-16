@@ -1,4 +1,4 @@
-// חופשה בטוחה: entry point. Wires game.json, content, theme, the five-stage play scene and the art hooks into the template.
+// Not On My Flight: entry point. Wires game.json, content, theme, the five-stage play scene and the art hooks into the template.
 import { createGame, W, ctx, rr, pick, type GameConfig, type RunResult } from '@tsg/index';
 import cfgJson from '../game.json';
 import { content, LINES } from './content';
@@ -41,7 +41,7 @@ createGame({
       ctx.save(); ctx.translate(W / 2, 318 - lift); person(0, 0, { ...DAD, sc: 2 }); ctx.strokeStyle = '#f2c9a0'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-24, -6); ctx.lineTo(-46, -46); ctx.moveTo(24, -6); ctx.lineTo(46, -46); ctx.stroke(); ctx.restore();
       cheer(44, 372, { ...MOM, sc: 1.05 }, st); cheer(78, 378, { ...BOY, sc: 0.75 }, st + 1); cheer(102, 380, { ...GIRL, sc: 0.7 }, st + 2);
       ctx.save(); ctx.translate(318, 372); person(0, 0, { sc: 1.15, shirt: '#1b2a44', hair: '#bfbfbf', skin: '#f0c9a8' }); rr(-3, -8, 6, 16, 2, '#c8102e'); ctx.restore();
-      bubble('ביבי: ' + bibi, 262, 262, 10, '#fff', '#111', 318, 340, '#1b2a44');
+      bubble("Bibi: " + bibi, 262, 262, 10, '#fff', '#111', 318, 340, '#1b2a44');
       void r;
     },
     onSceneChange(to) { if (to === 'title') { bibi = ''; G.altUp = null; } },

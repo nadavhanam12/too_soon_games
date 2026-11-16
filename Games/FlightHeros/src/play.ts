@@ -68,11 +68,11 @@ export function altChip(x: number, y: number, sc = 1): void {
   const bg = G.altUp === null ? (low ? 'rgba(255,59,59,.45)' : 'rgba(255,255,255,.1)') : G.altUp ? 'rgba(61,220,132,.3)' : 'rgba(255,59,59,.45)';
   const fg = G.altUp === null ? (low ? '#ff8a8a' : '#ffe08a') : G.altUp ? '#3ddc84' : '#ff6a6a';
   ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc); rr(-58, -12, 116, 24, 12, bg);
-  txt((G.altUp === null ? '' : G.altUp ? '▲ ' : '▼ ') + fmtInt(a) + ' רגל', 0, 0, 13, fg, 'center', 900); ctx.restore();
+  txt((G.altUp === null ? '' : G.altUp ? '▲ ' : '▼ ') + fmtInt(a) + " ft", 0, 0, 13, fg, 'center', 900); ctx.restore();
 }
 export function hud(): void {
   rr(0, 0, W, 34, 0, 'rgba(0,0,0,.35)');
-  txt('ניקוד ' + fmtInt(G.score), 10, 17, 14, '#ffb400', 'left', 900);
+  txt("Score " + fmtInt(G.score), 10, 17, 14, '#ffb400', 'left', 900);
   altChip(W - 63, 17);
 }
 /** Dark caption strip used by several stages. */

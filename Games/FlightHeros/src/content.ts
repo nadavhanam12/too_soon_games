@@ -1,46 +1,46 @@
-// Every player-facing text of "חופשה בטוחה" (rule 10): screens, stage lines, passengers, ranks. Humor is edited here.
+// Every player-facing text of "Not On My Flight" (English adaptation of the Hebrew "חופשה בטוחה") (rule 10): screens, stage lines, passengers, ranks. Humor is edited here.
 import { type Content, type RunResult, fmtInt, W, ctx, rr, circ, txt, clamp, lerp } from '@tsg/index';
 import { bubble, suitcase, walker, person, plane, FAM, FC, DAD, MOM, BOY, GIRL } from './art';
 
 // ---------- ranks (score roughly 1300..9000) ----------
 const RANKS: Array<[number, string]> = [
-  [8000, 'צביקה של הטיסה'], [7400, 'יניב מהשורה הראשונה'], [6800, 'המילואימניק עם הכיסא במעבר'], [6200, 'האבא של טיסת הצ׳ארטר'],
-  [5600, 'רופא השיניים'], [5000, 'השכן שלימד את הטייס'], [4300, 'הנוסע שקם לפני שהמטוס עצר'], [3600, 'הדוד מהבת מצווה שלא קורא קודים'],
-  [2800, 'סבתא עם הקוגל של גיל 90'], [-1, 'שרת שמע ישראל'],
+  [8000, "Hero of Flight FZ1073"], [7400, "Row 1 Legend"], [6800, "Off-Duty Soldier, Aisle Seat"], [6200, "Charter-Flight Dad"],
+  [5600, "The Dentist"], [5000, "Played Flight Simulator Once"], [4300, "Stood Up Before the Seatbelt Sign"], [3600, "Uncle Who Claps on Landing"],
+  [2800, "Grandma With the Carry-On Kugel"], [-1, "Prayed Very Loudly"],
 ];
 export const rankFor = (sc: number): string => RANKS.find((r) => sc > r[0])![1];
 
 // ---------- in-stage lines ----------
 export const LINES = {
-  hit: ['אמרתי לך לא לקנות מזוודה ביריד', 'מי הביא 3 מזוודות לטיסה של 3 שעות?', 'זה מהדיוטי פרי? נו באמת', 'טרולי! למה לא שמו אותו למטה?!', 'אח שלי, זה הדואר של כל המשפחה', '23 קילו בדיוק. שקלתי במטבח', 'זה הטרולי של הדודה. היא תהרוג אותי', 'בפנים יש חומוס. היה חומוס', 'הטרולי הזה עלה יותר מהכרטיס', 'מי ארז מגהץ לדובאי?!', 'אוי, זה של הדיילת', 'סמסונייט! לפחות זה איכותי'],
-  bump: ['סליחה סליחה!', 'לאן אתה רץ?!', 'אאוץ׳, אח שלי'],
-  pass: ['שמע ישראל!!', 'מישהו פה רופא?', 'אני רופא שיניים!', 'מה קורה?!', 'אמא, אני לא רוצה למות', 'תשתמש בחגורה!', 'למה לא טסתי אל על', 'הביאו מים!', 'וואלה זה טרור', 'יש פה טייס?', 'אני מרוסיה, אני טייס!', 'תצלם תצלם', 'אני בשידור חי, תזוז!', 'הדיוטי פרי שלי!!', 'תגידו למיכל שאהבתי אותה', 'יש לי מיילים! בוא נדבר', 'מי מטיס? הדייל?!', 'אני עדיין לא אכלתי', 'הסנדוויץ׳ 40 שקל ועכשיו זה?', 'אמא שלי צדקה על הטיסה הזאת', 'אל על היו עושים את זה יותר יקר', 'אני רק הולך לשירותים!', 'איפה היציאה? יש יציאה?', 'תירגעו, זה רק טורבולנציה. נכון?', 'בעלי ישן. איך הוא ישן?!', 'מישהו ראה את הנעל שלי?'],
-  punch: ['אחד בשביל הסנדוויץ׳!', 'זה על ה-40 שקל של הכיסא!', 'קומבו ישראלי!', 'תחזיק אותו!', 'עוד אחת!'],
-  punchFx: ['בום!', 'טראח!', 'פאק!', 'בבבום!'],
-  stew: [['אדוני! לשבת! המגש למצב ישר!', 'אדוני, המטוס צולל. לא אתה!'], ['אדוני, הכיסא למצב זקוף!', 'אני קוראת לקברניט!', '...הקברניט בדיוק נדקר.'], ['אדוני, יש תור לשירותים!', 'טוב, תעבור. אבל בלי תיק יד.']],
-  trolley: ['רגע, אני רק מוציא את הפלאפל מהטרולי', 'אח שלי, יש תור. גם אני רוצה לקוקפיט', 'טוב טוב, עובר. אבל זה טרולי של 400 שקל', 'יאללה, הוא זז!'],
-  door: ['הדלת נעולה! מי יודע את הקוד?', 'לא, זה לא 1234, בדקנו', 'הדיילת: תסובב עד הקליק!'],
-  doorClick: ['קליק!', 'עוד אחד!', 'שלוש!', 'כמעט!', 'נפתח!!'],
-  doorMiss: ['לא! זה לא הקוד!', 'הדיילת: יותר מדויק!', 'תנשום, ואז תלחץ'],
-  turb: ['טורבולנציה!!', 'המטוס צולל, תחזיק!', 'אוי, הבטן שלי'],
-  captain: ['אם זה בגלל הקפה, סליחה', 'תגיד לאשתי שנחתתי בסדר', 'נתתי לו את החלון, ועדיין...', 'תזכור: המגן באמצע', 'למה כולם רצים? זה רק שלב 3'],
-  blocked: ['חסימה! עכשיו תן לו!', 'הידיים של אבא!', 'בדיוק ככה'],
-  calmed: ['נרגע. תמשיך ללפף!', 'תפסת אותו! מהר!', 'ככה. עכשיו הכבל.'],
-  loop: ['סיבוב!', 'עוד לולאה!', 'ככה!', 'מאיפה יש למטוס אוזניות עם כבל?'],
-  flyShout: ['טייס אוקראיני משורה 12: תמשוך!!', 'ילדה בת 8: אמא, נופלים?', 'אות 7500 נשלח. ה-F-15 הסעודיים בדרך.', 'הרוסי: דאוואי דאוואי!'],
-  bibi: ['הטיסה הזאת היא ניצחון מוחלט. גם שלי קצת.', 'אני מודיע: מהיום כל טיסה לדובאי תכלול אוזניות.', 'שמשון, יש לי כיסא פנוי בממשלה. בלי מחויבות.'],
+  hit: ["Told you not to buy that suitcase at the market", "Who brings 3 suitcases on a 3-hour flight?", "Is that from duty free? Seriously?", "A carry-on! Why isn't it in the hold?!", "Bro, that's the whole family's shopping", "Exactly 50 pounds. Weighed it at home", "That's my aunt's bag. She'll kill me", "There was hummus in there. WAS hummus", "This bag cost more than the ticket", "Who packs an iron for Dubai?!", "Oops, that's the flight attendant's", "Samsonite! At least it's quality"],
+  bump: ["Sorry, sorry!", "Where are you running?!", "Ouch, buddy"],
+  pass: ["Oh my God!!", "Is there a doctor on board?", "I'm a dentist!", "What's happening?!", "Mom, I don't wanna die", "Use the seatbelt!", "Should've flown El Al", "Bring water!", "This was NOT in the brochure", "Is there a pilot here?", "I'm from Russia, I'm a pilot!", "Film it, film it!", "I'm live, move!", "My duty free!!", "Tell Michelle I loved her", "I have miles! Let's talk", "Who's flying? The steward?!", "I haven't even eaten yet", "A $12 sandwich and now THIS?", "My mom was right about this flight", "El Al would charge extra for this", "I'm just going to the bathroom!", "Where's the exit? Is there an exit?", "Relax, it's just turbulence. Right?", "My husband is asleep. HOW is he asleep?!", "Has anyone seen my shoe?"],
+  punch: ["That's for the sandwich!", "That's for the $40 seat fee!", "Dad combo!", "Hold him!", "Another one!"],
+  punchFx: ["BOOM!", "WHAM!", "POW!", "KA-BOOM!"],
+  stew: [["Sir! Sit down! Tray table up!", "Sir, the PLANE dives. Not you!"], ["Sir, seat upright!", "I'm calling the captain!", "...the captain was just stabbed."], ["Sir, there's a line for the toilet!", "Fine, go. But no carry-on."]],
+  trolley: ["Hold on, getting my falafel out of the bag", "Bro, there's a line. I want the cockpit too", "OK OK, moving. But this bag was $100", "Yalla, he's moving!"],
+  door: ["The door is locked! Who knows the code?", "No, it's not 1234, we tried", "Attendant: turn it till it clicks!"],
+  doorClick: ["Click!", "One more!", "Three!", "Almost!", "It's open!!"],
+  doorMiss: ["No! That's not the code!", "Attendant: more precise!", "Breathe, then tap"],
+  turb: ["Turbulence!!", "We're diving, hold on!", "Oh, my stomach"],
+  captain: ["If this is about the coffee, I'm sorry", "Tell my wife I landed fine", "I gave him the window seat, and still...", "Remember: the shield is in the middle", "Why is everyone running? It's only stage 3"],
+  blocked: ["Blocked! Now hit him!", "Dad hands!", "Just like that"],
+  calmed: ["He's calm. Keep wrapping!", "Got him! Quick!", "That's it. Now the cable."],
+  loop: ["Loop!", "Another loop!", "Like that!", "Since when do planes have wired headphones?"],
+  flyShout: ["Ukrainian pilot, row 12: PULL UP!!", "Girl, 8: Mom, are we falling?", "Code 7500 sent. Saudi F-15s on the way.", "The Russian: davai, davai!"],
+  bibi: ["This flight is a total victory. Partly mine.", "New rule: every Dubai flight gets headphones.", "Shimshon, a cabinet seat is free. No pressure."],
 };
 
 /** Stage banners: title + three lines, shown by the template (pauses until a tap). */
 export const BANNERS = {
-  run: ['שלב 1: רוץ לקוקפיט', ['32 שורות עד הדלת.', 'החלק ימינה / שמאלה כדי לעקוף', 'מזוודות שנופלות ואנשים בפאניקה.']],
-  door: ['שלב 2: הדלת נעולה', ['קודם: מישהו עם טרולי חוסם את הדלת.', 'הקש עליו 3 פעמים כדי לדחוף אותו.', 'ואז: המחוג מסתובב. הקש כשהוא בירוק.']],
-  cockpit: ['שלב 3: הקוקפיט', ['הקש על הידיים = מכות.', 'כשהוא מרים סכין והמסך מאדים:', 'הקש על המגן. זה הכל.']],
-  tie: ['שלב 4: קשור אותו', ['הקש על "לפף!" בקצב, לא מהר מדי:', 'כל הקשה כורכת לולאה אחת של כבל.', 'כשהוא משתולל: לחץ והחזק "תחזיק".']],
-  fly: ['שלב 5: תייצב את המטוס', ['המטוס צולל. העיגול הגדול הוא האופק.', 'גרור למעלה = האף עולה. גרור לצדדים = מיישר.', 'תכניס את הקו למסגרת ותחזיק 8 שניות.']],
+  run: ["Stage 1: To the cockpit!", ["32 rows to the door.", "Swipe left / right to dodge", "falling suitcases and panicking people."]],
+  door: ["Stage 2: Locked door", ["First: a guy with a bag blocks the door.", "Tap him 3 times to push him away.", "Then: tap when the needle is green."]],
+  cockpit: ["Stage 3: The cockpit", ["Tap the hands = punches.", "Knife up and the screen turns red?", "tap the shield. That's it."]],
+  tie: ["Stage 4: Tie him up", ["Tap \"Wrap!\" in rhythm, not too fast:", "every tap wraps one loop of cable.", "When he thrashes: press and hold \"Hold!\"."]],
+  fly: ["Stage 5: Level the plane", ["The plane is diving. The circle is the horizon.", "Drag up = nose up. Sideways = level wings.", "Line in the frame, hold for 8 seconds."]],
 } as const satisfies Record<string, readonly [string, readonly string[]]>;
 
-export const STAGE_NAMES: Record<string, string> = { run: 'המעבר', door: 'הדלת', cockpit: 'הקוקפיט', tie: 'הקשירה', tied: 'הקשירה', fly: 'הייצוב' };
+export const STAGE_NAMES: Record<string, string> = { run: "The aisle", door: "The door", cockpit: "The cockpit", tie: "The tie-up", tied: "The tie-up", fly: "The recovery" };
 
 // ---------- cutscene drawings (y 0..450; the caption panel sits below) ----------
 const DOOR = { x: 158, y: 262 };
@@ -69,9 +69,9 @@ function apron(st: number, boarding: boolean): void {
     pos.push([x, y]); walker(x, y, { ...m.o, walk, back: boarding }, st);
   });
   if (!boarding) {
-    const line: Array<[number, string, number]> = [[1, 'אבא, עוד יום אחד בדובאי?', 0.8], [2, 'לקחת את הדרכונים?', 3.0], [3, 'כן כן, הכל אצלי.', 5.0]];
+    const line: Array<[number, string, number]> = [[1, "Dad, one more day in Dubai?", 0.8], [2, "Did you take the passports?", 3.0], [3, "Yes, yes, I have everything.", 5.0]];
     for (const [who, s2, tt] of line) { const p = pos[who]; if (st > tt && st < tt + 2.2 && p) { const hy = p[1] - (who < 2 ? 26 : 34); bubble(s2, p[0], hy - 34, 12, '#fff', '#111', p[0], hy - 4); } }
-  } else if (st < 2.4 && pos[3]) { const [fx, fy] = pos[3]!; bubble('תעלו, אני אחרון עם המזוודה. יאלה הביתה!', fx, fy - 72, 12, '#2f6fdd', '#fff', fx, fy - 40); }
+  } else if (st < 2.4 && pos[3]) { const [fx, fy] = pos[3]!; bubble("Go on, I'm last with the bag. Yalla, home!", fx, fy - 72, 12, '#2f6fdd', '#fff', fx, fy - 40); }
 }
 function cabin(st: number, chaos: boolean, heavy: boolean): void { // the cabin shake uses Math.random: drawing jitter only, not gameplay
   ctx.save(); if (chaos && heavy) ctx.translate((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12);
@@ -91,43 +91,43 @@ function cabin(st: number, chaos: boolean, heavy: boolean): void { // the cabin 
 
 export const content: Content = {
   title: {
-    heading: 'חופשה בטוחה',
-    lines: [`אתה ${FAM.dad}, אבא.`, `חוזרים מחופשה עם אשתך ${FAM.mom} ועם הילדים ${FAM.boy} (8) ו${FAM.girl} (6).`, 'אין לך מושג מה עומד לקרות.'],
-    credit: 'מבוסס על אירועים אמיתיים · Too Soon Games',
+    heading: "Not On My Flight",
+    lines: [`You are ${FAM.dad},`, `a dad flying home from vacation with your wife ${FAM.mom} and the kids, ${FAM.boy} (8) and ${FAM.girl} (6).`, "You have no idea what's about to happen."],
+    credit: "Based on true events · Too Soon Games",
   },
   cutscene: {
-    button: 'לא במשמרת שלי!',
+    button: "Not on my flight!",
     steps: [
-      { dur: 7.5, speaker: 'דובאי, 06:40. סוף החופשה.', text: 'המשפחה בתור. הילדים כבר רבים על החלון.', draw: (st) => apron(st, false) },
-      { dur: 5.6, speaker: 'עולים למטוס', text: 'אתה אחרון, עם המזוודה. יאלה הביתה.', draw: (st) => apron(st, true), sfx: 'ok' },
-      { dur: 0, speaker: '32C. שקט. 08:35, מעל ירדן', text: `${FAM.boy}: אבא, למה לא טסנו אל על?\nאתה: כי פה הסנדוויץ׳ רק 40 שקל.`,
-        draw: (st) => { cabin(st, false, false); bubble('סוף סוף יושבים. עוד שעתיים בבית.', 190, 300, 13, '#2f6fdd', '#fff', 190, 360); } },
-      { dur: 4.4, speaker: 'צעקות מתא הטייס!!', text: 'המטוס בדרך להתרסקות, הצילו!', sfx: 'hit',
-        draw: (st) => { cabin(st, true, st > 2.2); bubble(st < 2.2 ? 'יש צעקות מתא הטייס!!' : 'המטוס בדרך להתרסקות, הצילו!', st < 2.2 ? W - 100 : 100, 300, 14, '#ff3b3b', '#fff', st < 2.2 ? W - 8 : 8, 330); } },
-      { dur: 0, speaker: 'הילדים מסתכלים עליך.', text: `${FAM.girl}: אבא... אנחנו נמות?\n${FAM.boy}: אבא תעשה משהו!!`, sfx: 'bad',
-        draw: (st) => { cabin(st, true, true); bubble(`${FAM.girl}: אבא... אנחנו נמות?`, 110, 300, 13, '#fff', '#c8102e', 100, 368, FC.girl); } },
+      { dur: 7.5, speaker: "Dubai, 06:40. End of vacation.", text: "The family in line. The kids are already fighting over the window.", draw: (st) => apron(st, false) },
+      { dur: 5.6, speaker: "Boarding", text: "You're last, with the suitcase. Yalla, home.", draw: (st) => apron(st, true), sfx: 'ok' },
+      { dur: 0, speaker: "32C. Quiet. 08:35, over Jordan", text: `${FAM.boy}: Dad, why didn't we fly El Al?\nYou: Because here the sandwich is only $12.`,
+        draw: (st) => { cabin(st, false, false); bubble("Finally seated. Home in two hours.", 190, 300, 13, '#2f6fdd', '#fff', 190, 360); } },
+      { dur: 4.4, speaker: "Screams from the cockpit!!", text: "The plane is going down, help!", sfx: 'hit',
+        draw: (st) => { cabin(st, true, st > 2.2); bubble(st < 2.2 ? "Screaming in the cockpit!!" : "The plane is going down, help!", st < 2.2 ? W - 100 : 100, 300, 14, '#ff3b3b', '#fff', st < 2.2 ? W - 8 : 8, 330); } },
+      { dur: 0, speaker: "The kids are looking at you.", text: `${FAM.girl}: Dad... are we going to die?\n${FAM.boy}: Dad, do something!!`, sfx: 'bad',
+        draw: (st) => { cabin(st, true, true); bubble(`${FAM.girl}: Dad... are we going to die?`, 110, 300, 13, '#fff', '#c8102e', 100, 368, FC.girl); } },
     ],
   },
-  lose: { heading: 'גובה 0.', line: 'לא הספקת. המטוס הגיע לקרקע.', consolation: '(במציאות הם הצליחו. גם אתה תצליח.)' },
+  lose: { heading: "Altitude 0.", line: "You didn't make it. The plane hit the ground.", consolation: "(In real life they made it. So will you.)" },
   result: {
-    heading: () => 'גיבור ישראל',
-    sentence: (r) => `174 אנשים ניצלו. 27 ילדים. משפחה אחת שלמה. דרגה: „${rankFor(r.score)}”`,
+    heading: () => "Hero of the Flight",
+    sentence: (r) => `174 people saved. 27 kids. One whole family. Rank: "${rankFor(r.score)}"`,
     rankFor,
     resultWords: (r: RunResult) => fmtInt(r.score),
   },
-  board: { heading: 'גיבורי הטיסה', sub: 'מי הציל את 174 הנוסעים עם הניקוד הגבוה ביותר' },
+  board: { heading: "Flight Heroes", sub: "Who saved the 174 passengers with the highest score" },
   facts: {
-    heading: 'מה קרה באמת',
-    sub: 'טיסת פליי-דובאי FZ1073, 30.9.2026',
+    heading: "What really happened",
+    sub: "Flydubai flight FZ1073, Sept 30, 2026",
     lines: [
-      { text: 'שעה וחצי אחרי ההמראה, מעל ירדן, טייס המשנה דקר את הקברניט וניסה לרסק את המטוס.' },
-      { text: 'נוסעים ישראלים פרצו לקוקפיט, הפילו אותו וקשרו אותו עם אוזניות המולטימדיה של המטוס.', bold: true },
-      { text: 'רופא שיניים מהנוסעים עצר את הדימום של הקברניט.' },
-      { text: 'המטוס צלל מ-34,000 רגל, שידר קוד חטיפה 7500, ונחת בשלום בטבוק, סעודיה, בליווי מטוסי קרב.', bold: true },
-      { text: '174 נוסעים, 27 ילדים. כולם חזרו לבן-גוריון באותו ערב, בשירה ומחיאות כפיים.' },
-      { text: 'החקירה עדיין נמשכת. השמות במשחק בדויים.' },
+      { text: "An hour and a half after takeoff, over Jordan, the first officer stabbed the captain and tried to crash the plane." },
+      { text: "Israeli passengers broke into the cockpit, took him down and tied him up with the plane's headphone cables.", bold: true },
+      { text: "A dentist among the passengers stopped the captain's bleeding." },
+      { text: "The plane dove from 34,000 ft, squawked hijack code 7500 and landed safely in Tabuk, Saudi Arabia, escorted by fighter jets.", bold: true },
+      { text: "All 174 passengers, 27 of them children, flew home to Tel Aviv that evening, singing and clapping." },
+      { text: "The investigation is ongoing. Names in the game are made up." },
     ],
-    disclaimer: 'במציאות לא הייתה שם משפחת בוזגלו-שטרנליכט. היו 174 כאלה.',
+    disclaimer: "No Buzaglo-Sternlichts were on board. 174 others were.",
   },
-  community: { heading: 'ההרפתקה לא נגמרת כאן', sub: 'נהנית? אתגר חבר, ותהיה הראשון לשחק במשחק הבא.' },
+  community: { heading: "Not over yet!", sub: "Enjoyed it? Challenge a friend, and be first to play our next game." },
 };

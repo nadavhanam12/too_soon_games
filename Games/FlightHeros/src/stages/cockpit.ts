@@ -15,7 +15,7 @@ const fighting = (): boolean => s.mode !== 'opening' && s.mode !== 'turn';
 function doBlock(): void { s.block = s.mode === 'windup' ? s.mT + 0.1 : 0.5; s.punch = [0, 0]; sfx.tick?.(); }
 function doPunch(side: number): void {
   const warn = s.mode === 'windup';
-  if (warn) { s.lines.push({ s: 'לא! המגן!', x: 180, y: 230, life: 0.6 }); sfx.tick?.(); return; }
+  if (warn) { s.lines.push({ s: "No! The shield!", x: 180, y: 230, life: 0.6 }); sfx.tick?.(); return; }
   if (s.hurt > 0) return;
   s.punch[side < 0 ? 0 : 1] = 1; s.hp--; s.hitsSince++; s.hitFx = 0.25; R.shake(0.25); sfx.punch?.();
   s.lines.push({ s: pick(LINES.punchFx), x: 235 + s.enemyX + rnd(-30, 30), y: 160, life: 0.6, big: true });
@@ -37,14 +37,14 @@ registerStage('cockpit', {
     s.capT += dt; if (s.capT > 4) { s.capT = 0; s.cap = pick(LINES.captain); }
     if (s.mode === 'opening') {
       s.stabT -= dt;
-      if (s.stabT <= 0) { s.stabs++; s.stabT = 0.7; R.shake(0.3); sfx.stab?.(); R.flash(0.15); s.lines.push({ s: 'דקירה ' + s.stabs + '/3', x: 100, y: 330, life: 0.7, big: true }); if (s.stabs >= 3) { s.mode = 'turn'; s.mT = 1.2; R.say('עכשיו הוא בא אליך!', 1.4); } }
+      if (s.stabT <= 0) { s.stabs++; s.stabT = 0.7; R.shake(0.3); sfx.stab?.(); R.flash(0.15); s.lines.push({ s: "Stab " + s.stabs + '/3', x: 100, y: 330, life: 0.7, big: true }); if (s.stabs >= 3) { s.mode = 'turn'; s.mT = 1.2; R.say("Now he's coming for you!", 1.4); } }
     } else if (s.mode === 'turn') { s.mT -= dt; if (s.mT <= 0) s.mode = 'open'; }
     else {
       s.mT -= dt;
       if (s.mode === 'open' && s.hitsSince >= 4) { s.mode = 'windup'; s.mT = 1.1; s.hitsSince = 0; sfx.tick?.(); }
       else if (s.mode === 'windup' && s.mT <= 0) {
-        if (s.block > 0) { s.blocks++; s.lines.push({ s: 'חסמת!', x: 235, y: 150, life: 0.8, big: true }); sfx.ok?.(); R.shake(0.15); s.mode = 'stun'; s.mT = 0.9; R.say(pick(LINES.blocked), 1.1); }
-        else { s.taken++; s.hurt = 0.7; R.flash(0.35); R.shake(0.4); sfx.bad?.(); R.say('נדקרת! בפעם הבאה הקש על המגן', 1.5); s.mode = 'open'; }
+        if (s.block > 0) { s.blocks++; s.lines.push({ s: "Blocked!", x: 235, y: 150, life: 0.8, big: true }); sfx.ok?.(); R.shake(0.15); s.mode = 'stun'; s.mT = 0.9; R.say(pick(LINES.blocked), 1.1); }
+        else { s.taken++; s.hurt = 0.7; R.flash(0.35); R.shake(0.4); sfx.bad?.(); R.say("Stabbed! Next time tap the shield", 1.5); s.mode = 'open'; }
       } else if (s.mode === 'stun' && s.mT <= 0) s.mode = 'open';
     }
     s.enemyX = lerp(s.enemyX, s.mode === 'opening' ? -40 : 0, Math.min(1, dt * 5));
@@ -90,14 +90,14 @@ registerStage('cockpit', {
     for (const l of s.lines) { ctx.globalAlpha = Math.max(0, l.life * 3); txt(l.s, l.x, l.y - (1 - l.life) * 30, l.big ? 26 : 14, l.big ? '#ffb400' : '#fff', 'center', 900); } ctx.globalAlpha = 1;
     if (s.hitFx > 0) { ctx.fillStyle = `rgba(255,255,255,${s.hitFx * 0.6})`; ctx.fillRect(0, 0, W, H); }
     if (s.hurt > 0) { ctx.fillStyle = `rgba(255,0,0,${s.hurt * 0.4})`; ctx.fillRect(0, 0, W, H); }
-    const lab: [string, string] = s.mode === 'opening' ? ['דוקר את הקברניט!', '#ff3b3b'] : s.mode === 'turn' ? ['מסתובב אליך...', '#ffb400'] : warn ? ['⚠ מרים סכין! הקש על המגן!', '#ff3b3b'] : s.mode === 'stun' ? ['מסוחרר! תן לו!', '#3ddc84'] : ['תן מכות!', '#3ddc84'];
+    const lab: [string, string] = s.mode === 'opening' ? ["Stabbing the captain!", '#ff3b3b'] : s.mode === 'turn' ? ["Turning on you...", '#ffb400'] : warn ? ["⚠ Knife up! Tap the shield!", '#ff3b3b'] : s.mode === 'stun' ? ["Dizzy! Hit him!", '#3ddc84'] : ["Punch him!", '#3ddc84'];
     rr(16, 92, W - 32, 54, 12, 'rgba(0,0,0,.7)'); txt(lab[0], W / 2, 108, 16, lab[1], 'center', 900);
-    rr(60, 126, 240, 12, 6, 'rgba(255,255,255,.15)'); rr(60, 126, (240 * s.hp) / 16, 12, 6, '#ff3b3b'); txt('טייס המשנה', W - 24, 132, 10, '#cfd8e6', 'right', 400);
+    rr(60, 126, 240, 12, 6, 'rgba(255,255,255,.15)'); rr(60, 126, (240 * s.hp) / 16, 12, 6, '#ff3b3b'); txt("First officer", W - 24, 132, 10, '#cfd8e6', 'right', 400);
     rr(0, H - 200, W, 200, 0, 'rgba(15,26,43,.9)');
-    for (const i of [0, 1]) { const p = s.punch[i]!, sx = i ? 1 : -1, hx = i ? W - 80 : 80, hy = H - 105 - p * 40; hand(bl ? W / 2 + sx * 44 : hx, bl ? H - 150 : hy, 'מכה', s.hurt > 0 && i === 1 ? '#c8102e' : '#e6b48c', fight && !bl && !warn, bl ? 0.8 : 1); }
+    for (const i of [0, 1]) { const p = s.punch[i]!, sx = i ? 1 : -1, hx = i ? W - 80 : 80, hy = H - 105 - p * 40; hand(bl ? W / 2 + sx * 44 : hx, bl ? H - 150 : hy, "Punch", s.hurt > 0 && i === 1 ? '#c8102e' : '#e6b48c', fight && !bl && !warn, bl ? 0.8 : 1); }
     const bs = warn ? 1 + Math.sin(s.time * 25) * 0.1 : 1;
-    ctx.save(); ctx.translate(W / 2, H - 110); ctx.scale(bs, bs); circ(0, 0, 48, warn ? '#ff3b3b' : bl ? '#3ddc84' : '#2b3648', warn ? '#fff' : '#ffb400', 4); txt('🛡', 0, -6, 32, '#fff'); txt('מגן', 0, 26, 13, '#fff', 'center', 900); ctx.restore();
+    ctx.save(); ctx.translate(W / 2, H - 110); ctx.scale(bs, bs); circ(0, 0, 48, warn ? '#ff3b3b' : bl ? '#3ddc84' : '#2b3648', warn ? '#fff' : '#ffb400', 4); txt('🛡', 0, -6, 32, '#fff'); txt("Shield", 0, 26, 13, '#fff', 'center', 900); ctx.restore();
     if (warn) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(W / 2, H - 110, 58, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - s.mT / 1.1)); ctx.stroke(); }
-    txt(!fight ? 'תסתכל: הוא דוקר את הקברניט. עוד רגע הוא שלך.' : warn ? 'עכשיו! הקש על המגן!' : 'הקש על הידיים. 4 מכות ואז הוא תוקף.', W / 2, H - 22, 14, warn ? '#ff8a8a' : fight ? '#cfd8e6' : '#ffe08a', 'center', 900);
+    txt(!fight ? "He's stabbing the captain. You're next." : warn ? "Now! Tap the shield!" : "Tap the hands. 4 punches, then he attacks.", W / 2, H - 22, 14, warn ? '#ff8a8a' : fight ? '#cfd8e6' : '#ffe08a', 'center', 900);
   },
 });

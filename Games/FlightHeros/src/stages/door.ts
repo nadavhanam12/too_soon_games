@@ -30,10 +30,10 @@ registerStage('door', {
     const z = s.zones[s.ring]!, d = Math.atan2(Math.sin(s.ang - z), Math.cos(s.ang - z));
     if (Math.abs(d) < 0.32) {
       s.ring++; s.dir *= -1; s.speed += 0.55; sfx.click?.(); R.say(LINES.doorClick[s.ring - 1]!, 1); if (s.ring < 3) s.msg = LINES.door[s.ring]!;
-      if (s.ring >= N) { const sc = Math.max(200, 1400 - s.fails * 60 - Math.floor(s.time * 10)); R.say('הדלת נפתחה! +' + sc, 1.8); stageDone('door', sc); }
+      if (s.ring >= N) { const sc = Math.max(200, 1400 - s.fails * 60 - Math.floor(s.time * 10)); R.say("Door open! +" + sc, 1.8); stageDone('door', sc); }
     } else {
       s.fails++; s.fx = 0.4; R.shake(0.2); sfx.bad?.();
-      if (s.fails % 3 === 0 && s.ring > 0) { s.ring--; R.say('נתקע! טבעת אחורה', 1.1); } else R.say(pick(LINES.doorMiss), 1.1);
+      if (s.fails % 3 === 0 && s.ring > 0) { s.ring--; R.say("Stuck! One ring back", 1.1); } else R.say(pick(LINES.doorMiss), 1.1);
     }
   },
   render() {
@@ -61,9 +61,9 @@ registerStage('door', {
       if (blocking) bubble(LINES.trolley[s.bline]!, bx, by - 92, 12, '#fff', '#111', bx, by - 62);
     }
     ctx.restore();
-    txt('הדלת נעולה', W / 2, 190, 26, '#fff', 'center', 900);
-    txt(blocking ? '...וגם חסומה.' : s.msg, W / 2, 222, 13, '#e6ecf3', 'center', 400);
-    if (!blocking) { txt(s.ring + '/' + N, CX, CY + 1, 12, '#111', 'center', 900); if (s.turb > 0) txt('טורבולנציה!', CX, CY + RAD + 34, 16, '#ff8a8a', 'center', 900); }
-    strip(520, 60, blocking ? 'הקש עליו כדי לדחוף (' + s.block + ')' : 'הקש כשהמחוג בירוק', 'הדיילת צועקת מאחוריך. הילדים בוכים.');
+    txt("The door is locked", W / 2, 190, 26, '#fff', 'center', 900);
+    txt(blocking ? "...and blocked." : s.msg, W / 2, 222, 13, '#e6ecf3', 'center', 400);
+    if (!blocking) { txt(s.ring + '/' + N, CX, CY + 1, 12, '#111', 'center', 900); if (s.turb > 0) txt("Turbulence!", CX, CY + RAD + 34, 16, '#ff8a8a', 'center', 900); }
+    strip(520, 60, blocking ? "Tap him to push (" + s.block + ')' : "Tap when the needle is green", "The attendant yells behind you. The kids cry.");
   },
 });

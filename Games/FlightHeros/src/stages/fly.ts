@@ -38,20 +38,20 @@ registerStage('fly', {
     hzn(W / 2, 250, 150, s.pitch, s.bank);
     ctx.strokeStyle = ac; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.strokeRect(W / 2 - 40, 250 - 26, 80, 52); ctx.setLineDash([]);
     ctx.restore();
-    rr(20, 60, 70, 380, 10, 'rgba(0,0,0,.45)'); txt('גובה', 55, 80, 12, '#cfd8e6');
+    rr(20, 60, 70, 380, 10, 'rgba(0,0,0,.45)'); txt("ALT", 55, 80, 12, '#cfd8e6');
     txt(fmtInt(Math.max(0, Math.round(G.alt / 100) * 100)), 55, 110, 18, ac, 'center', 900);
-    txt('רגל', 55, 130, 11, '#cfd8e6'); if (G.alt < 8000) txt('נמוך!', 55, 452, 12, '#ff6a6a', 'center', 900);
-    const altH = (clamp(G.alt, 0, MAX_ALT) / MAX_ALT) * 300; rr(45, 140 + 300 - altH, 20, altH, 6, ac); txt(s.up ? '▲ עולה' : '▼ יורד', 55, 470, 12, ac, 'center', 900);
-    rr(W - 90, 60, 70, 380, 10, 'rgba(0,0,0,.45)'); txt('יציבות', W - 55, 80, 12, '#cfd8e6'); const sh = (s.stable / NEED) * 300; rr(W - 65, 140 + 300 - sh, 20, sh, 6, '#3ddc84');
-    txt(Math.round((s.stable / NEED) * 100) + '%', W - 55, 110, 18, '#fff', 'center', 900); txt(Math.ceil(Math.max(0, NEED - s.stable)) + ' שנ׳', W - 55, 455, 11, '#cfd8e6', 'center', 400);
+    txt("ft", 55, 130, 11, '#cfd8e6'); if (G.alt < 8000) txt("Low!", 55, 452, 12, '#ff6a6a', 'center', 900);
+    const altH = (clamp(G.alt, 0, MAX_ALT) / MAX_ALT) * 300; rr(45, 140 + 300 - altH, 20, altH, 6, ac); txt(s.up ? "▲ Up" : "▼ Down", 55, 470, 12, ac, 'center', 900);
+    rr(W - 90, 60, 70, 380, 10, 'rgba(0,0,0,.45)'); txt("Steady", W - 55, 80, 12, '#cfd8e6'); const sh = (s.stable / NEED) * 300; rr(W - 65, 140 + 300 - sh, 20, sh, 6, '#3ddc84');
+    txt(Math.round((s.stable / NEED) * 100) + '%', W - 55, 110, 18, '#fff', 'center', 900); txt(Math.ceil(Math.max(0, NEED - s.stable)) + "s", W - 55, 455, 11, '#cfd8e6', 'center', 400);
     person(W / 2, 470, { ...DAD, sc: 1.8 });
-    const coach = ok ? 'ככה! תחזיק ככה!' : Math.abs(s.pitch) >= 0.18 ? (s.pitch < 0 ? 'האף למטה! גרור למעלה ⬆' : 'האף גבוה מדי! גרור למטה ⬇') : s.bank > 0 ? 'מוטה ימינה! גרור שמאלה ⬅' : 'מוטה שמאלה! גרור ימינה ⮕';
+    const coach = ok ? "Yes! Hold it there!" : Math.abs(s.pitch) >= 0.18 ? (s.pitch < 0 ? "Nose down! Drag up ⬆" : "Nose too high! Drag down ⬇") : s.bank > 0 ? "Banking right! Drag left ⬅" : "Banking left! Drag right ⮕";
     bubble(coach, W / 2, 412, 14, ok ? '#3ddc84' : '#fff', ok ? '#111' : '#c8102e', W / 2, 440);
     circ(W / 2, 570, 40, 'rgba(255,255,255,.12)'); circ(W / 2 + s.jx * 26, 570 - s.jy * 26, 14, '#ffb400');
-    rr(16, 598, W - 32, 36, 12, 'rgba(15,26,43,.85)'); txt('המטרה: להכניס את קו האופק למסגרת ולהחזיק 8 שנ׳', W / 2, 616, 13, '#fff', 'center', 900);
+    rr(16, 598, W - 32, 36, 12, 'rgba(15,26,43,.85)'); txt("Goal: horizon line in the frame for 8 s", W / 2, 616, 13, '#fff', 'center', 900);
     if (s.time < 6) {
       const k = Math.sin(s.time * 4) * 10; rr(W / 2 - 150, 500, 300, 56, 14, 'rgba(255,180,0,.95)');
-      txt('⬆ גרור למעלה כדי להרים את האף', W / 2, 518, 16, '#111', 'center', 900); txt('⬅ ⮕ גרור לצדדים כדי ליישר כנפיים', W / 2, 542, 13, '#111', 'center', 700);
+      txt("⬆ Drag up to lift the nose", W / 2, 518, 16, '#111', 'center', 900); txt("⬅ ⮕ Drag sideways to level the wings", W / 2, 542, 13, '#111', 'center', 700);
       txt('☝', W / 2 + 60, 575 + k, 26, '#fff');
     }
     void sfx;
