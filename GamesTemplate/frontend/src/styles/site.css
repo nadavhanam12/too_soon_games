@@ -127,4 +127,43 @@ main.wrap{flex:1;padding-block:0 32px}
   .prose{grid-column:1 / -1;width:100%}
   body:not(.page-home) main.wrap{display:block}
 }
+/* ---- motion & feedback (UX-ANIMATION-RULES part ד) ---- */
+:root{--ease-out:cubic-bezier(.22,1,.36,1);--ease-back:cubic-bezier(.34,1.56,.64,1)}
+/* a1/a3: every tap shows on touch screens too (no hover there), within 120 ms */
+a,button{-webkit-tap-highlight-color:transparent}
+.btn{transition:transform .12s var(--ease-out),filter .12s}
+.btn:active{transform:scale(.97);filter:brightness(.92)}
+.play-sm,.sections a,.net,.kicker-dark a{transition:transform .12s var(--ease-out),opacity .12s}
+.play-sm:active,.sections a:active,.net:active,.kicker-dark a:active{transform:scale(.95);opacity:.7}
+/* after the tap, until the game page paints: the button says it is on its way */
+.btn.is-going,.play-sm.is-going{pointer-events:none}
+.btn.is-going svg,.play-sm.is-going svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* a1: the whole feed item is the target (the headline link stretches over it); Play and the thumb stay on top */
+.item{position:relative;transition:background-color .12s}
+.item-game h3 a::after{content:"";position:absolute;inset:0}
+.item-game .play-sm,.item-game .thumb{position:relative;z-index:1}
+.item-game:active{background:var(--panel)}
+@media (hover:hover){.item-game:hover h3 a{color:var(--red)}}
+/* a3: no jumps when the API answers: the count keeps its place, the board shows its rows' shape */
+.players:not(.is-set){visibility:hidden}
+.players.is-set{animation:fade-in .3s var(--ease-out)}
+.board-list .sk span{display:block;height:12px;margin-block:2px;background:var(--panel);border-radius:2px;animation:sk 1.2s ease-in-out infinite alternate}
+.board-list .sk span:nth-child(2){width:70%}
+.board-list .sk span:nth-child(3){width:40px}
+.board-list li.in{animation:fade-in .3s var(--ease-out) both}
+.board-list li.in:nth-child(2){animation-delay:.05s}.board-list li.in:nth-child(3){animation-delay:.1s}
+@keyframes sk{to{opacity:.45}}
+@keyframes fade-in{from{opacity:0;transform:translateY(4px)}}
+/* a5: anticipation for the live demo: the badge pulses while the clip loads, holds still once it plays */
+.lead-fig.is-arming .live-badge{display:inline-flex;background:rgba(18,18,18,.8)}
+.lead-fig.is-arming .live-badge::before{animation:pulse .9s ease-in-out infinite}
+.lead-fig.is-live .live-badge{background:var(--red)}
+@keyframes pulse{50%{transform:scale(1.8);opacity:.35}}
+.live i{animation:pulse 1.6s ease-in-out infinite}
+/* a4 (Fitts / frequency of use): on phones Play follows you while the real button is still below the fold */
+.sticky-play{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:10px var(--gut) calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);border-top:1px solid var(--line);transform:translateY(110%);transition:transform .28s var(--ease-back);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.sticky-play.is-on{transform:none}
+.sticky-play .btn{width:100%}
+@media (min-width:700px){.sticky-play{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

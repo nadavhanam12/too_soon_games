@@ -71,11 +71,11 @@ export function leadStory(g: GameEntry | undefined): string {
   <p class="dek" dir="auto">${esc(g.tagline)}</p>
   <p class="byline"><b>By Too Soon Games</b> · ${timeMeta(date)} · ${esc(g.region || regionOf(g.audience))}</p>
   ${cover ? `<figure class="lead-fig${g.clip ? ' has-clip' : ''}"${g.clip ? ` data-clip="${attr(`/${g.slug}/${g.clip.replace(/^\/+/, '')}`)}"` : ''}><a href="${attr(gameUrl(g))}" tabindex="-1" aria-hidden="true"><img src="${attr(cover)}" alt="" width="1200" height="900" fetchpriority="high">${g.clip ? '<span class="live-badge">Live demo</span>' : ''}</a>
-    <figcaption>The game: <span dir="auto">${esc(g.title)}</span><span class="players" data-count="${attr(g.slug)}" data-min="1" hidden> · <b></b> games played so far</span></figcaption></figure>` : `<p class="caption">The game: <span dir="auto">${esc(g.title)}</span><span class="players" data-count="${attr(g.slug)}" data-min="1" hidden> · <b></b> games played so far</span></p>`}
-  <a class="btn btn-play" href="${attr(gameUrl(g))}">${icons.play} Play the game</a>
-  <section class="board" id="board" data-slug="${attr(g.slug)}" hidden aria-labelledby="board-h">
+    <figcaption>The game: <span dir="auto">${esc(g.title)}</span><span class="players" data-count="${attr(g.slug)}" data-min="1"> · <b></b> games played so far</span></figcaption></figure>` : `<p class="caption">The game: <span dir="auto">${esc(g.title)}</span><span class="players" data-count="${attr(g.slug)}" data-min="1"> · <b></b> games played so far</span></p>`}
+  <a class="btn btn-play" href="${attr(gameUrl(g))}">${icons.play} <span class="lbl">Play the game</span></a>
+  <section class="board is-loading" id="board" data-slug="${attr(g.slug)}" aria-labelledby="board-h" aria-busy="true">
     <h2 id="board-h" class="kicker-dark"><span>Live scoreboard</span><a href="${attr(gameUrl(g))}#board">Full board</a></h2>
-    <ol class="board-list"></ol>
+    <ol class="board-list"><li class="sk"><span></span><span></span><span></span></li><li class="sk"><span></span><span></span><span></span></li><li class="sk"><span></span><span></span><span></span></li></ol>
   </section>
 </article>`;
 }
@@ -88,7 +88,7 @@ function gameItem(g: GameEntry): string {
     <h3 class="serif"><a href="${attr(gameUrl(g))}">${esc(headlineOf(g))} We made it a game.</a></h3>
     <p class="item-tag" dir="auto">${esc(g.tagline)}</p>
     <p class="meta">${timeMeta(gameDate(g))} · ${esc(g.region || regionOf(g.audience))} · <span dir="auto">${esc(g.title)}</span>${g.status === 'archived' ? ' · Archive' : ''}</p>
-    <a class="play-sm" href="${attr(gameUrl(g))}">${icons.play} Play</a>
+    <a class="play-sm" href="${attr(gameUrl(g))}">${icons.play} <span class="lbl">Play</span></a>
   </div>
   ${cover ? `<a class="thumb" href="${attr(gameUrl(g))}" tabindex="-1" aria-hidden="true"><img src="${attr(cover)}" alt="" width="208" height="156" loading="lazy"></a>` : ''}
 </li>`;
