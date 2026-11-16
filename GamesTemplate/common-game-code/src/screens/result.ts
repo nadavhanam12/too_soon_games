@@ -1,5 +1,5 @@
 import { W } from '../core/canvas';
-import { takeTap } from '../core/input';
+import { END_GRACE_S, takeTap } from '../core/input';
 import { go, S, state, type Scene } from '../core/scenes';
 import { R } from '../core/runtime';
 import { fmtTime, inBtn, wrap } from '../draw/prims';
@@ -42,7 +42,7 @@ export const resultScene: Scene = {
     if (S.submitted) { th.text(s.loading, W / 2, 560, 13, th.colors.muted, 'center', 700); }
     // the nick overlay (input, save, skip) sits at 492..608; a keyboard Enter is handled by the input itself
     const p = takeTap();
-    if (p && p.key && st > 0.8 && !S.submitted) submit(nickOverlay.value() || null);
+    if (p && p.key && st >= END_GRACE_S && !S.submitted) submit(nickOverlay.value() || null);
     void inBtn;
   },
 };

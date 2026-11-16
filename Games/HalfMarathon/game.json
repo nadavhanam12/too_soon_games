@@ -6,7 +6,7 @@
   "tagline": "21.1 km in Cyprus: halloumi, street cats, 29°C in November, and the baby waiting at the finish.",
   "audience": "us",
   "lang": "en",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "event": {
     "title": "A founder's half marathon, Cyprus",
     "headline": "One of our founders ran a half marathon today.",
@@ -34,5 +34,6 @@
   "ogImage": "assets/og.png",
   "status": "draft",
   "themeColor": "#0b2545",
-  "music": true
+  "music": true,
+  "clip": "assets/clip.webm"
 }

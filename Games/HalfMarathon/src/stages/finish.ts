@@ -15,7 +15,7 @@ function init() {
   for (let i = 0, wx = 0; wx < 2700; i++, wx += rnd(34, 44)) {
     fans.push({ wx, blonde: Math.random() < 0.75, shirt: pick(['#c8102e', '#ffffff', '#2f6fdd', '#1aa36b', '#ffd23f']), sign: Math.random() < 0.12 ? pick(LINES.crowdSign) : undefined, pint: Math.random() < 0.3, sun: Math.random() < 0.6 });
   }
-  return { fans, sprint: 0.9, five: 0, missed: false, famWX: 0, wrongT: 0, fx: 0, babyRun: 0 };
+  return { fans, sprint: 0.9, five: 0, missed: false, famWX: 0, wrongT: 0, fx: 0, babyRun: 0, spotted: false };
 }
 const off = (): number => (G.km - SEG.finish.from) * pxPerKm(SCROLL);
 const famX = (): number => s.famWX - off();
@@ -36,7 +36,7 @@ registerStage('finish', {
     s.famWX = (FAM_KM - SEG.finish.from) * pxPerKm(SCROLL) + W * 0.62;
     s.fans = s.fans.filter((f) => Math.abs(f.wx - s.famWX) > 50);
   },
-  key(e) { if (e.key === 'ArrowUp' || e.key === 'w') { if (!tryFive(0, 0, true) && !G.highFive) say('Not yet. Find the sign!', 0.9, true); return true; } return false; },
+  key(e) { if (e.key === 'ArrowUp' || e.key === 'w') { if (!tryFive(0, 0, true) && !G.highFive) say('Not yet. Find your family!', 0.9, true); return true; } return false; },
   step(dt) {
     for (const p of input.taps.splice(0)) {
       if (p.key || p.y >= BAND.bot) { s.sprint = Math.min(1.45, s.sprint + 0.14); sfx.step?.(1); continue; }
@@ -49,6 +49,7 @@ registerStage('finish', {
     s.sprint = Math.max(0.6, s.sprint - dt * 0.55);
     s.five = Math.max(0, s.five - dt); s.fx += dt;
     G.f = s.sprint;
+    if (!s.spotted && famX() < W - 40) { s.spotted = true; if (!G.highFive) { sfx.ok?.(); say(pick(LINES.familySpot), 1.8, true); } }
     if (!G.highFive && !s.missed && famX() < -30) { s.missed = true; sfx.bad?.(); say(pick(LINES.missed), 1.8, true); }
     if (G.highFive && s.babyRun === 0 && G.km > 20.8) { s.babyRun = 1; say(LINES.babyRun[0]!, 1.6, true); }
     if (s.babyRun === 1 && G.km > 21.06) { s.babyRun = 2; say(LINES.babyRun[1]!, 1.8, true); }
@@ -68,7 +69,14 @@ registerStage('finish', {
     // the family
     const fx = famX();
     if (fx > -60 && fx < W + 60) {
-      wife(fx, BAND.top + 80, 1.15, G.t);
+      wife(fx, BAND.top + 80, 1.15, G.t, LINES.familySign);
+      // "YOUR FAMILY" tag over them, so the player knows who to look for among the blondes
+      if (!s.missed) {
+        const bob = Math.sin(G.t * 5) * 3, ty = BAND.top - 22 + bob;
+        rr(fx - 62, ty - 13, 124, 26, 13, G.highFive ? '#3ddc84' : '#ff5f8f', '#ffffff', 2);
+        txt(G.highFive ? '♥ LOVE YOU ♥' : '♥ YOUR FAMILY ♥', fx, ty, 12, '#ffffff', 'center', 900);
+        ctx.fillStyle = G.highFive ? '#3ddc84' : '#ff5f8f'; ctx.beginPath(); ctx.moveTo(fx - 7, ty + 12); ctx.lineTo(fx + 7, ty + 12); ctx.lineTo(fx, ty + 20); ctx.closePath(); ctx.fill();
+      }
       baby(fx - 4, BAND.top + 84 - (s.five > 0 ? 16 : 0), 1.25, G.t, true);
       if (!G.highFive && fx > 40 && fx < W - 40) { ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(fx - 4, BAND.top + 72, 30 + Math.sin(G.t * 8) * 3, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
     }
@@ -83,12 +91,22 @@ registerStage('finish', {
       ctx.beginPath(); ctx.moveTo(bx - 3, RY + 4 - hop); ctx.lineTo(bx - 3 + lg, RY + 16); ctx.moveTo(bx + 3, RY + 4 - hop); ctx.lineTo(bx + 3 - lg, RY + 16); ctx.stroke();
       baby(bx, RY + 6 - hop, 1.3, G.t, true);
     }
+    if (s.five > 0) {
+      // the runner reaches up, a dotted swoosh to the family, a hand at each end
+      const k = clamp(s.five / 1.6, 0, 1), hx = RX + 34, hy = RY - 96, by = BAND.top + 66;
+      ctx.save(); ctx.globalAlpha = Math.min(1, k * 2);
+      ctx.strokeStyle = C.skin; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(RX + 8, RY - 52); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 4; ctx.setLineDash([8, 7]); ctx.lineDashOffset = -G.t * 60;
+      ctx.beginPath(); ctx.moveTo(hx, hy - 10); ctx.quadraticCurveTo((hx + fx) / 2, by - 40, fx - 4, by + 10); ctx.stroke(); ctx.setLineDash([]);
+      txt('✋', hx, hy - 6, 30, '#ffffff', 'center', 400); txt('✋', fx + 22, by + 4, 26, '#ffffff', 'center', 400);
+      ctx.restore();
+    }
     if (s.five > 0) { bubble('HIGH FIVE!!!', fx, BAND.top + 10, 15, C.orange, '#ffffff', fx, BAND.top + 50); confetti(s.fx * 3, 30, 60, 300); }
     if (G.highFive) { rr(W - 132, 100, 116, 30, 10, '#3ddc84'); txt('HIGH FIVE −1:00', W - 74, 115, 11, '#0b2545', 'center', 900); }
     // sprint gauge
     rr(16, 100, 120, 30, 10, 'rgba(11,37,69,.78)'); txt('SPRINT', 24, 115, 10, '#cfe3f5', 'left', 900);
     rr(66, 110, 60, 10, 5, 'rgba(255,255,255,.2)'); rr(66, 110, 60 * clamp((s.sprint - 0.6) / 0.85, 0, 1), 10, 5, '#ffd23f');
     demo('tap', W / 2 + 70, H - 90);
-    hint(G.highFive || s.missed ? 'Tap the bottom half to sprint!' : 'Tap below to sprint · tap the baby to high five');
+    hint(G.highFive || s.missed ? 'Tap the bottom half to sprint!' : 'Tap below to sprint · tap your family to high five');
   },
 });

@@ -2,9 +2,11 @@
 // Shared state G carries the distance (km) and the race clock across every stage; the HUD shows both all the time.
 // Each stage sets G.f (speed factor, 1 = target pace); play.ts turns it into distance. The race clock always runs at
 // the stage's fixed rate, so a slower runner spends more real time, and therefore more race time, on the same stretch.
-// Race clock ≥ 3:00:00 → R.fail (the sweeper bus). Km 21.1 → R.win, score = seconds left before the cutoff.
+// Race clock ≥ 3:00:00 → R.fail (the sweeper bus). Km 21.1 → a FINISH moment (OUTRO_S, taps swallowed so the sprint
+// mashing can't hit the result screen's buttons), then R.win, score = seconds left before the cutoff.
 import { R, W, SAFE_H as H, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, type Scene } from '@tsg/index';
 import { BANNERS, CUTOFF, fmtRace } from './content';
+import { confetti } from './art';
 import './sfx';
 
 export type StageName = 'start' | 'water' | 'sun' | 'wall' | 'finish';
@@ -26,6 +28,7 @@ export const SEG: Record<StageName, { from: number; to: number; len: number }> =
   finish: { from: 19, to: 21.1, len: 15 },
 };
 const ORDER: StageName[] = ['start', 'water', 'sun', 'wall', 'finish'];
+const OUTRO_S = 1.6;      // the finish moment between crossing the line and the result screen
 const PACE = 213;         // race seconds per km at G.f = 1 (≈ 1:15 half marathon)
 export const TOTAL_KM = 21.1;
 
@@ -37,6 +40,7 @@ export const G = {
   playT: 0,              // real seconds in play (unpaused), across retries
   highFive: false,
   ended: false,
+  outro: 0,              // seconds left in the finish moment (taps are swallowed, then R.win)
   entry: { km: 0, raceT: 0 },
   ps: { x: 0, y: 0 },    // where the held pointer went down
   wasDown: false,
@@ -47,6 +51,7 @@ export const G = {
 };
 const stages: Partial<Record<StageName, Stage>> = {};
 let retryEntry = { km: 0, raceT: 0 };
+let pendingWin: Parameters<typeof R.win>[0] | null = null;
 
 export function registerStage(name: StageName, s: Stage): void { stages[name] = s; }
 /** 0..1 progress inside the current stage. */
@@ -65,9 +70,9 @@ function stageDone(name: StageName): void {
   R.stageComplete(name, Math.round(CUTOFF - G.raceT));
   const i = ORDER.indexOf(name), next = ORDER[i + 1];
   if (!next) {
-    G.ended = true; sfx.win?.();
+    G.ended = true; G.outro = OUTRO_S; sfx.win?.(); R.flash(0.35);
     const finishT = G.raceT - (G.highFive ? 60 : 0);
-    R.win({ score: clamp(Math.round(CUTOFF - finishT), 0, R.cfg.score.max), durationS: G.playT, stage: name, reason: G.highFive ? 'highfive' : 'nohighfive' });
+    pendingWin = { score: clamp(Math.round(CUTOFF - finishT), 0, R.cfg.score.max), durationS: G.playT, stage: name, reason: G.highFive ? 'highfive' : 'nohighfive' };
     return;
   }
   R.flash(0.25); sfx.ok?.();
@@ -98,8 +103,20 @@ export function hud(): void {
   for (let km = 1; km < 21; km++) ctx.fillRect(x0 + ((x1 - x0) * km) / TOTAL_KM - 0.5, y - 2, 1, 4);
   for (const n of ORDER) { const xs = x0 + ((x1 - x0) * SEG[n].from) / TOTAL_KM; ctx.fillStyle = '#ffffff'; ctx.fillRect(xs - 1, y - 6, 2, 12); }
   ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * k, y, 6, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+  if (G.ended) return;
   if (G.f > 1.05) txt('▲ ' + (G.tag || Math.round(G.f * 100) + '%'), W / 2 + 6, 18, 12, '#3ddc84', 'center', 900);
   else if (G.f < 0.7) txt('▼ ' + Math.round(G.f * 100) + '%', W / 2, 18, 12, '#ff8a8a', 'center', 900);
+}
+
+/** "FINISH!" over the course while the finish moment runs, so the player sees the race is over and stops tapping. */
+function finishMoment(): void {
+  const k = clamp((OUTRO_S - G.outro) / 0.25, 0, 1), sc = 0.6 + 0.4 * k + Math.sin(G.t * 10) * 0.03;
+  confetti(G.t * 3, 50, 60, H - 120);
+  ctx.save(); ctx.translate(W / 2, H * 0.36); ctx.scale(sc, sc); ctx.globalAlpha = k;
+  rr(-140, -44, 280, 88, 18, '#ff8a00', '#0b2545', 4);
+  txt('FINISH!', 0, -6, 44, '#ffffff', 'center', 900);
+  txt('21.1 km · ' + fmtRace(G.raceT), 0, 28, 14, '#0b2545', 'center', 900);
+  ctx.restore();
 }
 
 /** Toast with a rate limit, so jokes don't pile up. `force` for the lines that explain a penalty. */
@@ -112,6 +129,7 @@ export function nudge(): void { G.hintUntil = G.t + 2.5; }
 
 /** Bottom hint strip: only in the first 3 s of a stage, or right after a mistake. */
 export function hint(s: string, y = H - 34): void {
+  if (G.ended) return;
   if (G.t > 3 && G.t > G.hintUntil) return;
   rr(16, y - 16, W - 32, 32, 12, 'rgba(11,37,69,.78)');
   txt(s, W / 2, y, 13, '#ffffff', 'center', 900);
@@ -119,7 +137,7 @@ export function hint(s: string, y = H - 34): void {
 
 /** A pointing hand that shows the gesture for the first seconds of a stage (instead of more text). */
 export function demo(kind: 'swipe' | 'tap' | 'hold' | 'alt', x: number, y: number): void {
-  if (G.t > 2.6) return;
+  if (G.t > 2.6 || G.ended) return;
   const t = G.t, a = Math.min(1, (2.6 - t) * 2);
   ctx.save(); ctx.globalAlpha = a;
   let dx = 0, dy = 0, press = false;
@@ -137,7 +155,7 @@ onKeyDown((e) => { if (state.scene !== 'play') return false; return stages[G.sta
 export const playScene: Scene = {
   enter() {
     const retry = R.retry;
-    G.ended = false; G.wasDown = false;
+    G.ended = false; G.wasDown = false; G.outro = 0; pendingWin = null;
     if (retry?.stage && stages[retry.stage as StageName]) { setStage(retry.stage as StageName); G.km = retryEntry.km; G.raceT = retryEntry.raceT; G.entry = { ...retryEntry }; }
     else { G.km = 0; G.raceT = 0; G.playT = 0; G.highFive = false; setStage('start'); }
   },
@@ -152,9 +170,16 @@ export const playScene: Scene = {
       G.raceT += (dt * (s.to - s.from) * PACE) / s.len;
       if (G.raceT >= CUTOFF) fail();
       else if (G.km >= s.to - 1e-6) stageDone(G.stage);
+    } else if (dt > 0 && G.outro > 0) {
+      // the finish moment: the runner slows down under the arch, every tap is swallowed
+      input.taps.length = 0;
+      G.t += dt; G.f = Math.max(0.25, G.f - dt * 1.2);
+      G.outro -= dt;
+      if (G.outro <= 0 && pendingWin) { const w = pendingWin; pendingWin = null; R.win(w); }
     }
     stages[G.stage]!.render();
     hud();
+    if (G.outro > 0) finishMoment();
   },
 };
 

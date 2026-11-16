@@ -56,6 +56,9 @@ export function takeTap(): Tap | null {
   return p;
 }
 export function clearTaps(): void { input.taps.length = 0; }
+/** Seconds the end screens (result, lose) ignore input after they appear, so taps still coming from a
+ *  tap-heavy game don't land on their buttons. The buttons show dimmed until then. */
+export const END_GRACE_S = 0.8;
 export const keyHeld = (...names: string[]): boolean => names.some((n) => !!input.keys[n]);
 export const keyLeft = (): boolean => keyHeld('ArrowLeft', 'a', 'A');
 export const keyRight = (): boolean => keyHeld('ArrowRight', 'd', 'D');

@@ -36,6 +36,10 @@ let jumpReq = false;
 let swipeY: number | null = null; // lowest y of the current touch; moving 45 units above it = a swipe up = jump
 let headline: { s: string; life: number; t: number } | null = null;
 const JB = { x: W / 2, y: H - 46, r: 30 };
+// visible steer buttons (touch): hold to move; they flank JUMP so the controls read as one row
+const SB = [{ x: W / 2 - 78, y: H - 46, r: 28, d: -1 }, { x: W / 2 + 78, y: H - 46, r: 28, d: 1 }];
+const sideHeld = new Map<number, number>(); // pointerId -> direction while a steer button is held
+const sideDir = (): number => { let d = 0; for (const v of sideHeld.values()) d += v; return Math.sign(d); };
 
 const LVL = (): number => clamp(PLAYT / 150, 0, 1);
 function ptype(): Kind {
@@ -132,7 +136,7 @@ function stepPlay(dt: number): void {
     else if (input.py < swipeY - 45) { jumpReq = true; swipeY = input.py; }
   } else swipeY = null;
   const L = keyLeft(), Rr = keyRight();
-  let tx = L && !Rr ? -PX : Rr && !L ? PX : 0;
+  let tx = L && !Rr ? -PX : Rr && !L ? PX : sideDir() * PX;
   if (!tx && input.down) tx = clamp((input.px - P.x) * 9, -PX * 1.3, PX * 1.3);
   P.vx = lerp(P.vx, tx, 1 - Math.pow(0.0008, dt));
   P.vy += G * dt; const py = P.y; P.y += P.vy * dt; P.x = clamp(P.x + P.vx * dt, 14, W - 14);
@@ -181,8 +185,13 @@ function hud(): void {
   sticker('Survived ' + fmtTime(PLAYT), 66, 24, 14, '#fff8e0', -0.04); sticker('Day ' + (1 + Math.floor(PLAYT / 45)), W - 28, 294, 11, PLAYT >= 180 ? '#f0a0a0' : '#fff8e0', -0.03);
   sticker('Market cap $' + P.cap.toFixed(1) + 'T', W - 82, 24, 14, P.cap < 1.5 ? '#f0a0a0' : '#9ad7a0', 0.04);
   const d = clamp((P.floor - P.y) / START_GAP, 0, 1); marker(W - 14, 60, 8, 200, '#fff8e0', 0.8); inkRect(W - 14, 60, 8, 200, 2); marker(W - 14, 60 + 200 * (1 - d), 8, 200 * d, d < 0.3 ? '#c9403a' : '#3d9d55', 1); txt('floor', W - 10, 272, 11, '#f3f3f3', 'center', 400);
-  sticker('Apologies ' + P.sorryN + '/3', 62, H - 22, 12, P.sorryN === 2 ? '#ffd84a' : '#fff8e0', -0.03);
+  sticker('Apologies ' + P.sorryN + '/3', 62, H - 92, 12, P.sorryN === 2 ? '#ffd84a' : '#fff8e0', -0.03);
   const on = P.canJump, k = P.jumpFx > 0 ? 1.12 : 1; ctx.save(); ctx.translate(JB.x, JB.y); ctx.scale(k, k); markerCirc(3, 4, JB.r, '#000', 0.6); markerCirc(0, 0, JB.r, on ? NV : '#3a3a3a', 1); inkCirc(0, 0, JB.r, 3, '#0b0b0b'); txt('JUMP', 0, 1, 15, on ? '#0b0b0b' : '#777', 'center', 900); ctx.restore();
+  const dir = sideDir();
+  for (const b of SB) {
+    const held = dir === b.d; ctx.save(); ctx.translate(b.x, b.y); ctx.scale(held ? 1.1 : 1, held ? 1.1 : 1); markerCirc(3, 4, b.r, '#000', 0.6); markerCirc(0, 0, b.r, held ? '#ffd84a' : '#fff8e0', 1); inkCirc(0, 0, b.r, 3, '#0b0b0b');
+    ink([[-b.d * 9, -11], [b.d * 9, 0], [-b.d * 9, 11]], 4, '#0b0b0b', true); ctx.restore();
+  }
 }
 function drawHeadline(dt: number): void {
   if (!headline) return;
@@ -195,16 +204,20 @@ function drawHeadline(dt: number): void {
   txt(s, 66, y + 1, 12, '#0b0b0b', 'left', 900); ctx.globalAlpha = 1;
 }
 
+const inSide = (p: { x: number; y: number }): number => { for (const b of SB) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 14) return b.d; return 0; };
 const inJump = (p: { x: number; y: number }): boolean => Math.hypot(p.x - JB.x, p.y - JB.y) < JB.r + 14;
+const sideEnd = (e: PointerEvent): void => { sideHeld.delete(e.pointerId); };
+window.addEventListener('pointerup', sideEnd); window.addEventListener('pointercancel', sideEnd);
 onKeyDown((e) => { if (state.scene === 'play' && [' ', 'ArrowUp', 'w', 'W'].includes(e.key)) { jumpReq = true; return true; } return false; });
 
 export const playScene: Scene = {
   enter() {
     initPlay();
-    setPointerIntercept((p) => { if (inJump(p)) { jumpReq = true; return true; } return false; });
-    R.say('Drag your finger: the CEO follows it. Swipe up (or tap JUMP) for an extra jump.', 2.8);
+    sideHeld.clear();
+    setPointerIntercept((p, e) => { if (inJump(p)) { jumpReq = true; return true; } const d = inSide(p); if (d) { sideHeld.set(e.pointerId, d); return true; } return false; });
+    R.say('Hold the arrows to move left or right. Tap JUMP for an extra jump.', 2.8);
   },
-  exit() { setPointerIntercept(null); },
+  exit() { setPointerIntercept(null); sideHeld.clear(); },
   draw(dt) {
     tickInk();
     if (dt > 0) stepPlay(dt);

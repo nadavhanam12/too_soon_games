@@ -22,6 +22,7 @@ src/art.ts       runner (back/side), person, wife, baby, cat, cups/halloumi/ouzo
 Each stage sets `G.f` (speed factor). Distance advances `f * km / len` per second; the race clock advances at a
 fixed per-stage rate (3:33/km at f = 1). Slow = more real time = more race time. Clock ≥ 3:00:00 → lose (sweeper
 bus, retry from the stage). Score = seconds left before 3:00:00 at the finish; the baby's high five takes 60 s off.
+Crossing km 21.1 starts a 1.6 s finish moment (`OUTRO_S`, `finishMoment()` in `src/play.ts`: FINISH! banner, confetti, runner slows, hints/HUD speed hidden, taps swallowed), then `R.win` (RULES 13ג).
 `resultWords` = finish time (`DNF` for 0). A decent player: ~1:30 race time, ~105 s real.
 
 ## Commands (from `GamesTemplate/common-game-code`)

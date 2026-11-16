@@ -1,6 +1,7 @@
 // DOM overlays over the canvas: share buttons, follow block, nickname input, source link, desktop footer.
 // Real links and inputs beat canvas fakes (clipboard, keyboard, long-press). Positioned in safe-zone units via place().
 import { cv, onResize, place, view, W } from '../core/canvas';
+import { END_GRACE_S } from '../core/input';
 import { env } from '../config';
 import type { Strings } from '../i18n/strings';
 import { centralHref, isPhone, type SharePreset } from './presets';
@@ -112,14 +113,18 @@ const nickInput = el('input', 'tsg-input'); nickInput.maxLength = 16; nickInput.
 const saveBtn = el('button', 'tsg-btn tsg-save'); saveBtn.type = 'button';
 const skipBtn = el('button', 'tsg-link'); skipBtn.type = 'button';
 let onNick: ((nick: string | null) => void) | null = null;
+let nickArmTimer = 0;
 export const nickOverlay = {
-  /** y = top; takes 124 units: input 46, gap 6, save 48, gap 6, skip 18. */
+  /** y = top; takes 124 units: input 46, gap 6, save 48, gap 6, skip 18.
+   *  Dimmed and unclickable for END_GRACE_S after it appears (taps left over from the game). */
   show(y: number, prefill: string, cb: (nick: string | null) => void): void {
     onNick = cb; nickInput.value = prefill; nickInput.placeholder = strs.nickPlaceholder;
     saveBtn.textContent = strs.saveToBoard; skipBtn.textContent = strs.skip;
+    clearTimeout(nickArmTimer); nickBox.classList.add('tsg-arming');
+    nickArmTimer = window.setTimeout(() => nickBox.classList.remove('tsg-arming'), END_GRACE_S * 1000);
     nickBox.hidden = false; nickBox.dataset.y = String(y); this.layout();
   },
-  hide(): void { nickBox.hidden = true; try { nickInput.blur(); } catch { /* ignore */ } },
+  hide(): void { clearTimeout(nickArmTimer); nickBox.hidden = true; try { nickInput.blur(); } catch { /* ignore */ } },
   layout(): void { if (!nickBox.hidden) place(nickBox, 30, Number(nickBox.dataset.y || 500), W - 60, 124, 15); },
   value: (): string => nickInput.value.replace(/\s+/g, ' ').trim().slice(0, 16),
 };

@@ -43,7 +43,9 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
 .tsg-net{width:4em;height:4em;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff4fd8,#8a3cff);color:#fff;box-shadow:0 .25em .7em rgba(0,0,0,.35)}
 .tsg-net svg{width:2.1em;height:2.1em}
 .tsg-net-off{opacity:.45;pointer-events:none;background:rgba(255,255,255,.15)}
-.tsg-nick{position:fixed;display:grid;grid-template-rows:46fr 48fr 18fr;gap:.4em;box-sizing:border-box}
+.tsg-nick{position:fixed;display:grid;grid-template-rows:46fr 48fr 18fr;gap:.4em;box-sizing:border-box;transition:opacity .2s}
+.tsg-nick.tsg-arming{opacity:.45;pointer-events:none}
+.tsg-nick.tsg-arming>*{pointer-events:none}
 .tsg-input{box-sizing:border-box;width:100%;border-radius:999px;border:.12em solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font:700 1.05em var(--font);text-align:center;padding:0 1em;outline:none}
 .tsg-input:focus{border-color:#ffc400}
 .tsg-input::placeholder{color:rgba(255,255,255,.55);font-weight:400}

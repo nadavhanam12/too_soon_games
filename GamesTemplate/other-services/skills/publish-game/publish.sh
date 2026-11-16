@@ -119,8 +119,7 @@ if [ -f "$GAME_DIR/assets/clip.webm" ]; then
 const fs=require('fs');const [gj,reg,slug]=process.argv.slice(2);
 for(const f of [gj,reg]){const j=JSON.parse(fs.readFileSync(f,'utf8'));
   if(f===gj)j.clip=j.clip||'assets/clip.webm';else{const g=(j.games||[]).find(x=>x.slug===slug);if(g)g.clip=g.clip||'assets/clip.webm';}
-  fs.writeFileSync(f,JSON.stringify(j,null,2)+'
-');}
+  fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n');}
 EOF2
 fi
 

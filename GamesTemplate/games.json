@@ -3,13 +3,38 @@
   "games": [
     {
       "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
+      "id": "HalfMarathon",
+      "slug": "half-marathon",
+      "title": "Half a Marathon, Whole Halloumi",
+      "tagline": "21.1 km in Cyprus: halloumi, street cats, 29°C in November, and the baby waiting at the finish.",
+      "audience": "us",
+      "lang": "en",
+      "version": "0.1.2",
+      "event": {
+        "title": "A founder's half marathon, Cyprus",
+        "headline": "One of our founders ran a half marathon today.",
+        "date": "2026-11-15",
+        "sourceUrl": "https://toosoongames.app",
+        "sourceLabel": "studio event, no external source"
+      },
+      "showPlayerCountFrom": 500,
+      "cover": "assets/cover.png",
+      "ogImage": "assets/og.png",
+      "status": "draft",
+      "themeColor": "#0b2545",
+      "music": true,
+      "publishedAt": "2026-11-15",
+      "clip": "assets/clip.webm"
+    },
+    {
+      "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
       "id": "FlightHeros",
       "slug": "safe-flight",
       "title": "חופשה בטוחה",
       "tagline": "174 נוסעים, קוקפיט פרוץ, גובה שיורד. כמה מהר אתה מציל את הטיסה?",
       "audience": "il",
       "lang": "he",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "event": {
         "title": "טיסת פליי-דובאי FZ1073, דובאי–תל אביב",
         "headline": "Flydubai FZ1073, Dubai to Tel Aviv.",
@@ -23,7 +48,7 @@
       "ogImage": "assets/og.png",
       "status": "draft",
       "themeColor": "#0f1a2b",
-      "publishedAt": "2026-11-14"
+      "publishedAt": "2026-11-15"
     },
     {
       "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
@@ -33,7 +58,7 @@
       "tagline": "Icy Tower in reverse: how long can a CEO keep falling before the board meeting catches up?",
       "audience": "us",
       "lang": "en",
-      "version": "1.0.3",
+      "version": "1.0.6",
       "event": {
         "title": "Nvidia CEO resignation, November 2026",
         "headline": "Nvidia's CEO resigns.",
@@ -50,7 +75,7 @@
         "Patrick Hand"
       ],
       "themeColor": "#161616",
-      "publishedAt": "2026-11-14"
+      "publishedAt": "2026-11-15"
     }
   ]
 }

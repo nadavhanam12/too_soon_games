@@ -1,5 +1,5 @@
-import { W } from '../core/canvas';
-import { takeTap } from '../core/input';
+import { ctx, W } from '../core/canvas';
+import { END_GRACE_S, takeTap } from '../core/input';
 import { go, goNow, state, type Scene } from '../core/scenes';
 import { R } from '../core/runtime';
 import { inBtn, wrap } from '../draw/prims';
@@ -17,12 +17,14 @@ export const loseScene: Scene = {
     for (const l of wrap(c.line, 16, W - 60, 700)) { th.text(l, W / 2, y, 16, th.colors.ink, 'center', 700); y += 22; }
     if (c.consolation) { y += 6; for (const l of wrap(c.consolation, 13, W - 60, 400)) { th.text(l, W / 2, y, 13, th.colors.muted, 'center', 400); y += 18; } }
     th.text(`${s.scoreSoFar}: ${R.content.result.resultWords(run)}`, W / 2, 352, 18, th.colors.accent, 'center', 900);
-    const canRetry = !!run.stage;
+    const canRetry = !!run.stage, armed = st >= END_GRACE_S;
+    ctx.save(); if (!armed) ctx.globalAlpha = 0.45; // dimmed until taps left over from the game can't hit them
     if (canRetry) th.button(s.retryStage, W / 2, 440, 260, 54, true, 17);
     th.button(canRetry ? s.restart : s.playAgain, W / 2, canRetry ? 510 : 450, canRetry ? 190 : 240, canRetry ? 46 : 54, !canRetry, 16);
+    ctx.restore();
 
     const p = takeTap();
-    if (!p || st < 0.5) return;
+    if (!p || !armed) return;
     if (canRetry && (p.key || inBtn(p, W / 2, 440, 260, 54))) {
       R.retry = { stage: run.stage, score: run.score }; track('retry', { stage: run.stage }); sfx.ok?.(); goNow('play'); return;
     }

@@ -50,9 +50,11 @@ export const LINES = {
   wall: ["Why didn't I spend Saturday on the couch like a normal person?", 'My legs just filed for divorce.', 'Who signed me up for this? Oh. Me.', "If it's not on Strava, it didn't happen.", 'Think of the medal. Think of the shower.', 'Is it too late to become a swimmer?', 'That km sign is lying. It has to be.'],
   wallWrong: ['Same leg twice. Bold strategy.', 'Left, right. Not right, right.', 'Easy. Those are legs, not thumbs.'],
   crowdSign: ['GO DAVE', 'FREE HUGS', 'WHO ARE WE CHEERING?', 'TOUCH FOR POWER', 'PINTS AT KM 22'],
-  wrongBlonde: ["That's Sharon from Manchester.", "That's a different blonde. She is also proud of you.", "That's Kevin. He's had four pints."],
-  highFive: ['HIGH FIVE!!!', 'The baby high-fived you. Worth a minute.'],
-  missed: ['You missed them. The baby waved anyway.'],
+  wrongBlonde: ["Not your wife. That's Sharon from Manchester.", "That's a different blonde. She is also proud of you.", "That's Kevin. He's had four pints."],
+  highFive: ['HIGH FIVE!!!', 'Family high five. Worth a minute.'],
+  missed: ['You ran past your own family. The baby waved anyway.'],
+  familySpot: ['There they are! Your wife and baby!', "That's your family. Tap them!"],
+  familySign: 'DADDY!',
   finish: ['Our only exit this year.'],
 };
 
@@ -62,7 +64,7 @@ export const BANNERS = {
   water: ['KM 3 · WATER STATION', ['Tap to grab. Food = boost. Ouzo = no.']],
   sun: ['KM 8 · CYPRUS SUN', ['Hold to sprint. Let go to cool down, and for cats.']],
   wall: ['KM 15 · THE WALL', ['The mental wall: the km where your head says stop.', 'Push through: LEFT, RIGHT, LEFT, RIGHT.']],
-  finish: ['KM 19 · THE FINISH', ['Tap to sprint. Tap the baby for a high five.']],
+  finish: ['KM 19 · THE FINISH', ['Tap below to sprint.', 'Your wife and baby are in the crowd. Tap them for a high five!']],
 } as const satisfies Record<string, readonly [string, readonly string[]]>;
 
 // ---------- cutscene drawings (y 0..450; the caption panel sits below) ----------
@@ -95,7 +97,7 @@ function startLine(st: number): void {
 export const content: Content = {
   title: {
     heading: ' ', // drawn on two lines by main.ts (drawTitleArt): too long for the template's one-line heading
-    lines: ['21.1 km in Cyprus. 29°C in November.', 'The baby is waiting at the finish.'],
+    lines: ['21.1 km in Cyprus. 29°C in November.', 'Your wife and baby are waiting at the finish.'],
     credit: 'Based on a real race. Today. · Too Soon Games',
   },
   cutscene: {
@@ -108,7 +110,7 @@ export const content: Content = {
   },
   lose: { heading: 'Course closed.', line: 'The sweeper bus picked you up. It had air conditioning.', consolation: '(In real life he finished. You can too.)' },
   result: {
-    heading: (r) => (r.reason === 'highfive' ? 'Finisher + high five!' : 'Finisher. Baby fell asleep.'),
+    heading: (r) => (r.reason === 'highfive' ? 'Family high five!' : 'Finisher. Baby fell asleep.'),
     sentence: (r) => `21.1 km in ${finishTimeOf(r.score)}. Rank: "${rankFor(r.score)}"`,
     rankFor,
     resultWords: (r: RunResult) => (r.score > 0 ? finishTimeOf(r.score) : 'DNF'),
