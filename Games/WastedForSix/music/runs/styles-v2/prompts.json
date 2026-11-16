@@ -29,7 +29,7 @@
     },
     "results": [
       {
-        "file": "C:\\Users\\PC\\Desktop\\Projects\\too_soon_games\\_music-trial\\runs\\styles-v2\\raw\\A-gfunk-1.wav",
+        "file": "runs/styles-v2/raw/A-gfunk-1.wav",
         "seed": "709292966,2486734172,1454570840",
         "metas": {
           "bpm": 92,
@@ -44,7 +44,7 @@
         "n": 1
       },
       {
-        "file": "C:\\Users\\PC\\Desktop\\Projects\\too_soon_games\\_music-trial\\runs\\styles-v2\\raw\\A-gfunk-2.wav",
+        "file": "runs/styles-v2/raw/A-gfunk-2.wav",
         "seed": "709292966,2486734172,1454570840",
         "metas": {
           "bpm": 92,
@@ -59,7 +59,7 @@
         "n": 2
       },
       {
-        "file": "C:\\Users\\PC\\Desktop\\Projects\\too_soon_games\\_music-trial\\runs\\styles-v2\\raw\\A-gfunk-3.wav",
+        "file": "runs/styles-v2/raw/A-gfunk-3.wav",
         "seed": "709292966,2486734172,1454570840",
         "metas": {
           "bpm": 92,
@@ -105,7 +105,7 @@
     },
     "results": [
       {
-        "file": "C:\\Users\\PC\\Desktop\\Projects\\too_soon_games\\_music-trial\\runs\\styles-v2\\raw\\D-lowrider-2.wav",
+        "file": "runs/styles-v2/raw/D-lowrider-2.wav",
         "seed": "1145468441,1457330505,817730328",
         "metas": {
           "bpm": 95,

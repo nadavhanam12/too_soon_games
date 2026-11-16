@@ -21,6 +21,18 @@
       "port": 5180
     },
     {
+      "name": "music-listen",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5190",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 5190
+    },
+    {
       "name": "halfmarathon-dev",
       "runtimeExecutable": "node",
       "runtimeArgs": [

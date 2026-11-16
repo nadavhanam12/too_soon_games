@@ -43,3 +43,8 @@ dist-itch.changes.diff
 dist/
 backups/
 GamesTemplate/other-services/bugcheck/out/
+
+# make-music: candidate audio stays local (WAV masters ~15 MB each); shipped MP3s live in assets/audio,
+# prompts + seeds in runs/*/prompts.json are enough to regenerate (GamesTemplate/other-services/skills/make-music)
+Games/*/music/runs/*/raw/
+Games/*/music/runs/*/game/

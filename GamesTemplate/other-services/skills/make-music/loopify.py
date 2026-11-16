@@ -1,11 +1,12 @@
-"""Turn raw ACE-Step candidates of one run into game-ready files (rule 13a budget: mono, small MP3).
+"""Turn the raw candidates of one run into game-ready MP3s (rule 13a budget: mono, small).
 
 Tracks with loop_bars -> seamless loop: that many bars starting one bar in, with the bar after the
                          loop end crossfaded (equal-power) into the loop start.
 Other tracks          -> trimmed trailing silence + short fade-out.
+Output: Games/<GameId>/music/runs/<run>/game/<track>-<n>.mp3. Pruned candidates are skipped.
 
-Run with the ACE-Step venv python (it has soundfile with MP3 write):
-  ..\\..\\ACE-Step-1.5\\.venv\\Scripts\\python.exe -I loopify.py runs/<name>
+Run with the ACE-Step venv python (it has soundfile with MP3 write; there is no ffmpeg):
+  <ACE-Step-1.5>/.venv/Scripts/python.exe -I GamesTemplate/other-services/skills/make-music/loopify.py <GameId> <run>
 """
 import json
 import sys
@@ -14,7 +15,9 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-RUN = Path(sys.argv[1]).resolve()
+ROOT = Path(sys.argv[0]).resolve().parents[4]
+MUSIC = ROOT / "Games" / sys.argv[1] / "music"
+RUN = MUSIC / "runs" / sys.argv[2]
 OUT = RUN / "game"
 OUT.mkdir(exist_ok=True)
 XF = 0.5  # crossfade seconds
@@ -50,12 +53,13 @@ log = json.loads((RUN / "prompts.json").read_text(encoding="utf-8"))
 for name, t in log.items():
     vocals = t.get("lyrics", "[Instrumental]") != "[Instrumental]"
     for r in t["results"]:
-        i = r["n"]  # candidate number from generate.mjs (stable after pruning unused ones)
-        x, sr = sf.read(r["file"], always_2d=True)
+        if r.get("pruned"):
+            continue
+        x, sr = sf.read(MUSIC / r["file"], always_2d=True)
         x = x.mean(axis=1)
         bpm = float((r.get("metas") or {}).get("bpm") or t["bpm"])
         y = make_loop(x, sr, bpm, t["loop_bars"]) if t.get("loop_bars") else trim_and_fade(x, sr)
         y = y / max(1e-9, np.abs(y).max()) * 0.89  # peak -1 dBFS
-        dst = OUT / f"{name}-{i}.mp3"
+        dst = OUT / f"{name}-{r['n']}.mp3"
         sf.write(dst, y.astype(np.float32), sr, **mp3(vocals))
         print(f"{dst.name}: {len(y) / sr:5.1f}s  {dst.stat().st_size // 1024:4d}KB  bpm={bpm:g}")

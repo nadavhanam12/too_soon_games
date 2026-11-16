@@ -52,7 +52,8 @@ src/portraits.ts     lazy loading of assets/portraits/*.webp after the first fra
 src/sfx.ts, theme.ts game sounds + MUSIC (4 looped files); asphalt / sunset theme
 assets/audio/        4 G-funk loops from ACE-Step, ~215 KB each (DECISIONS 74): theme = title/cutscene/PRESS START/result,
                      drive = commute + launch, chase = home, scheme = boss/clerk/pc (play.ts STAGE_MUSIC); lose = silence.
-                     Sources: _music-trial/runs/styles-v2 (theme = D-lowrider-2, drive/chase/scheme = A-gfunk-1/2/3)
+                     Made with /make-music: music/chosen.json says which candidate, prompt and seed each one is
+                     (theme = styles-v2/D-lowrider-2, drive/chase/scheme = styles-v2/A-gfunk-1/2/3)
 assets/portraits/    8 portraits, 720x960 WebP q70 (~0.9 MB total), shipped next to index.html (DECISIONS 67)
 assets-src/portraits/ the 1086x1448 originals (not shipped; regenerate the 720 px set from these)
 ```

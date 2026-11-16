@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Candidates</title>
+<!-- Served from the repo root (launch config "music-listen"):
+     /GamesTemplate/other-services/skills/make-music/listen.html?game=<GameId>&run=<run> -->
+<style>
+  :root { --bg:#111; --fg:#eee; --muted:#999; --card:#1c1c1c; --accent:#f5c518; }
+  body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; } p { color:var(--muted); margin:0 0 12px; }
+  section { background:var(--card); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+  h2 { font-size:16px; margin:0 0 8px; color:var(--accent); direction:ltr; text-align:right; }
+  .label { margin:-4px 0 8px; }
+  .row { display:flex; align-items:center; gap:10px; margin:6px 0; flex-wrap:wrap; }
+  .row b { width:24px; } audio { flex:1; min-width:220px; }
+  .tag { background:var(--accent); color:#111; border-radius:6px; padding:0 8px; font-size:13px; font-weight:700; }
+  .err { color:#ff6b6b; }
+  details { color:var(--muted); font-size:13px; } pre { white-space:pre-wrap; direction:ltr; text-align:left; margin:6px 0 0; }
+</style>
+</head>
+<body>
+<h1 id="h"></h1>
+<p>מה שמסומן "לולאה" מתנגן שוב ושוב: הקשיבו גם לנקודת החיבור בסוף.</p>
+<div id="app"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const game = q.get('game'), run = q.get('run');
+  const app = document.getElementById('app');
+  document.getElementById('h').textContent = `${game ?? '?'} · ${run ?? '?'}`;
+  const base = `/Games/${game}/music`;
+  async function main() {
+    if (!game || !run) throw new Error('add ?game=<GameId>&run=<run> to the URL');
+    const r = await fetch(`${base}/runs/${run}/prompts.json`);
+    if (!r.ok) throw new Error(`${base}/runs/${run}/prompts.json: ${r.status}`);
+    const log = await r.json();
+    // chosen.json appears only after the first ship.mjs, so a 404 here is normal
+    const c = await fetch(`${base}/chosen.json`);
+    const chosen = c.ok ? await c.json() : {};
+    const inGame = Object.fromEntries(Object.entries(chosen).filter(([, v]) => v.run === run).map(([k, v]) => [v.candidate, k]));
+    for (const [name, t] of Object.entries(log)) {
+      const loop = !!t.loop_bars;
+      const s = document.createElement('section');
+      s.innerHTML = `<h2>${name}${loop ? ' · לולאה' : ''}</h2>${t.label ? `<div class="label">${t.label}</div>` : ''}`;
+      for (const x of t.results.filter((x) => !x.pruned)) {
+        const tag = inGame[`${name}-${x.n}`] ? `<span class="tag">במשחק: ${inGame[`${name}-${x.n}`]}</span>` : '';
+        s.insertAdjacentHTML('beforeend', `<div class="row"><b>${x.n}</b><audio controls preload="none" ${loop ? 'loop' : ''} src="${base}/runs/${run}/game/${name}-${x.n}.mp3"></audio>${tag}</div>`);
+      }
+      const lyr = t.lyrics && t.lyrics !== '[Instrumental]' ? `\n\n${t.lyrics}` : '';
+      s.insertAdjacentHTML('beforeend', `<details><summary>prompt</summary><pre>${t.prompt}${lyr}</pre></details>`);
+      app.appendChild(s);
+    }
+  }
+  main().catch((e) => { app.innerHTML = `<p class="err">${e.message}</p>`; });
+  // Only one player at a time.
+  document.addEventListener('play', (e) => {
+    for (const a of document.querySelectorAll('audio')) if (a !== e.target) a.pause();
+  }, true);
+</script>
+</body>
+</html>
