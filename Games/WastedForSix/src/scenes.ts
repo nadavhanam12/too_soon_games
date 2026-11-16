@@ -55,16 +55,16 @@ function drawDecision(): void {
 function decisionTaps(): void {
   if (UI.t <= 0.35) { input.taps.length = 0; return; }
   for (const p of input.taps.splice(0)) {
-    if (p.key) { if (UI.opts.length === 1) { sfx.tick?.(); UI.onOpt(UI.opts[0]!.id); } return; }
+    if (p.key) { if (UI.opts.length === 1) { sfx.choose?.(); UI.onOpt(UI.opts[0]!.id); } return; }
     for (let i = 0; i < UI.opts.length; i++) {
       const y = BTN_Y[UI.opts.length === 1 ? 1 : i]!;
-      if (inBtn(p, W / 2, y, BTN_W, BTN_H, 2)) { sfx.tick?.(); UI.onOpt(UI.opts[i]!.id); return; }
+      if (inBtn(p, W / 2, y, BTN_W, BTN_H, 2)) { sfx.choose?.(); UI.onOpt(UI.opts[i]!.id); return; }
     }
   }
 }
 function decisionKey(e: KeyboardEvent): boolean {
   const n = Number(e.key);
-  if (UI.t > 0.35 && n >= 1 && n <= UI.opts.length) { sfx.tick?.(); UI.onOpt(UI.opts[n - 1]!.id); return true; }
+  if (UI.t > 0.35 && n >= 1 && n <= UI.opts.length) { sfx.choose?.(); UI.onOpt(UI.opts[n - 1]!.id); return true; }
   return false;
 }
 const CONTINUE: Opt = { id: 'continue', label: 'Continue ›' };
@@ -80,7 +80,7 @@ function bossPick(): void {
       setUI({ phase: 'react', portrait: 'boss-agree', line: BOSS.react.agree, opts: [] });
     } else if (id === 'sick' || id === 'quit') {
       G.branch = id;
-      if (id === 'quit') { UI.sub = `Last paycheck: -$${G.money}`; G.money = 0; sfx.bad?.(); } else { sfx.cough?.(); UI.sub = ''; }
+      if (id === 'quit') { UI.sub = `Last paycheck: -$${G.money}`; G.money = 0; } else { UI.sub = ''; }
       const sub = UI.sub;
       setUI({ phase: 'react', portrait: id === 'sick' ? 'boss-sick' : 'boss-quit', line: BOSS.react[id], sub, opts: [CONTINUE] });
       UI.onOpt = () => stageDone();
@@ -141,7 +141,7 @@ function tradeMenu(line: string): void {
       G.store = 'tradein';
       setUI({ phase: 'react', portrait: 'clerk-tradein', line: CLERK.tradeReact.ring, sub: '', opts: [CONTINUE] });
       UI.onOpt = () => stageDone();
-    } else { G.traded.push(item); sfx.bad?.(); tradeMenu(CLERK.tradeReact[item]); }
+    } else { G.traded.push(item); tradeMenu(CLERK.tradeReact[item]); }
   };
 }
 registerStage('clerk', {
@@ -167,22 +167,22 @@ function keyRects(): Array<{ k: string; x: number; y: number; w: number }> {
 }
 function typeKey(k: string): void {
   if (PCS.ok >= 0 || PCS.shake > 0) return;
-  if (k === 'DEL') { PCS.typed = PCS.typed.slice(0, -1); sfx.tick?.(); return; }
+  if (k === 'DEL') { PCS.typed = PCS.typed.slice(0, -1); sfx.erase?.(); return; }
   if (PCS.typed.length >= 6) return;
-  PCS.typed += k; sfx.key?.();
+  PCS.typed += k; sfx.type?.();
   if (PCS.typed.length === 6) submit();
 }
 function submit(): void {
   if (PCS.typed === 'WASTED') {
     if (G.wrongPw === 0) addScore(500);
-    PCS.ok = 0; PCS.reply = ''; PCS.close = ''; sfx.win?.();
+    PCS.ok = 0; PCS.reply = ''; PCS.close = ''; sfx.pwRight?.();
     return;
   }
   G.wrongPw++;
   const n = [...PCS.typed].filter((c, i) => c === 'WASTED'[i]).length;
   PCS.reply = PC.wrong[Math.min(G.wrongPw - 1, PC.wrong.length - 1)]!;
   PCS.close = PC.close(n);
-  PCS.shake = 0.6; sfx.bad?.();
+  PCS.shake = 0.6; sfx.pwWrong?.();
 }
 registerStage('pc', {
   enter() { D.goal = null; PCS.typed = ''; PCS.reply = ''; PCS.close = ''; PCS.shake = 0; PCS.ok = -1; },

@@ -21,6 +21,8 @@ createGame({
   music: MUSIC,
   // theme opens and closes the story; inside play each stage picks its own track (play.ts STAGE_MUSIC)
   musicFor: (s) => (s === 'play' ? STAGE_MUSIC[G.stage] : s === 'lose' ? 'off' : 'theme'),
+  // no screen-change stingers: this game plays only its own sounds (sfx.ts)
+  stingerFor: () => null,
   hooks: {
     drawTitleArt(st) {
       ptxt('WASTED', W / 2, 96, 6, C.pink, 'center', '#3a0a2a');

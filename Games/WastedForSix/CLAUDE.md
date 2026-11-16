@@ -49,7 +49,14 @@ Scene/sun-city-heist.html  the original scene (source only, not built)
 src/art.ts           pixel car sprites (title / cutscene), the fan, sunset/palms, title band, cutscene rooms, TV, LAUNCH DAY sticker
 src/pixel.ts         original 5x7 bitmap font (ptxt), string-grid sprites (sprite/blit), grayOut (saturation blend, Safari-safe)
 src/portraits.ts     lazy loading of assets/portraits/*.webp after the first frame; drawPortrait + sticker geometry
-src/sfx.ts, theme.ts game sounds + MUSIC (4 looped files); asphalt / sunset theme
+src/sfx.ts, theme.ts game sounds + MUSIC (4 looped files); asphalt / sunset theme. Sound rule (Nadav, 2026-11-17): the game
+                     plays ONLY sounds made for it (music, carsound.ts, sfx.fuelLow). sfx.ts empties the template kit in
+                     this game, main.ts stingerFor → null. New sounds go into sfx.ts OURS. Ours now (F minor, Rhodes /
+                     real-world style): cash, can, letter (spray + lick), crash, wasted, tick + ok (template buttons),
+                     choose (boss/clerk option), type / erase / pwWrong / pwRight (PC), fuelLow. Debug: __sfx(name)
+src/carsound.ts      continuous driving sounds (synth, 0 KB): engine (4 arcade gears, louder on gas), drift squeal, wall
+                     scrape, HR proximity beeper (sick branch before the note). drive.ts stepWorld calls carSound() every
+                     step; a watchdog fades it out when no leg is driving. Low fuel = one sfx.fuelLow chime (legs.ts)
 assets/audio/        4 G-funk loops from ACE-Step, ~215 KB each (DECISIONS 74): theme = title/cutscene/PRESS START/result,
                      drive = commute + launch, chase = home, scheme = boss/clerk/pc (play.ts STAGE_MUSIC); lose = silence.
                      Made with /make-music: music/chosen.json says which candidate, prompt and seed each one is
@@ -78,6 +85,7 @@ assets-src/portraits/ the 1086x1448 originals (not shipped; regenerate the 720 p
 | leg time-bonus targets | `play.ts` `LEG_TARGET_S` | 40 / 60 / 50 s (bonus = 10 × seconds under) |
 | score | pickups +50, near miss +10, letter +200, crash −20, escape +1000 − 10×crashes, password first try +500 |
 | boss sticker | `src/portraits.ts` `STICKER` (source px of the 1086-wide original) | cx 948, cy 196, 250x72, −0.2 rad |
+| car sound levels | `src/carsound.ts` `IDLE_G` / `ENGINE_G` / `SKID_G` / `SCRAPE_G`, `HR_NEAR` | 0.01 / 0.028 / 0.07 / 0.09 · beeper from 75 u beyond the red circle (1 beep/s → 8/s) |
 
 ## Commands (from `GamesTemplate/common-game-code`)
 
@@ -88,7 +96,7 @@ npm run dev -- WastedForSix       → http://127.0.0.1:5173/wasted-for-six/
 ```
 The preview tool can't start the dev server from Desktop (macOS EPERM): run `node build.mjs dev WastedForSix` in a
 shell and attach the `game-dev` launch config. Debug: `__stage(name, branch?, store?)`, `__world()`, `__warp()` (car
-next to the current goal), `__hrHere()`, `__chaserHere()`, `__lose()`, `__stages()`, `__peek()` (car + GPS point, read by
+next to the current goal), `__hrHere()`, `__chaserHere()`, `__lose()`, `__stages()`, `__carSound()` (live engine / skid / scrape levels), `__peek()` (car + GPS point, read by
 the bot in `playthrough.mjs`: sick → ring → WASTED), plus the template's `__go`, `__advance`, `__state`.
 
 ## Ideas to build later (Nadav, 2026-11-17; not started)

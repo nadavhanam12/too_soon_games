@@ -40,6 +40,10 @@ export function noise(d: number, g = 0.1, lp = 2000): void {
   } catch { /* no audio */ }
 }
 export const after = (ms: number, fn: () => void): number => window.setTimeout(fn, ms);
+/** The sfx output (master gain), for games that build continuous sounds (an engine, a skid) from their own nodes. */
+export function sfxOut(): GainNode { ac(); return MASTER!; }
+/** The shared 2 s white-noise buffer (loop it in an AudioBufferSourceNode). */
+export function noiseBuffer(): AudioBuffer { ac(); return NOISE!; }
 
 /** A base kit every game gets; games add their own with `Object.assign(sfx, {...})`. */
 export const sfx: Record<string, (...a: any[]) => void> = {

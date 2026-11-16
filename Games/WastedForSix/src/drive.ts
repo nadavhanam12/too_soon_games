@@ -3,13 +3,14 @@
 // minivan, chasers that route through the city on a cost field, pickups, graffiti letters, place markers and the
 // road-following GPS arrow. play.ts / legs.ts own the story and listen to the events in `ev`.
 // Units are the scene's (a car ~6 long, a road 16 wide); 4 old pixels ≈ 1 unit.
-import { W, view, ctx, input, keyHeld, keyLeft, keyRight, clamp, rr, txt, sfx, rand, loadLazy } from '@tsg/index';
+import { W, view, ctx, input, keyHeld, keyLeft, keyRight, clamp, rr, txt, rand, loadLazy } from '@tsg/index';
 import {
   PLACES, BMIN, BMAX, CELL, roadLine, collide, costField, downhill, roadNear, los, neighbors, edgeOpen, nodeOf,
   prims, grounds, lamps, type Node2, type PlaceId,
 } from './city';
 import type { CarKind, Frame, Fx, World3D } from './world3d-api';
 import { C } from './art';
+import { carSound } from './carsound';
 import { ptxt } from './pixel';
 
 export const MAX_V = 46;           // player top speed (the scene's MAX)
@@ -50,7 +51,6 @@ export const D = {
   avoidHr: false,                   // the GPS routes around the HR minivan (sick branch, before the doctor's note)
   heat: 0,
   t: 0,
-  sirenT: 0,
   usedKeys: false,
   control: true,                    // false during a parked beat: the car brakes, no steering
 };
@@ -155,6 +155,7 @@ let toPlayer: Int32Array | null = null, toPlayerT = 0;
 export function stepWorld(dt: number, opts: { chasersOn: boolean }): void {
   D.t += dt;
   stepPlayer(dt);
+  carSound(dt, D.p, D.hr && D.avoidHr ? dist(D.hr, D.p) - HR_R : null);   // engine, squeal, scrape, HR beeper
   for (const n of D.npcs) stepNpc(n, dt);
   if (D.hr) {
     stepNpc(D.hr, dt);
@@ -173,7 +174,6 @@ export function stepWorld(dt: number, opts: { chasersOn: boolean }): void {
   for (const c of D.chasers) h = Math.max(h, clamp(1 - (dist(c, D.p) - 7.5) / 105, 0, 1));
   if (D.hr) h = Math.max(h, 0.85 * clamp(1 - (dist(D.hr, D.p) - HR_R) / 75, 0, 1));
   D.heat += (h - D.heat) * Math.min(1, dt * 4);
-  if (opts.chasersOn && D.chasers.some((c) => c.kind === 'cop') && D.heat > 0.25) { D.sirenT -= dt; if (D.sirenT <= 0) { D.sirenT = 0.42; sfx.siren?.(); } }
   for (const f of D.floats) f.t += dt;
   D.floats = D.floats.filter((f) => f.t < 1.2);
   // the scene's top view: leads in the direction of travel and zooms out with speed

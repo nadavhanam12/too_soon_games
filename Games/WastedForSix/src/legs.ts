@@ -45,18 +45,18 @@ function arriveEnd(label: string, extra = 0, after?: () => void): void {
     if (tb > 0) { addScore(tb); say(`+${tb} time bonus`, 1.6, true); }
     if (extra) addScore(extra);
     after?.();
-    sfx.ok?.(); stageDone();
+    stageDone();
   });
 }
 
 function commonEvents(): void {
   ev.pickup = (k, x, y) => {
-    if (k === 'cash') { G.money += 20; addScore(50); floatText('+$20', x, y, C.money); sfx.coin?.(); say(pick(LINES.cash)); }
-    else { addScore(50); floatText('+50', x, y); sfx.coin?.(); say(pick(LINES.can)); }
+    if (k === 'cash') { G.money += 20; addScore(50); floatText('+$20', x, y, C.money); sfx.cash?.(); say(pick(LINES.cash)); }
+    else { addScore(50); floatText('+50', x, y); sfx.can?.(); say(pick(LINES.can)); }
   };
   ev.letter = (ch) => { if (!G.letters.includes(ch)) G.letters.push(ch); addScore(200); floatText('+200', D.p.x, D.p.y - 30, C.pink); sfx.letter?.(); say(pick(LINES.letter).replace('{L}', ch), 2.4, true); };
   ev.crash = () => { if (crashCd > 0) return; crashCd = 0.8; G.hits++; addScore(-20); sfx.crash?.(); R.shake(0.25); say(pick(LINES.crash)); };
-  ev.near = (x, y) => { addScore(10); floatText(pick(LINES.nearMiss), x, y - 20, C.teal); sfx.whoosh?.(); };
+  ev.near = (x, y) => { addScore(10); floatText(pick(LINES.nearMiss), x, y - 20, C.teal); };
   ev.spotted = () => {};
   ev.caught = () => {};
   ev.taunt = () => {};
@@ -105,7 +105,7 @@ registerStage('launch', {
       D.avoidHr = true;
       ev.spotted = () => {
         if (beat) return;
-        if (!G.note) { sfx.bad?.(); fail('fired'); return; }
+        if (!G.note) { fail('fired'); return; }
         if (noteCd <= 0) { noteCd = 5; say(pick(LINES.noteFlash), 2, true); }
       };
     } else {
@@ -118,13 +118,13 @@ registerStage('launch', {
           say(LINES.doctor[0]!, 1.4, true);
           startBeat('BRIBING', 1.8, () => {
             say(LINES.doctor[1]!, 2.4, true); floatText(`-$${G.money}`, D.p.x, D.p.y - 24, C.red);
-            G.money = 0; G.note = true; detourDone = true; D.goal = 'store'; D.avoidHr = false; sfx.cough?.();
+            G.money = 0; G.note = true; detourDone = true; D.goal = 'store'; D.avoidHr = false;
             later(2.6, () => say(LINES.noteOk, 2.2, true));
           });
         } else {
           startBeat('PUMPING', 1.6, () => {
-            G.fuel = 1; detourDone = true; D.goal = 'store'; say(pick(LINES.gas), 2.2, true); sfx.pump?.();
-            later(0.9, () => { const sp = behind(85); addChaser('cop', sp.x, sp.y, 0.6, 0.8); G.stars = 1; sfx.siren?.(); say(LINES.sirens, 1.8, true); });
+            G.fuel = 1; detourDone = true; D.goal = 'store'; say(pick(LINES.gas), 2.2, true);
+            later(0.9, () => { const sp = behind(85); addChaser('cop', sp.x, sp.y, 0.6, 0.8); G.stars = 1; say(LINES.sirens, 1.8, true); });
           });
         }
       } else if (id === 'store' && detourDone) {
@@ -145,7 +145,7 @@ registerStage('launch', {
       else if (G.t > 5 && G.t % 12 < dt) say(pick(LINES.hr));
     } else {
       G.fuel -= dt / 50;
-      if (G.fuel < 0.3 && !fuelWarned) { fuelWarned = true; say(pick(LINES.fuelLow), 2, true); }
+      if (G.fuel < 0.3 && !fuelWarned) { fuelWarned = true; say(pick(LINES.fuelLow), 2, true); sfx.fuelLow?.(); }
       if (G.fuel > 0.3) fuelWarned = false;
       if (G.fuel <= 0) { G.fuel = 0; fail('fuel'); }
     }
@@ -175,7 +175,7 @@ registerStage('home', {
       const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 75 ? cp : behind(130); addChaser('cop', c.x, c.y, 0.6, 1.2);
     }
     ev.caught = (k) => fail(k);
-    ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(['TOUCH GRASS!', 'THE RING?!', 'COME BACK!']), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(['PAY UP!', 'KNEECAPS!']), x, y - 26, C.yellow); else sfx.siren?.(); };
+    ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(['TOUCH GRASS!', 'THE RING?!', 'COME BACK!']), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(['PAY UP!', 'KNEECAPS!']), x, y - 26, C.yellow); };
     ev.arrive = (id) => { if (id === 'home') arriveEnd('HOME!', Math.max(0, 1000 - 10 * G.hits), () => { say(LINES.escape, 2, true); D.chasers = []; }); };
     const intro = G.branch === 'quit' && G.store === 'steal' ? pick(LINES.chase.cop2) : pick(LINES.chase[kind]);
     R.banner(BANNERS.home[0], [intro, ...BANNERS.home[1]]);
