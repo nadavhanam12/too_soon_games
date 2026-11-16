@@ -55,7 +55,8 @@ src/sfx.ts, theme.ts game sounds + MUSIC (4 looped files); asphalt / sunset them
                      real-world style): cash, can, letter (spray + lick), crash, wasted, tick + ok (template buttons),
                      choose (boss/clerk option), type / erase / pwWrong / pwRight (PC), fuelLow. Debug: __sfx(name)
 src/carsound.ts      continuous driving sounds (synth, 0 KB): engine (4 arcade gears, louder on gas), drift squeal, wall
-                     scrape, HR proximity beeper (sick branch before the note). drive.ts stepWorld calls carSound() every
+                     scrape, HR proximity beeper (sick branch before the note), police siren (copSiren: a wail that
+                     grows with the nearest cop and turns into a yelp at the bumper). drive.ts stepWorld calls both every
                      step; a watchdog fades it out when no leg is driving. Low fuel = one sfx.fuelLow chime (legs.ts)
 assets/audio/        4 G-funk loops from ACE-Step, ~215 KB each (DECISIONS 74): theme = title/cutscene/PRESS START/result,
                      drive = commute + launch, chase = home, scheme = boss/clerk/pc (play.ts STAGE_MUSIC); lose = silence.
@@ -85,7 +86,7 @@ assets-src/portraits/ the 1086x1448 originals (not shipped; regenerate the 720 p
 | leg time-bonus targets | `play.ts` `LEG_TARGET_S` | 40 / 60 / 50 s (bonus = 10 × seconds under) |
 | score | pickups +50, near miss +10, letter +200, crash −20, escape +1000 − 10×crashes, password first try +500 |
 | boss sticker | `src/portraits.ts` `STICKER` (source px of the 1086-wide original) | cx 948, cy 196, 250x72, −0.2 rad |
-| car sound levels | `src/carsound.ts` `IDLE_G` / `ENGINE_G` / `SKID_G` / `SCRAPE_G`, `HR_NEAR` | 0.01 / 0.028 / 0.07 / 0.09 · beeper from 75 u beyond the red circle (1 beep/s → 8/s) |
+| car sound levels | `src/carsound.ts` `IDLE_G` / `ENGINE_G` / `SKID_G` / `SCRAPE_G`, `HR_NEAR` | 0.01 / 0.028 / 0.07 / 0.09 · beeper from 75 u beyond the red circle (1 beep/s → 8/s) · siren `SIREN_G` 0.05, heard within `SIREN_FAR` 220 u, yelp under `SIREN_YELP` 35 u (0.42 → 3.4 sweeps/s) |
 
 ## Commands (from `GamesTemplate/common-game-code`)
 

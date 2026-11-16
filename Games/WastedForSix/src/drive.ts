@@ -10,7 +10,7 @@ import {
 } from './city';
 import type { CarKind, Frame, Fx, World3D } from './world3d-api';
 import { C } from './art';
-import { carSound } from './carsound';
+import { carSound, copSiren } from './carsound';
 import { ptxt } from './pixel';
 
 export const MAX_V = 46;           // player top speed (the scene's MAX)
@@ -156,6 +156,7 @@ export function stepWorld(dt: number, opts: { chasersOn: boolean }): void {
   D.t += dt;
   stepPlayer(dt);
   carSound(dt, D.p, D.hr && D.avoidHr ? dist(D.hr, D.p) - HR_R : null);   // engine, squeal, scrape, HR beeper
+  copSiren(opts.chasersOn ? D.chasers.reduce((m, c) => (c.kind === 'cop' ? Math.min(m, dist(c, D.p)) : m), Infinity) : null);   // police wail
   for (const n of D.npcs) stepNpc(n, dt);
   if (D.hr) {
     stepNpc(D.hr, dt);

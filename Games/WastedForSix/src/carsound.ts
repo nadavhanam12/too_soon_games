@@ -12,7 +12,15 @@ const IDLE_G = 0.01, ENGINE_G = 0.028;   // engine halved 2026-11-17 (was 0.022 
 const SKID_G = 0.07, SCRAPE_G = 0.09;
 const HR_NEAR = 75;         // HR beeper range beyond its red circle (u), same falloff as the HUD heat
 
-interface Nodes { engA: OscillatorNode; engB: OscillatorNode; engF: BiquadFilterNode; engV: GainNode; skidV: GainNode; scrV: GainNode }
+interface Nodes {
+  engA: OscillatorNode; engB: OscillatorNode; engF: BiquadFilterNode; engV: GainNode; skidV: GainNode; scrV: GainNode;
+  sirLfo: OscillatorNode; sirF: BiquadFilterNode; sirV: GainNode;
+}
+// police siren (copSiren): a US-style wail that turns into a fast yelp when the cop is right behind you
+const SIREN_G = 0.05;        // at the bumper; fades out over SIREN_FAR
+const SIREN_FAR = 220;       // u: beyond this the siren is silent (the cop spawns ~95 u behind: must be heard)
+const SIREN_YELP = 35;       // u: closer than this the wail speeds up into a yelp
+const WAIL_HZ = 0.42, YELP_HZ = 3.4;   // sweeps per second
 let N: Nodes | null = null;
 let lastCall = 0, prevV = 0, thr = 0, scrape = 0, beepT = 0;
 
@@ -32,13 +40,35 @@ function build(): Nodes {
   };
   const skidV = noiseBand(2200, 4), scrV = noiseBand(700, 1.2);
   engA.start(); engB.start();
+  // siren: two slightly detuned horns sweeping 650 ↔ 1500 Hz (a triangle LFO on their pitch), a horn-like band-pass,
+  // then a low-pass that muffles it with distance
+  const sirLfo = c.createOscillator(); sirLfo.type = 'triangle'; sirLfo.frequency.value = WAIL_HZ;
+  const sirDepth = c.createGain(); sirDepth.gain.value = 425; sirLfo.connect(sirDepth);
+  const sirBand = c.createBiquadFilter(); sirBand.type = 'bandpass'; sirBand.frequency.value = 1100; sirBand.Q.value = 1.4;
+  const sirF = c.createBiquadFilter(); sirF.type = 'lowpass'; sirF.frequency.value = 1500;
+  const sirV = c.createGain(); sirV.gain.value = 0;
+  for (const [type, cents] of [['sawtooth', 0], ['square', 14]] as const) {
+    const o = c.createOscillator(); o.type = type; o.frequency.value = 1075; o.detune.value = cents;
+    sirDepth.connect(o.frequency); o.connect(sirBand); o.start();
+  }
+  sirBand.connect(sirF); sirF.connect(sirV); sirV.connect(out); sirLfo.start();
   // watchdog: the driving legs stopped calling us → fade out (no stage has to stop the engine explicitly)
   window.setInterval(() => {
     if (!N || performance.now() - lastCall < 200) return;
     const t = c.currentTime;
-    for (const g of [N.engV, N.skidV, N.scrV]) g.gain.setTargetAtTime(0, t, 0.08);
+    for (const g of [N.engV, N.skidV, N.scrV, N.sirV]) g.gain.setTargetAtTime(0, t, 0.08);
   }, 150);
-  return { engA, engB, engF, engV, skidV, scrV };
+  return { engA, engB, engF, engV, skidV, scrV, sirLfo, sirF, sirV };
+}
+
+/** One world step of the police siren. `cop` = distance to the nearest chasing cop, or null / Infinity for none. */
+export function copSiren(cop: number | null): void {
+  if (!N) N = build();
+  const t = sfxOut().context.currentTime;
+  const near = cop !== null && Number.isFinite(cop) ? Math.min(1, Math.max(0, 1 - (cop - 10) / SIREN_FAR)) : 0;
+  N.sirV.gain.setTargetAtTime(SIREN_G * Math.pow(near, 1.2), t, 0.15);
+  N.sirF.frequency.setTargetAtTime(900 + near * 3600, t, 0.15);
+  N.sirLfo.frequency.setTargetAtTime(cop !== null && cop < SIREN_YELP ? YELP_HZ : WAIL_HZ, t, 0.3);
 }
 
 /** One world step. `hr` = the HR minivan's distance beyond its sight radius, or null when it cannot fire you. */
@@ -82,7 +112,8 @@ export function carSound(dt: number, p: CarState, hr: number | null, squeal = 0)
 // debug (CLAUDE.md): live levels, read by the browser check
 (window as unknown as Record<string, unknown>).__carSound = () => (N ? {
   engine: +N.engV.gain.value.toFixed(3), hz: Math.round(N.engA.frequency.value), cutoff: Math.round(N.engF.frequency.value),
-  skid: +N.skidV.gain.value.toFixed(3), scrape: +N.scrV.gain.value.toFixed(3), ctx: N.engV.context.state,
+  skid: +N.skidV.gain.value.toFixed(3), scrape: +N.scrV.gain.value.toFixed(3),
+  siren: +N.sirV.gain.value.toFixed(3), sirenSweepsPerS: +N.sirLfo.frequency.value.toFixed(2), ctx: N.engV.context.state,
 } : null);
 
 /** drive.ts: the car is sliding along a wall at `speed` u/s (called every step while it touches). */
