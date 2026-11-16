@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Trial</title>
+<style>
+  :root { --bg:#111; --fg:#eee; --muted:#999; --card:#1c1c1c; --accent:#f5c518; }
+  body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; } p { color:var(--muted); margin:0 0 12px; }
+  nav { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  nav a { color:var(--fg); background:var(--card); padding:4px 10px; border-radius:6px; text-decoration:none; }
+  nav a.on { background:var(--accent); color:#111; }
+  section { background:var(--card); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+  h2 { font-size:16px; margin:0 0 8px; color:var(--accent); direction:ltr; text-align:right; }
+  .label { color:var(--fg); margin:-4px 0 8px; }
+  .row { display:flex; align-items:center; gap:10px; margin:6px 0; flex-wrap:wrap; }
+  .row b { width:24px; } audio { flex:1; min-width:220px; }
+  details { color:var(--muted); font-size:13px; } pre { white-space:pre-wrap; direction:ltr; text-align:left; margin:6px 0 0; }
+</style>
+</head>
+<body>
+<h1>ניסיון מוזיקה – GTA6</h1>
+<p>מה שמסומן "לולאה" מתנגן שוב ושוב – הקשיבו גם לנקודת החיבור בסוף.</p>
+<nav id="runs"></nav>
+<div id="app"></div>
+<script>
+  const RUNS = ['styles-v2'];
+  const run = new URLSearchParams(location.search).get('run') || RUNS[0];
+  document.getElementById('runs').innerHTML = RUNS.map((r) => `<a href="?run=${r}" class="${r === run ? 'on' : ''}">${r}</a>`).join('');
+  fetch(`runs/${run}/prompts.json`).then((r) => r.json()).then((log) => {
+    const app = document.getElementById('app');
+    for (const [name, t] of Object.entries(log)) {
+      const loop = !!t.loop_bars;
+      const s = document.createElement('section');
+      s.innerHTML = `<h2>${name}${loop ? ' · לולאה' : ''}</h2>${t.label ? `<div class="label">${t.label}</div>` : ''}`;
+      t.results.forEach((r) => {
+        s.insertAdjacentHTML('beforeend', `<div class="row"><b>${r.n}</b><audio controls preload="none" ${loop ? 'loop' : ''} src="runs/${run}/game/${name}-${r.n}.mp3"></audio></div>`);
+      });
+      const lyr = t.lyrics && t.lyrics !== '[Instrumental]' ? `\n\n${t.lyrics}` : '';
+      s.insertAdjacentHTML('beforeend', `<details><summary>prompt</summary><pre>${t.prompt}${lyr}</pre></details>`);
+      app.appendChild(s);
+    }
+  });
+  // Only one player at a time.
+  document.addEventListener('play', (e) => {
+    for (const a of document.querySelectorAll('audio')) if (a !== e.target) a.pause();
+  }, true);
+</script>
+</body>
+</html>

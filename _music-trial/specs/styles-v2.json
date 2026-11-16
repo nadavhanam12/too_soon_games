@@ -1,0 +1,29 @@
+{
+  "note": "Iteration 2: four directions of late-90s/2000s West Coast producer sound. Production traits only, no artist or song names. Less mechanical: live players, behind-the-beat swing, analog warmth. Humor via attitude, not gimmick instruments.",
+  "defaults": {
+    "model": "acestep-v15-xl-sft", "inference_steps": 50, "guidance_scale": 7.0,
+    "lyrics": "[Instrumental]", "duration": 40, "batch": 3, "loop_bars": 12
+  },
+  "tracks": {
+    "A-gfunk": {
+      "label": "G-funk קלאסי ('92) – מוג מייבב, בס חי, Rhodes, נשיפות סול",
+      "prompt": "classic early 1990s West Coast G-funk instrumental, slow rolling lowrider groove, high-pitched whining Moog portamento lead melody, live funky bass guitar played by a session player, warm Fender Rhodes chords, laid-back swung drum break slightly behind the beat, soulful female background oohs, smoky analog tape warmth, mischievous tongue-in-cheek swagger",
+      "bpm": 92, "key_scale": "F minor"
+    },
+    "B-piano": {
+      "label": "פסנתר מינימלי (99') – תופים ענקיים, ריף פסנתר סטקטו, סטרינגס",
+      "prompt": "late 1990s West Coast hip-hop instrumental, sparse iconic staccato piano riff of a few repeating notes, huge crisp punchy acoustic drums with fat kick and cracking snare, orchestral string stabs, deep round bass, minimal and spacious arrangement, pristine polished studio mix, cool confident head-nodding swagger with a playful wink",
+      "bpm": 93, "key_scale": "A minor"
+    },
+    "C-cinematic": {
+      "label": "קולנועי (אמצע 2000s) – תופים כבדים, פסנתר מינורי, מתח שוד",
+      "prompt": "mid 2000s West Coast hip-hop instrumental, heavy stomping drums, dramatic minor-key piano loop, tense pizzicato and sweeping strings, heist movie suspense, deep sub bass, big polished cinematic production, menacing but secretly playful and cheeky",
+      "bpm": 88, "key_scale": "D minor"
+    },
+    "D-lowrider": {
+      "label": "לואוריידר שמשי – טוקבוקס, גיטרת וואה, כפיים, נסיעה בקיץ",
+      "prompt": "sunny West Coast G-funk instrumental, summer lowrider cruise on the boulevard, talkbox melody, wah-wah funk guitar, live bass guitar, warm Rhodes, handclaps and laid-back swung drums, relaxed feel-good groove, playful whistled hook, analog warmth, carefree and funny",
+      "bpm": 95, "key_scale": "G minor"
+    }
+  }
+}

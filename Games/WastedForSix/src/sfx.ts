@@ -13,5 +13,10 @@ Object.assign(sfx, {
   lose: () => { [330, 262, 196, 131].forEach((f, i) => after(i * 190, () => tone(f, 0.32, 'sawtooth', 0.06))); },
 });
 
-/** Minor 80s synthwave progression for the sequencer (Am, F, C, G). */
-export const MUSIC: Partial<MusicDef> = { bpm: 118, prog: [[45, [57, 60, 64, 69]], [41, [53, 57, 60, 65]], [48, [48, 52, 55, 60]], [43, [55, 59, 62, 67]]] };
+/** Four looped G-funk tracks made with ACE-Step (DECISIONS 74), ~215 KB each, loaded after the first frame:
+ *  theme = title / cutscene / PRESS START / result · drive = commute + launch legs · chase = the home leg ·
+ *  scheme = boss, clerk and the password. Prompts + seeds: _music-trial/runs/styles-v2/prompts.json. */
+export const MUSIC: Partial<MusicDef> = {
+  files: { theme: 'assets/audio/theme.mp3', drive: 'assets/audio/drive.mp3', chase: 'assets/audio/chase.mp3', scheme: 'assets/audio/scheme.mp3' },
+  volume: { theme: 0.34, drive: 0.36, chase: 0.38, scheme: 0.3 },
+};

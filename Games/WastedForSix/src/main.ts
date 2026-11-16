@@ -3,7 +3,7 @@ import { createGame, R, W, view, ctx, txt, type GameConfig, type RunResult } fro
 import cfgJson from '../game.json';
 import { content, CONSOLATION, LOSE_LINES } from './content';
 import { theme } from './theme';
-import { playScene } from './play';
+import { playScene, G, STAGE_MUSIC } from './play';
 import { MUSIC } from './sfx';
 import { C, confettiPx, crashArt, guy, titleBand, tvArt } from './art';
 import { ptxt } from './pixel';
@@ -19,7 +19,8 @@ createGame({
   theme,
   scenes: { play: playScene },
   music: MUSIC,
-  musicFor: (s) => (s === 'play' ? 'play' : s === 'result' ? 'win' : s === 'lose' ? 'off' : 'calm'),
+  // theme opens and closes the story; inside play each stage picks its own track (play.ts STAGE_MUSIC)
+  musicFor: (s) => (s === 'play' ? STAGE_MUSIC[G.stage] : s === 'lose' ? 'off' : 'theme'),
   hooks: {
     drawTitleArt(st) {
       ptxt('WASTED', W / 2, 96, 6, C.pink, 'center', '#3a0a2a');

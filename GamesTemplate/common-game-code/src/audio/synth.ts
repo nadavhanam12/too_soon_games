@@ -98,15 +98,18 @@ export const sfx: Record<string, (...a: any[]) => void> = {
 sfx.logo = () => { sfx.whoosh!(); after(140, () => sfx.ping!()); };
 
 // ---------- music: step sequencer ----------
-export type MusicMode = 'off' | 'calm' | 'play' | 'win';
+// The synth sequencer knows calm / play / win. With `files`, a game may name any tracks it wants (e.g. 'drive',
+// 'chase') and switch between them mid-scene with music.set(name) (DECISIONS 74).
+export type MusicMode = 'off' | 'calm' | 'play' | 'win' | (string & {});
 export type TrackName = Exclude<MusicMode, 'off'>;
 /** Music is either the synth sequencer (bpm + chord progression) or looped files (`files`), crossfaded per mode. */
 export interface MusicDef {
   bpm: number; prog: Array<[number, number[]]>; // [root midi, chord tones]
   files?: Partial<Record<TrackName, string>>;   // e.g. { calm: 'assets/audio/calm.mp3', play: 'assets/audio/tense.mp3', win: 'assets/audio/win.mp3' }
-  volume?: Partial<Record<TrackName, number>>;  // per-track loudness, default calm .32 / play .38 / win .4
+  volume?: Partial<Record<TrackName, number>>;  // per-track loudness, default calm .32 / play .38 / win .4, named tracks .36
 }
-const TRACK_VOL: Record<TrackName, number> = { calm: 0.32, play: 0.38, win: 0.4 };
+const TRACK_VOL: Record<string, number> = { calm: 0.32, play: 0.38, win: 0.4 };
+const NAMED_TRACK_VOL = 0.36;
 
 const DEFAULT_MUSIC: MusicDef = { bpm: 126, prog: [[57, [57, 60, 64, 67]], [53, [53, 57, 60, 65]], [48, [48, 52, 55, 60]], [55, [55, 59, 62, 67]]] };
 
@@ -130,7 +133,10 @@ export const music = {
   },
   hasFiles(): boolean { return Object.keys(this.tracks).length > 0; },
   set(mode: MusicMode) {
-    if (mode === this.mode) return; this.mode = mode;
+    if (mode === this.mode) return;
+    // a typo in a track name would otherwise just fade everything to silence
+    if (this.hasFiles() && mode !== 'off' && !this.tracks[mode]) throw new Error(`music.set('${mode}'): no such track in music.files`);
+    this.mode = mode;
     if (this.hasFiles()) return; // the ticker fades tracks toward the new mode
     if (mode === 'off') this.stop(); else this.start();
   },
@@ -139,7 +145,7 @@ export const music = {
     const want: MusicMode = this.on ? this.mode : 'off';
     for (const k of Object.keys(this.tracks) as TrackName[]) {
       const a = this.tracks[k]!; if (a.dataset.missing) continue;
-      const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k]) : 0;
+      const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) : 0;
       if (target > 0 && a.paused) { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { /* blocked: retried next tick */ }); }
       const v = a.volume + Math.max(-dt * 1.2, Math.min(dt * 1.2, target - a.volume));
       a.volume = Math.max(0, Math.min(1, v));

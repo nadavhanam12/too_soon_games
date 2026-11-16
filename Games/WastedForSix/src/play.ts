@@ -3,7 +3,7 @@
 // Shared state G carries the branch (sick / quit), the store choice, money, score, found letters and the frozen police
 // position across stages. Each stage snapshots G on entry so "retry from this stage" restores it exactly.
 // Fails (fired / out of fuel / caught) go through R.fail → the template's lose screen, headed WASTED.
-import { R, W, view, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, type Scene } from '@tsg/index';
+import { R, W, view, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, music, type Scene } from '@tsg/index';
 import type { Branch, StoreChoice, TradeItem } from './content';
 import { D, MAX_V, gpsTarget, worldReady } from './drive';
 import { PLACES, roadLine, nodeOf, type PlaceId } from './city';
@@ -21,6 +21,9 @@ export interface Stage {
   key?(e: KeyboardEvent): boolean;
 }
 const ORDER: StageName[] = ['commute', 'boss', 'launch', 'clerk', 'home', 'pc'];
+/** Which looped track each stage plays (sfx.ts MUSIC.files); the template crossfades on change. */
+export const STAGE_MUSIC: Record<StageName, string> = { commute: 'drive', boss: 'scheme', launch: 'drive', clerk: 'scheme', home: 'chase', pc: 'scheme' };
+const setMusic = (track: string): void => { if (R.cfg.music !== false) music.set(track); };
 export const LEG_TARGET_S: Partial<Record<StageName, number>> = { commute: 40, launch: 60, home: 50 };
 export const OUTRO_S = 1.5;      // "PRESS START" end beat (rule 13ג)
 export const START_MONEY = 60;   // wallet at 8:30 a.m. (the sick branch always has something for the doctor)
@@ -58,6 +61,7 @@ export function registerStage(name: StageName, s: Stage): void { stages[name] = 
 export function setStage(name: StageName): void {
   G.stage = name; G.t = 0; G.hits = 0; G.entry = snap();
   R.stageStart(name);
+  setMusic(STAGE_MUSIC[name]);
   stages[name]!.enter();
 }
 
@@ -80,6 +84,7 @@ export function fail(reason: string): void {
 export function finishGame(): void {
   if (G.ended) return;
   G.ended = true; G.outro = OUTRO_S;
+  setMusic('theme'); // PRESS START: back to the opening tune, it carries on into the result screen
   pendingWin = { score: clamp(Math.round(G.score), 0, R.cfg.score.max), durationS: G.playT, stage: 'pc', reason: G.branch ?? '' };
 }
 

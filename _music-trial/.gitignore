@@ -1,0 +1,4 @@
+# Audio stays local: WAV masters are ~15 MB each, and the shipped MP3s live in Games/<GameId>/assets/audio.
+# Kept in git: the scripts, specs and runs/*/prompts.json (prompt + seed = enough to regenerate).
+runs/*/raw/
+runs/*/game/
