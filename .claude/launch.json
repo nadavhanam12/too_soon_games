@@ -29,6 +29,16 @@
         "HalfMarathon"
       ],
       "port": 5173
+    },
+    {
+      "name": "wastedforsix-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "GamesTemplate/common-game-code/build.mjs",
+        "dev",
+        "WastedForSix"
+      ],
+      "port": 5173
     }
   ]
 }

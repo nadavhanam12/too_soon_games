@@ -1,0 +1,44 @@
+// Wasted for Six: entry point. Wires game.json, content, theme, the six-stage play scene and the art hooks.
+import { createGame, R, W, ctx, txt, type GameConfig, type RunResult } from '@tsg/index';
+import cfgJson from '../game.json';
+import { content, CONSOLATION, LOSE_LINES } from './content';
+import { theme } from './theme';
+import { playScene } from './play';
+import { MUSIC } from './sfx';
+import { C, confettiPx, crashArt, guy, titleBand, tvArt } from './art';
+import { ptxt } from './pixel';
+import './legs'; import './scenes';
+
+const cfg = cfgJson as GameConfig;
+let ci = 0;
+
+createGame({
+  cfg,
+  content,
+  theme,
+  scenes: { play: playScene },
+  music: MUSIC,
+  musicFor: (s) => (s === 'play' ? 'play' : s === 'result' ? 'win' : s === 'lose' ? 'off' : 'calm'),
+  hooks: {
+    drawTitleArt(st) {
+      ptxt('WASTED', W / 2, 96, 6, C.pink, 'center', '#3a0a2a');
+      ptxt('FOR SIX', W / 2, 150, 5, C.yellow, 'center', '#3a2a00');
+      titleBand(300, st);
+    },
+    drawLoseArt(st) { crashArt(70, st); },
+    drawResultArt(st, r: RunResult) {
+      confettiPx(st, 40, 0, 640);
+      // free band between the result sentence (~y 150) and the template's score panel (y 386)
+      tvArt(W / 2 - 40, 190, st, 'PLAYING');
+      guy(W - 46, 372, 3.5, { arms: 'up' });
+      txt(r.reason === 'quit' ? '(unemployed, happy)' : '(on "sick leave")', W / 2 - 40, 174, 11, '#cfc3dd', 'center', 700);
+      void ctx;
+    },
+    onSceneChange(to) {
+      if (to === 'lose') {
+        content.lose.line = LOSE_LINES[R.run?.reason ?? ''] ?? 'Caught.';
+        content.lose.consolation = CONSOLATION[ci++ % CONSOLATION.length];
+      }
+    },
+  },
+});

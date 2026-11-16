@@ -1,0 +1,53 @@
+{
+  "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
+  "id": "WastedForSix",
+  "slug": "wasted-for-six",
+  "_titleCandidates": ["Wasted for Six", "Day Off for Six", "13 Years, One Thursday"],
+  "title": "Wasted for Six",
+  "tagline": "13 years of waiting. One boss, one store, one chase home. Get free for launch day.",
+  "audience": "us",
+  "lang": "en",
+  "version": "0.1.0",
+  "event": {
+    "title": "GTA 6 launch day",
+    "headline": "The most-awaited game in history launches Thursday.",
+    "date": "2026-11-19",
+    "sourceUrl": "https://365.military.com/feature/2025/11/07/rockstar-delays-gta-6-again-heres-what-fans-need-know.html",
+    "sourceLabel": "Military.com",
+    "sources": [
+      "https://365.military.com/feature/2025/11/07/rockstar-delays-gta-6-again-heres-what-fans-need-know.html",
+      "https://gulfnews.com/entertainment/the-gta-6-timeline-from-2013-to-nowdelays-drama-and-why-its-taking-forever-1.500337386",
+      "https://timesaver.gg/blog/gta-6-delay",
+      "https://timesaver.gg/blog/gta-6-reviews-release-date-before-launch-confirmed-2026",
+      "https://fenixbazaar.com/2026/11/11/gta-6-review-embargo-metacritic/",
+      "https://money.com/gta-fever-vacation-requests-for-grand-theft-auto-6s-release-date-are-already-spiking",
+      "https://fortune.com/2026/08/20/grand-theft-auto-six-days-off-from-work-anticipating-gen-z-millennial-hype-rockstar-games-take-two-interactive/",
+      "https://gamingbible.com/news/gta-6-fans-planning-sick-week-489428-20250314",
+      "https://gamingbible.com/news/gta-6-release-date-staff-shortages-788204-20241205",
+      "https://dexerto.com/gaming/gta-6-wait-mocked-grand-taking-ages-vi-parody-3002468",
+      "https://www.gamesradar.com/games/action/gta-6-parody-previously-pulled-from-playstation-store-now-set-to-release-on-steam-after-being-updated-to-emphasize-its-unique-direction-dev-wants-sony-to-reconsider",
+      "https://atlf4studio.itch.io/gta-61",
+      "https://mobilesyrup.com/?p=1015601"
+    ]
+  },
+  "score": {
+    "label": "points you scored on the way to launch day",
+    "max": 10000,
+    "minDurationS": 120,
+    "higherIsBetter": true
+  },
+  "share": {
+    "text": "Wasted for Six 🎮 13 years of waiting, one boss, one store, one chase. I scored {result} points getting home for launch day. Rank: \"{rank}\". {url}"
+  },
+  "screens": {
+    "cutscene": true,
+    "board": true,
+    "facts": true,
+    "lose": true
+  },
+  "showPlayerCountFrom": 500,
+  "cover": "assets/cover.png",
+  "ogImage": "assets/og.png",
+  "status": "draft",
+  "themeColor": "#ff3fa4"
+}
