@@ -62,9 +62,11 @@ restored to `max(4000, altitude at stage start)`, score kept) or restart.
 ## Still missing for publishing
 
 Publish at the same address, `/safe-flight/`, replacing the live Hebrew version (DECISIONS 73). Before publishing:
-an English article URL for `event.sourceUrl` (today a Hebrew ynet placeholder); reset the `safe-flight` leaderboard
+reset the `safe-flight` leaderboard
 (decided 2026-11-17: the Hebrew players' scores do not carry over; see "Leaderboard reset on publish" below); `games.json` still has the Hebrew entry (`/publish-game`
 rewrites it); `status` is `draft`. Cover, og and clip are already English (2026-11-17).
+Source: Al Jazeera, 2 Oct 2026 ("12 minutes of madness"); the facts screen was corrected to match it on 2026-11-17
+(the captain opened the cockpit door himself; no fighter-jet escort or child count in the reports).
 
 ### Leaderboard reset on publish (decided 2026-11-17)
 
