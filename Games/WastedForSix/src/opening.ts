@@ -165,7 +165,7 @@ export const titleScene: Scene = {
     // tagline
     const lk = k01(st, 0.4, 0.3);
     ctx.globalAlpha = lk;
-    let y = 428 + (1 - easeO(lk)) * 14;
+    let y = 414 + (1 - easeO(lk)) * 14;
     // the first line has its numbers big and yellow; '\n' in a line is a line break
     c.lines.forEach((line, n) => {
       if (n === 0) { y += 26 * bigNumbers(line, W / 2, y, 15, 24, '#fff', th.colors.accent, W - 40, 26); return; }
@@ -174,10 +174,10 @@ export const titleScene: Scene = {
     // challenge from a friend, or how many played; your best
     if (R.challenge) {
       const words = R.content.result.resultWords({ score: R.challenge.score, durationS: 0, won: true });
-      rr(24, 495, W - 48, 30, 15, 'rgba(14,14,16,.85)', th.colors.accent, 1.5);
-      txt(s.challenge(R.challenge.nick || s.aFriend, words), W / 2, 511, 13, th.colors.accent, 'center', 900);
-    } else if (R.players !== null && R.players > 0) txt(s.playersPlayed(fmtInt(R.players)), W / 2, 510, 13, th.colors.muted, 'center', 700);
-    if (R.best > 0) txt(`${s.yourBest}: ${R.content.result.resultWords({ score: R.best, durationS: 0, won: true })}`, W / 2, 537, 13, th.colors.muted, 'center', 700);
+      rr(24, 499, W - 48, 30, 15, 'rgba(14,14,16,.85)', th.colors.accent, 1.5);
+      txt(s.challenge(R.challenge.nick || s.aFriend, words), W / 2, 515, 13, th.colors.accent, 'center', 900);
+    } else if (R.players !== null && R.players > 0) txt(s.playersPlayed(fmtInt(R.players)), W / 2, 516, 13, th.colors.muted, 'center', 700);
+    if (R.best > 0) txt(`${s.yourBest}: ${R.content.result.resultWords({ score: R.best, durationS: 0, won: true })}`, W / 2, 540, 13, th.colors.muted, 'center', 700);
     ctx.globalAlpha = 1;
 
     // the button: chunky arcade pill with a hard edge, breathing a little. The whole screen starts the game.

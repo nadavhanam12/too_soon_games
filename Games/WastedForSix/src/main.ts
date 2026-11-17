@@ -1,5 +1,5 @@
 // TSG: Nice City (GameId WastedForSix): entry point. Wires game.json, content, theme, the seven-stage play scene and the art hooks.
-import { createGame, R, env, type GameConfig } from '@tsg/index';
+import { createGame, R, type GameConfig } from '@tsg/index';
 import cfgJson from '../game.json';
 import { content, CONSOLATION, LOSE_LINES } from './content';
 import { theme } from './theme';
@@ -41,9 +41,10 @@ createGame({
 // The preview card's picture: the full montage as a PNG data URL (null until its paintings are in). Read by
 // GamesTemplate/other-services/assets/make-assets.mjs, which puts it on og.png in place of the title screen.
 (window as unknown as Record<string, unknown>).__ogPic = () => { loadPortraits(); loadCutArt(); return montagePicture(['boss', 'clerk', 'fiancee'])?.toDataURL('image/png') ?? null; };
-// dev only: ?screen=community (or result / lose / board / facts) opens that screen with the full montage, for
-// checking the end screens and the share without a run. Waits for the paintings so the share picture is there.
-const screen = env.dev ? new URLSearchParams(location.search).get('screen') : null;
+// ?screen=community (or result / lose / board / facts) opens that screen with the full montage, to check the end
+// screens and the share without a run (also on the live site: it does nothing the debug hooks do not). Waits for the
+// paintings.
+const screen = new URLSearchParams(location.search).get('screen');
 if (screen) {
   G.met = ['boss', 'clerk', 'fiancee']; loadPortraits(); loadCutArt();
   const go = window.setInterval(() => { if (montagePicture(G.met)) { window.clearInterval(go); (window as unknown as { __go: (s: string) => void }).__go(screen); } }, 100);

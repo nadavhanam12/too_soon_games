@@ -9,7 +9,7 @@
       "tagline": "13 years of waiting. One boss, one store, one chase home. Get free for launch day.",
       "audience": "us",
       "lang": "en",
-      "version": "0.1.3",
+      "version": "0.1.6",
       "event": {
         "title": "Launch day of the most-awaited game in history",
         "headline": "The most-awaited game in history launches Thursday.",
@@ -34,7 +34,7 @@
       },
       "showPlayerCountFrom": 500,
       "cover": "assets/cover.png",
-      "ogImage": "assets/og.png",
+      "ogImage": "assets/og.jpg",
       "status": "live",
       "themeColor": "#0b0b0f",
       "publishedAt": "2026-11-17",
