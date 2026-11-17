@@ -1,0 +1,64 @@
+{
+  "game": "FallingCEO",
+  "createdAt": "2026-11-17T14:01:24.309Z",
+  "stages": {
+    "videos": {
+      "status": "approved",
+      "at": "2026-11-17T14:34:32.681Z",
+      "note": "all 3 clips allowed for paid: the CEO is a caricature, not a real person, and no name appears (user, 2026-11-17)"
+    },
+    "copy": {
+      "status": "approved",
+      "at": "2026-11-17T14:34:32.724Z",
+      "note": "user approved 2026-11-17"
+    },
+    "press-kit": {
+      "status": "approved",
+      "at": "2026-11-17T14:34:32.767Z",
+      "note": "user approved 2026-11-17; not deployed yet"
+    },
+    "journalists": {
+      "status": "ready",
+      "at": "2026-11-17T14:36:54.791Z",
+      "note": "test: 2 outlet tip forms"
+    },
+    "emails": {
+      "status": "ready",
+      "at": "2026-11-17T14:36:54.831Z",
+      "note": "2 drafts, not sent"
+    },
+    "creators": {
+      "status": "skipped",
+      "at": "2026-11-17T14:57:53.153Z",
+      "note": "test game is 5 days after the event: no fresh creators; rules tested on fictional data"
+    },
+    "paid-prep": {
+      "status": "ready",
+      "at": "2026-11-17T14:57:53.192Z",
+      "note": "3 clips, $30, US"
+    },
+    "t0-check": {
+      "status": "failed",
+      "at": "2026-11-17T15:56:07.633Z",
+      "note": "5/6: waiting for the phone check on a real iPhone and Android"
+    },
+    "post": {
+      "status": "pending"
+    },
+    "send-emails": {
+      "status": "pending"
+    },
+    "send-creators": {
+      "status": "pending"
+    },
+    "paid-launch": {
+      "status": "pending"
+    },
+    "gates": {
+      "status": "pending"
+    },
+    "summary": {
+      "status": "pending"
+    }
+  }
+}

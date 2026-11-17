@@ -1,0 +1,16 @@
+{
+  "$comment": "Settings for /launch-game. Contact details come from GamesTemplate/studio.json. Changing a legal flag is a team decision (playbook slide 14), not something a stage does by itself.",
+  "senderName": "Too Soon Games",
+  "postalAddress": "",
+  "legal": {
+    "coldEmailApproved": false,
+    "coldEmailCountries": ["IL", "US"],
+    "noEmailCountries": ["DE", "AT"]
+  },
+  "outreach": {
+    "maxWords": 120,
+    "maxPerGame": 25,
+    "dailyLimitPerSender": 25,
+    "followUpAfterHours": 6
+  }
+}

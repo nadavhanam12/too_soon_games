@@ -1,0 +1,98 @@
+{
+  "game": "FallingCEO",
+  "status": "prepared",
+  "createdAt": "2026-11-17T14:50:27.876Z",
+  "rules": {
+    "earliest": "T0+12, and only if the T0+6 gate passed (start rate >= 40%, share >= 3%, event still rising) and the team approved paid",
+    "stopIf": [
+      "cost per game start above $1.50 after $30 spent",
+      "event down 50% from its peak",
+      "72 hours since T0",
+      "an ad rejected twice"
+    ],
+    "tiers": [
+      {
+        "tier": 1,
+        "budget": "$30",
+        "window": "12-24 h",
+        "passIf": "cost per game start <= $0.50"
+      },
+      {
+        "tier": 2,
+        "budget": "up to $200",
+        "passIf": "cost per game start <= $0.30 and k >= 0.10"
+      },
+      {
+        "tier": 3,
+        "budget": "up to the $500 paid cap (slide 12)",
+        "note": "TikTok only from here (its minimums: $50/day per campaign, $20/day per ad group)"
+      }
+    ],
+    "noRealPeople": "no real faces or names in the ad (approved clips only)"
+  },
+  "campaign": {
+    "name": "TSG chip-drop test 20261115",
+    "objective": "OUTCOME_TRAFFIC",
+    "buyingType": "AUCTION",
+    "specialAdCategories": [],
+    "status": "PAUSED"
+  },
+  "adSet": {
+    "name": "US reels 18+",
+    "status": "PAUSED",
+    "lifetimeBudgetUsd": 30,
+    "durationHours": 24,
+    "optimizationGoal": "LANDING_PAGE_VIEWS",
+    "billingEvent": "IMPRESSIONS",
+    "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
+    "targeting": {
+      "countries": [
+        "US"
+      ],
+      "ageMin": 18,
+      "ageMax": 65,
+      "placements": [
+        "facebook_reels",
+        "instagram_reels",
+        "instagram_stories",
+        "facebook_stories"
+      ]
+    }
+  },
+  "ads": [
+    {
+      "name": "chip-drop hook",
+      "clip": "launch/videos/hook.mp4",
+      "thumbnail": "launch/videos/cover.png",
+      "primaryText": "The chip CEO resigned, so we built a game about the fall 📉 Dodge the headlines, keep falling, beat your friends. Free, no signup",
+      "headline": "Drop the Chip",
+      "description": "Free browser game. No signup.",
+      "callToAction": "PLAY_GAME",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=meta&utm_medium=paid&utm_campaign=chip-drop-20261115&utm_content=hook"
+    },
+    {
+      "name": "chip-drop arc",
+      "clip": "launch/videos/arc.mp4",
+      "thumbnail": "launch/videos/cover.png",
+      "primaryText": "The chip CEO resigned, so we built a game about the fall 📉 Dodge the headlines, keep falling, beat your friends. Free, no signup",
+      "headline": "Drop the Chip",
+      "description": "Free browser game. No signup.",
+      "callToAction": "PLAY_GAME",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=meta&utm_medium=paid&utm_campaign=chip-drop-20261115&utm_content=arc"
+    },
+    {
+      "name": "chip-drop challenge",
+      "clip": "launch/videos/challenge.mp4",
+      "thumbnail": "launch/videos/cover.png",
+      "primaryText": "The chip CEO resigned, so we built a game about the fall 📉 Dodge the headlines, keep falling, beat your friends. Free, no signup",
+      "headline": "Drop the Chip",
+      "description": "Free browser game. No signup.",
+      "callToAction": "PLAY_GAME",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=meta&utm_medium=paid&utm_campaign=chip-drop-20261115&utm_content=challenge"
+    }
+  ],
+  "measure": "cost per game start = spend / game_start where ch = paid:meta (admin, channels table); effective = that x (1 - k)",
+  "warnings": [
+    "No research.md: confirm the event is not political or social. Meta then requires a \"special ad category\" and an authorization, and the playbook says no paid at all for such events."
+  ]
+}

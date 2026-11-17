@@ -52,3 +52,10 @@ Games/*/music/runs/*/game/
 
 # internal legal / research notes: local only, never committed
 research_notes/
+
+# PublishGamesPipeline: heavy media and personal data (journalists, creators, emails) stay local
+Games/*/launch/videos/
+Games/*/launch/private/
+Games/*/launch/.work/
+PublishGamesPipeline/private/
+Games/*/launch/press/

@@ -1,0 +1,68 @@
+{
+  "game": "FallingCEO",
+  "lang": "en",
+  "campaign": "chip-drop-20261115",
+  "bioLink": "https://toosoongames.app/chip-drop/?utm_source=bio&utm_medium=social&utm_campaign=chip-drop-20261115",
+  "hashtags": [
+    "#Nvidia",
+    "#CEO",
+    "#browsergame",
+    "#indiegame"
+  ],
+  "description": "The chip CEO just resigned, and the floor is coming for him. Drop the Chip is a free one-minute browser game: keep falling, dodge the headlines, beat the leaderboard.",
+  "press": {
+    "headline": "Nvidia's CEO resigned. Now you can play the fall.",
+    "about": "Drop the Chip is a free browser game from Too Soon Games, built in the days after the November 2026 Nvidia CEO resignation. The player keeps a generic chip-company CEO falling down a tower of headlines while the board meeting (the floor) rises to catch him. Runs last about a minute, work on any phone without signup, and end with a share link that challenges a friend to beat your time. It is a parody: the character is generic, and the facts screen at the end links to the real reporting.",
+    "facts": [
+      "Free, no signup, plays in any mobile or desktop browser",
+      "About one minute per run, global leaderboard, friend-challenge links",
+      "Built in about a day by Too Soon Games, a small studio that turns news moments into games",
+      "Parody; the facts screen cites the Nvidia newsroom, Washington Post and Yahoo Finance"
+    ]
+  },
+  "posts": {
+    "tiktok": {
+      "network": "TikTok",
+      "text": "The CEO quit. The floor is coming for him 📉 How long can you keep him falling? Free game, link in bio #Nvidia #CEO #browsergame #indiegame",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=tiktok&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "clip": "hook",
+      "chars": 139
+    },
+    "instagram": {
+      "network": "Instagram Reels",
+      "text": "The CEO quit. The board meeting is rising to catch him 📉\nKeep him falling as long as you can. Free browser game, no signup, link in bio.\n#Nvidia #CEO #browsergame #indiegame",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=instagram&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "clip": "hook",
+      "chars": 174
+    },
+    "youtube": {
+      "network": "YouTube Shorts",
+      "title": "The CEO resigned. Keep him falling. #Shorts",
+      "text": "Drop the Chip: a free one-minute browser game about the week a chip CEO fell. Play: https://toosoongames.app/chip-drop/?utm_source=youtube&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=youtube&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "clip": "arc",
+      "chars": 188
+    },
+    "x": {
+      "network": "X",
+      "text": "The chip CEO resigned. We made it a game: keep him falling before the board meeting catches up 📉\n\nMy record is 18 seconds. Yours? https://toosoongames.app/chip-drop/?utm_source=x&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=x&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "clip": "challenge",
+      "chars": 154
+    },
+    "facebook": {
+      "network": "Facebook Reels",
+      "text": "The chip CEO resigned, so we built a game about the fall 📉 Dodge the headlines, keep falling, beat your friends. Free, no signup: https://toosoongames.app/chip-drop/?utm_source=facebook&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=facebook&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "clip": "hook",
+      "chars": 236
+    },
+    "threads": {
+      "network": "Threads",
+      "text": "Nvidia's CEO resigned. Three days later it was a game.\n\nKeep him falling. My record is 18 seconds 📉 https://toosoongames.app/chip-drop/?utm_source=threads&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "link": "https://toosoongames.app/chip-drop/?utm_source=threads&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "clip": "challenge",
+      "chars": 205
+    }
+  }
+}
