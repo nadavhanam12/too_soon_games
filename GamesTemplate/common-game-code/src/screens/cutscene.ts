@@ -1,6 +1,6 @@
-import { W } from '../core/canvas';
+import { W, ctx } from '../core/canvas';
 import { takeTap } from '../core/input';
-import { go, S, state, type Scene } from '../core/scenes';
+import { easeOB, go, S, state, type Scene } from '../core/scenes';
 import { R } from '../core/runtime';
 import { inBtn, wrap } from '../draw/prims';
 import { track } from '../analytics/track';
@@ -24,10 +24,14 @@ export const cutsceneScene: Scene = {
       if (step.text) {
         const lines = wrap(step.text, 15, W - 80, 400);
         const h = lines.length * 21 + 40 + (step.speaker ? 18 : 0);
+        // each text card rises in (rule 13יב)
+        const tk = Math.min(1, (S.st as number) / 0.25);
+        ctx.save(); ctx.globalAlpha = tk; ctx.translate(0, (1 - easeOB(tk)) * 18);
         th.panel(16, 476 - h / 2 + 40, W - 32, h);
         let y = 476 - h / 2 + 40 + 22;
         if (step.speaker) { th.text(step.speaker, W / 2, y, 13, th.colors.accent, 'center', 900); y += 20; }
         for (const l of lines) { th.text(l, W / 2, y, 15, th.colors.ink, 'center', 400); y += 21; }
+        ctx.restore();
       }
       if (step.dur > 0 && S.st >= step.dur) advance();
     }

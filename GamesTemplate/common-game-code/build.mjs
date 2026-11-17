@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // Build / dev / check for one game (docs/CONTRACTS.md).
-//   node build.mjs build <GameId>   → ../dist/<slug>/index.html (+ assets/)
-//   node build.mjs dev   <GameId>   → watch + serve http://127.0.0.1:5173/<slug>/
-//   node build.mjs check <GameId>   → tsc over the template + the game
+//   node build.mjs build <GameId>           → ../dist/<slug>/index.html (+ assets/)   publish build: only /publish-game uses it
+//   node build.mjs build <GameId> --local   → ../.local-dist/<slug>/ (bugcheck, asset scripts)
+//   node build.mjs dev   <GameId>           → ../.local-dist/<slug>/, watch + serve http://127.0.0.1:5173/<slug>/
+//   node build.mjs check <GameId>           → tsc over the template + the game
+// dist/ is deployed whole by /publish-game, so anything written there goes live with the next publish of ANY game.
+// Local work (dev, bugcheck, assets) therefore never writes to dist/.
 // Lazy modules (DECISIONS 72): every Games/<GameId>/src/lazy/<name>.ts is bundled on its own to <slug>/lazy/<name>.js,
 // outside index.html and outside its 300 KB budget. The game loads it after the first frame (loadLazy in the template).
 import { build as esbuild, context } from 'esbuild';
@@ -15,11 +18,15 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = resolve(HERE, '..');            // GamesTemplate/
 const REPO = resolve(TEMPLATE, '..');
-const DIST = join(TEMPLATE, 'dist');
+const PUBLISH_DIST = join(TEMPLATE, 'dist');     // deployed as a whole by /publish-game
+const LOCAL_DIST = join(TEMPLATE, '.local-dist'); // dev / bugcheck / assets; never deployed
 const MAX_HTML_BYTES = 300 * 1024;                // rule 13א
 
-const [, , cmd = 'build', gameId] = process.argv;
-if (!gameId || !/^[A-Z][A-Za-z0-9]+$/.test(gameId)) die(`usage: node build.mjs <build|dev|check> <GameId>   (GameId = folder in Games/, PascalCase)`);
+const argv = process.argv.slice(2);
+const [cmd = 'build', gameId] = argv.filter((a) => !a.startsWith('--'));
+const local = argv.includes('--local') || cmd === 'dev';
+const DIST = local ? LOCAL_DIST : PUBLISH_DIST;
+if (!gameId || !/^[A-Z][A-Za-z0-9]+$/.test(gameId)) die(`usage: node build.mjs <build|dev|check> <GameId> [--local]   (GameId = folder in Games/, PascalCase)`);
 const GAME_DIR = join(REPO, 'Games', gameId);
 if (!existsSync(GAME_DIR)) die(`no such game folder: ${GAME_DIR}`);
 const cfgPath = join(GAME_DIR, 'game.json');
@@ -28,7 +35,13 @@ const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
 const studio = readJson(join(TEMPLATE, 'studio.json'), {});
 const entry = join(GAME_DIR, 'src', 'main.ts');
 if (!existsSync(entry)) die(`missing ${entry}`);
+if (!cfg.event?.sourceUrl || !cfg.event?.date) die('game.json: event.sourceUrl and event.date required (rule 3)');
 const slug = cfg.slug;
+// game.json ships inside the bundle (main.ts imports it). The provenance (event.sourceUrl, event.sources) is an
+// internal record (rule 3): it stays in the repo and never reaches the page, where its URLs would name the real
+// brands the game only parodies (legal note 2026-11-17).
+const shippedCfg = JSON.stringify({ ...cfg, event: (({ sourceUrl, sources, ...e }) => e)(cfg.event) });
+const stripProvenance = { name: 'tsg-game-json', setup(b) { b.onLoad({ filter: /game\.json$/ }, (a) => (a.path === cfgPath ? { contents: shippedCfg, loader: 'json' } : undefined)); } };
 const OUT = join(DIST, slug);
 const LAZY_DIR = join(GAME_DIR, 'src', 'lazy');
 const lazyEntries = existsSync(LAZY_DIR) ? readdirSync(LAZY_DIR).filter((f) => f.endsWith('.ts')).map((f) => join(LAZY_DIR, f)) : [];
@@ -67,6 +80,7 @@ function esbuildOptions(dev, entryPoint = entry) {
     alias: { '@tsg': join(HERE, 'src') },
     nodePaths: [join(HERE, 'node_modules')],   // game folders have no node_modules of their own (three.js lives here)
     logLevel: 'silent',
+    plugins: [stripProvenance],
   };
 }
 
@@ -138,13 +152,13 @@ async function doDev() {
   const port = Number(process.env.PORT || 5173);
   const ctx = await context({
     ...esbuildOptions(true),
-    plugins: [{ name: 'tsg-html', setup(b) { b.onEnd((r) => { if (r.errors.length) { console.error(r.errors.map((e) => e.text).join('\n')); return; } const js = r.outputFiles?.find((f) => f.path.endsWith('.js'))?.text ?? ''; writeOut(js, true); }); } }],
+    plugins: [stripProvenance, { name: 'tsg-html', setup(b) { b.onEnd((r) => { if (r.errors.length) { console.error(r.errors.map((e) => e.text).join('\n')); return; } const js = r.outputFiles?.find((f) => f.path.endsWith('.js'))?.text ?? ''; writeOut(js, true); }); } }],
   });
   await ctx.watch();
   for (const f of lazyEntries) {
     const lctx = await context({
       ...esbuildOptions(true, f),
-      plugins: [{ name: 'tsg-lazy', setup(b) { b.onEnd((r) => { if (r.errors.length) { console.error(r.errors.map((e) => e.text).join('\n')); return; } writeLazy(f, r.outputFiles?.find((o) => o.path.endsWith('.js'))?.text ?? '', true); }); } }],
+      plugins: [stripProvenance, { name: 'tsg-lazy', setup(b) { b.onEnd((r) => { if (r.errors.length) { console.error(r.errors.map((e) => e.text).join('\n')); return; } writeLazy(f, r.outputFiles?.find((o) => o.path.endsWith('.js'))?.text ?? '', true); }); } }],
     });
     await lctx.watch();
   }

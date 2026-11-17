@@ -33,7 +33,7 @@ of publishing in a file, tool output or in passing is not.
 | 3 | **register in `GamesTemplate/games.json`** (add or update the entry: all `game.json` fields except `score`, `share`, `screens`; set `publishedAt` today if absent; `status` stays as in game.json, default `live`) | no | — |
 | 4 | **register in the API**: `PUT {apiBase}/v1/admin/games/<slug>` with header `x-admin-key` (from `server-and-data/worker/.dev.vars`), body `{name: title, maxScore: score.max, minDurationS: score.minDurationS}` | yes | if apiBase empty or unreachable: warn, continue in dry-run; stop in a real run (a live game without a registered API has no leaderboard) |
 | 5 | **bump** `game.json` → `version` patch | no | — |
-| 6 | **build client**: `npm run build -- <GameId>` in `common-game-code` → `GamesTemplate/dist/<slug>/` | no | stop |
+| 6 | **build client**: `npm run build -- <GameId>` in `common-game-code` → `GamesTemplate/dist/<slug>/`. This is the only client build that writes to `dist/`; dev, bugcheck and the asset scripts build into `GamesTemplate/.local-dist/`, so other games in `dist/` stay as last published | no | stop |
 | 7 | **build site**: `npm run build` in `frontend` → `GamesTemplate/dist/` root | no | stop |
 | 8 | **deploy**: `npx wrangler pages deploy dist --project-name toosoon-games` from `GamesTemplate` | yes | stop; previous deployment stays live (Pages deploys are atomic) |
 | 9 | **verify**: `curl -I {publicBase}/<slug>/` is 200; `GET {apiBase}/v1/games/<slug>/board` is 200; `curl {publicBase}/<slug>/?c=42&n=Test` contains `Test scored 42` in `og:title` | yes | report; do not roll back for a verify-only failure, fix forward |

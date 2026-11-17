@@ -43,6 +43,7 @@ export interface Hooks {
   drawBoardArt?(st: number): void;
   drawFactsArt?(st: number): void;
   drawCommunityArt?(st: number): void;
+  /** A picture to send along with the share text (system share sheet only); null = text only. */
   onSceneChange?(to: string, from: string): void;
 }
 
@@ -62,6 +63,7 @@ export interface Runtime {
   fail(r: Partial<RunResult>): void;              // → lose (or result when the game has no stages)
   win(r: Partial<RunResult>): void;               // → result
   say(text: string, life?: number): void;         // small toast
+  toastY: number;                                 // toast centre (safe coords, default 70); a game with a taller HUD moves it
   banner(title: string, lines: string[]): void;   // stage banner; pauses the game until tapped
   shake(s?: number): void;
   flash(a?: number): void;

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Make the share/cover images of a game from its real title screen (docs/CONTRACTS.md).
 //   node make-assets.mjs <GameId> [--force]
-// Writes Games/<GameId>/assets/og.png (1200x630, WhatsApp/iMessage/X card: phone + title + tagline) and
+// Writes Games/<GameId>/assets/og.png (1200x630, WhatsApp/iMessage/X card: phone + title + tagline; a game that
+// defines window.__ogPic gets that picture in place of the phone) and
 // cover.png (1200x900, site card: the phone alone, since the card prints the title and tagline under it).
 // Uses Playwright + the installed Chrome from ../bugcheck (no extra install). Existing files are kept unless --force.
 import { createRequire } from 'node:module';
@@ -14,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = resolve(HERE, '..', '..');
 const REPO = resolve(TEMPLATE, '..');
-const DIST = join(TEMPLATE, 'dist');
+const DIST = join(TEMPLATE, '.local-dist'); // local build; dist/ is the publish folder and must not change here
 const CLIENT = join(TEMPLATE, 'common-game-code');
 const { chromium } = createRequire(join(HERE, '..', 'bugcheck', 'package.json'))('playwright');
 
@@ -35,11 +36,11 @@ mkdirSync(OUT_DIR, { recursive: true });
 const todo = targets.filter((t) => force || !existsSync(join(OUT_DIR, t.name)));
 if (!todo.length) { console.log(`[assets] ${gameId}: og + cover already exist (use --force to redo)`); process.exit(0); }
 
-// 1. build the game so the title screen is current
-const b = spawnSync(process.execPath, [join(CLIENT, 'build.mjs'), 'build', gameId], { encoding: 'utf8' });
+// 1. build the game (into .local-dist) so the title screen is current
+const b = spawnSync(process.execPath, [join(CLIENT, 'build.mjs'), 'build', gameId, '--local'], { encoding: 'utf8' });
 if (b.status !== 0) { console.error(b.stdout + b.stderr); process.exit(1); }
 
-// 2. serve dist and capture the title screen at 2x
+// 2. serve .local-dist and capture the title screen at 2x
 const types = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.css': 'text/css', '.js': 'text/javascript' };
 const server = createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
@@ -57,6 +58,13 @@ await page.goto(`${base}/${slug}/`, { waitUntil: 'load' });
 await page.waitForTimeout(1800); // fonts + the title animation settle
 await page.evaluate(() => { try { window.__advance?.(0.7); } catch { /* ignore */ } });
 const shot = await page.locator('canvas#c').screenshot({ type: 'png' });
+// A game may bring its own picture for the og card (window.__ogPic → PNG data URL, null while it loads), e.g. a
+// character montage. It replaces the title screen on og.png only; the site's cover keeps the title screen.
+const own = await page.evaluate(async () => {
+  if (typeof window.__ogPic !== 'function') return null;
+  for (let i = 0; i < 100; i++) { const u = window.__ogPic(); if (u) { const im = new Image(); im.src = u; await im.decode(); return { url: u, w: im.naturalWidth, h: im.naturalHeight }; } await new Promise((r) => setTimeout(r, 100)); }
+  throw new Error('__ogPic never returned a picture (10 s)');
+});
 await page.close();
 
 // 3. compose the cards
@@ -71,7 +79,8 @@ const langLabel = rtl ? 'משחק רשת קצר בעברית' : 'A short web gam
 const studioName = studio.name || 'Too Soon Games';
 function html(w, h) {
   const tall = h > 700;
-  const phoneH = Math.round(h * (tall ? 0.92 : 0.9)), phoneW = Math.round(phoneH * 360 / 640);
+  const pic = !tall && own ? own : null;   // the game's own picture, on the og card only
+  const phoneH = Math.round(h * (tall ? 0.92 : 0.9)), phoneW = Math.round(phoneH * (pic ? pic.w / pic.h : 360 / 640));
   const titleSize = cfg.title.length > 14 ? (tall ? 76 : 64) : (tall ? 96 : 80);
   return `<!doctype html><html lang="${cfg.lang}" dir="${rtl ? 'rtl' : 'ltr'}"><head><meta charset="utf-8">
 <link rel="stylesheet" href="${fontLink}">
@@ -91,7 +100,7 @@ p.tag{font-size:${tall ? 36 : 30}px;line-height:1.3;margin:0 0 ${tall ? 44 : 30}
 .studio img{height:${tall ? 72 : 60}px;width:auto}
 .play{display:inline-block;background:#ffc400;color:#1a1200;border-radius:999px;padding:${tall ? '18px 44px' : '14px 36px'};font-size:${tall ? 34 : 28}px;font-weight:900;margin-${rtl ? 'right' : 'left'}:auto}
 </style></head><body><div class="glow"></div><div class="wrap">
-<div class="phone"><img src="data:image/png;base64,${shot.toString('base64')}" alt=""></div>
+<div class="phone"><img src="${pic ? pic.url : `data:image/png;base64,${shot.toString('base64')}`}" alt=""></div>
 ${tall ? `<div class="text text-cover">${logo ? `<img class="logo" src="${logo}" alt="">` : ''}</div>` : `<div class="text">
 <p class="eyebrow">${esc(langLabel)}</p>
 <h1>${esc(cfg.title)}</h1>

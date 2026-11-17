@@ -41,6 +41,7 @@ dist-itch.changes.diff
 .dev.vars
 .wrangler/
 dist/
+.local-dist/
 backups/
 GamesTemplate/other-services/bugcheck/out/
 

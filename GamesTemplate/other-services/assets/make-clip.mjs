@@ -1,6 +1,7 @@
 // Records a short silent gameplay loop of a built game for the home page lead story.
-//   node make-clip.mjs <GameId> [--seconds 5]   → Games/<GameId>/assets/clip.webm (+ a copy in dist/<slug>/assets)
-// Needs: the game built into dist/<slug>/ (common-game-code build) and Playwright from other-services/bugcheck.
+//   node make-clip.mjs <GameId> [--seconds 5]   → Games/<GameId>/assets/clip.webm
+// Builds the game into .local-dist/<slug>/ itself (never dist/, which is the publish folder) and records it.
+// Needs Playwright from other-services/bugcheck. The publish build copies Games/<GameId>/assets into dist.
 import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync, mkdirSync, copyFileSync, rmSync, readdirSync } from 'node:fs';
@@ -18,8 +19,9 @@ const slug = gameId && existsSync(join(GAME_DIR, 'game.json')) ? JSON.parse(read
 const sIdx = process.argv.indexOf('--seconds');
 const seconds = sIdx > 0 ? Number(process.argv[sIdx + 1]) : 5;
 if (!slug) { console.error('usage: make-clip.mjs <GameId> [--seconds N]  (Games/<GameId>/game.json must exist)'); process.exit(2); }
-const DIST = resolve(HERE, '../../dist');
-if (!existsSync(join(DIST, slug, 'index.html'))) { console.error(`dist/${slug}/index.html missing - build the game first`); process.exit(1); }
+const DIST = resolve(HERE, '../../.local-dist');
+const b = spawnSync(process.execPath, [resolve(HERE, '../../common-game-code/build.mjs'), 'build', gameId, '--local'], { encoding: 'utf8' });
+if (b.status !== 0 || !existsSync(join(DIST, slug, 'index.html'))) { console.error(b.stdout + b.stderr); console.error(`local build of ${gameId} failed`); process.exit(1); }
 
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
 const srv = createServer((req, res) => {
@@ -57,7 +59,5 @@ const ff = existsSync(msPw) ? readdirSync(msPw).filter((d) => d.startsWith('ffmp
 const raw = join(tmp, vid);
 const r = ff ? spawnSync(ff, ['-y', '-loglevel', 'error', '-i', raw, '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '42', '-deadline', 'good', '-cpu-used', '2', '-an', '-r', '20', out]) : { status: 1 };
 if (r.status !== 0) { console.log('(ffmpeg shrink unavailable, keeping the raw recording)'); copyFileSync(raw, out); }
-mkdirSync(join(DIST, slug, 'assets'), { recursive: true });
-copyFileSync(out, join(DIST, slug, 'assets', 'clip.webm'));
 rmSync(tmp, { recursive: true, force: true });
 console.log(`clip → ${out} (${(statSync(out).size / 1024).toFixed(0)} KB, ${seconds}s)`);

@@ -51,6 +51,47 @@
         "WastedForSix"
       ],
       "port": 5173
+    },
+    {
+      "name": "wastedforsix-dev-5177",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "GamesTemplate/common-game-code/build.mjs",
+        "dev",
+        "WastedForSix"
+      ],
+      "env": {
+        "PORT": "5177"
+      },
+      "port": 5177,
+      "url": "http://127.0.0.1:5177"
+    },
+    {
+      "name": "halfmarathon-dev-5175",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "GamesTemplate/common-game-code/build.mjs",
+        "dev",
+        "HalfMarathon"
+      ],
+      "env": {
+        "PORT": "5175"
+      },
+      "port": 5175
+    },
+    {
+      "name": "flightheros-dev-5186",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "GamesTemplate/common-game-code/build.mjs",
+        "dev",
+        "FlightHeros"
+      ],
+      "env": {
+        "PORT": "5186"
+      },
+      "port": 5186,
+      "url": "http://127.0.0.1:5186"
     }
   ]
 }

@@ -30,12 +30,15 @@ export const titleScene: Scene = {
     if (c.credit) txt(c.credit, W / 2, 624, 11, th.colors.muted, 'center', 400);
 
     const p = takeTap();
-    if (p && st > 0.3) {
-      sfx.tick?.();
-      markPlayed(R.cfg.slug);
-      R.retry = null;
-      track('game_start');
-      go(R.cfg.screens.cutscene && R.content.cutscene ? 'cutscene' : 'play');
-    }
+    if (p && st > 0.3) startFromTitle();
   },
 };
+
+/** What a tap on the title does. Exported so a game that draws its own title scene starts a run the same way. */
+export function startFromTitle(): void {
+  sfx.tick?.();
+  markPlayed(R.cfg.slug);
+  R.retry = null;
+  track('game_start');
+  go(R.cfg.screens.cutscene && R.content.cutscene ? 'cutscene' : 'play');
+}

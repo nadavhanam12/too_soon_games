@@ -1,7 +1,7 @@
 // createGame(): wires config, theme, content, scenes, overlays, analytics and the main loop.
 import { ctx, fit, initCanvas, view, W, SAFE_H } from './canvas';
 import { initInput, input, takeTap } from './input';
-import { drawTransition, go, goNow, inTransition, onSceneChange, S, scenes, state, stepTransition, type Scene } from './scenes';
+import { drawTransition, easeOB, go, goNow, inTransition, onSceneChange, S, scenes, state, stepTransition, type Scene } from './scenes';
 import { getSeed, setSeed } from './rng';
 import { R, type Content, type Hooks, type RunResult } from './runtime';
 import { env, validateConfig, type GameConfig } from '../config';
@@ -48,6 +48,7 @@ export function createGame(def: GameDef): void {
     run: null, retry: null, challenge: null, players: null, best: getBest(cfg.slug), playTime: 0, lastSubmit: null,
     fail: (r: Partial<RunResult>) => finish({ won: false, ...r }),
     win: (r: Partial<RunResult>) => finish({ won: true, ...r }),
+    toastY: 70,
     say: (s: string, life = 1.6) => { toast = { s, life, t: 0 }; },
     banner: (title: string, lines: string[]) => { banner = { title, lines, t: 0 }; },
     shake: (s = 0.3) => { state.shake = Math.max(state.shake, s); },
@@ -114,6 +115,7 @@ export function createGame(def: GameDef): void {
   } else goNow('title');
   requestAnimationFrame(frame);
 
+  const SCREEN_IN_S = 0.32;
   // ---------- main loop ----------
   let last = performance.now();
   let stepping = false;
@@ -133,7 +135,12 @@ export function createGame(def: GameDef): void {
     ctx.translate(0, view.top);
     if (state.shake > 0) { state.shake -= rawDt; ctx.translate(rnd(-5, 5), rnd(-5, 5)); }
     const sc = scenes[state.scene];
+    // screen entry (rule 13יב, 250–400 ms): every template screen rises into place with a little overshoot. The play
+    // scene is left alone: games animate their own stage entries.
+    const enterK = state.scene === 'play' ? 1 : Math.min(1, state.st / SCREEN_IN_S);
+    if (enterK < 1) { theme.bg(state.st, state.scene); ctx.translate(0, (1 - easeOB(enterK)) * 36); }
     if (sc) sc.draw(dt); else theme.bg(state.st, state.scene);
+    if (enterK < 1) ctx.translate(0, -(1 - easeOB(enterK)) * 36);
     drawToast(rawDt);
     drawBanner(rawDt);
     ctx.restore();
@@ -150,8 +157,8 @@ export function createGame(def: GameDef): void {
     ctx.globalAlpha = a;
     const lines = wrap(toast.s, 13, W - 60, 900);
     const hgt = lines.length * 17 + 14;
-    theme.panel(30, 70 - hgt / 2, W - 60, hgt);
-    lines.forEach((l, i) => txt(l, W / 2, 70 - hgt / 2 + 14 + i * 17, 13, theme.colors.ink, 'center', 900));
+    theme.panel(30, R.toastY - hgt / 2, W - 60, hgt);
+    lines.forEach((l, i) => txt(l, W / 2, R.toastY - hgt / 2 + 14 + i * 17, 13, theme.colors.ink, 'center', 900));
     ctx.globalAlpha = 1;
   }
 
@@ -161,13 +168,20 @@ export function createGame(def: GameDef): void {
     const k = Math.min(1, banner.t * 4);
     ctx.globalAlpha = k;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, -200, W, SAFE_H + 400);
-    const lines = banner.lines.flatMap((l) => wrap(l, 14, W - 90, 400));
-    const h = 70 + lines.length * 20 + 50;
-    const y0 = 320 - h / 2;
-    theme.panel(22, y0, W - 44, h);
-    theme.heading(banner.title, W / 2, y0 + 36, 24);
-    lines.forEach((l, i) => txt(l, W / 2, y0 + 72 + i * 20, 14, theme.colors.ink, 'center', 400));
-    if (Math.sin(state.t * 5) > -0.2) txt(R.strs.tapToContinue, W / 2, y0 + h - 22, 13, theme.colors.muted, 'center', 700);
+    if (theme.banner) { ctx.globalAlpha = 1; theme.banner(banner.title, banner.lines, banner.t); } // the game's own card
+    else {
+      // the card pops in (scale with overshoot around its centre)
+      const pop = 0.8 + 0.2 * easeOB(k);
+      ctx.save(); ctx.translate(W / 2, 320); ctx.scale(pop, pop); ctx.translate(-W / 2, -320);
+      const lines = banner.lines.flatMap((l) => wrap(l, 14, W - 90, 400));
+      const h = 70 + lines.length * 20 + 50;
+      const y0 = 320 - h / 2;
+      theme.panel(22, y0, W - 44, h);
+      theme.heading(banner.title, W / 2, y0 + 36, 24);
+      lines.forEach((l, i) => txt(l, W / 2, y0 + 72 + i * 20, 14, theme.colors.ink, 'center', 400));
+      if (Math.sin(state.t * 5) > -0.2) txt(R.strs.tapToContinue, W / 2, y0 + h - 22, 13, theme.colors.muted, 'center', 700);
+      ctx.restore();
+    }
     ctx.globalAlpha = 1;
     const p = takeTap();
     if (p && banner.t > 0.5) { banner = null; input.taps.length = 0; }

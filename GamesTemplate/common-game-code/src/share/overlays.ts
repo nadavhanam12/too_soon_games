@@ -35,7 +35,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html = '
 const shareBox = el('div', 'tsg-share');
 const central = el('a', 'tsg-btn tsg-central'); central.target = '_blank'; central.rel = 'noopener';
 const copyBtn = el('button', 'tsg-btn tsg-copy'); copyBtn.type = 'button';
-let shareData = { text: '', url: '' };
+let shareData: { text: string; url: string } = { text: '', url: '' };
 let onShare: ((c: Channel) => void) | null = null;
 
 function copyText(s: string): void {
@@ -78,7 +78,10 @@ central.addEventListener('click', (e) => {
   if (ch === 'copy') { e.preventDefault(); copyText(shareData.text); return; }
   if (ch !== 'system') return; // a real wa.me / sms: link
   e.preventDefault();
-  navigator.share({ title, text: shareData.text }).then(() => track('share_complete', { channel: 'system' })).catch((err: { name?: string }) => {
+  // The link only, never a file (2026-11-17): with a picture attached Facebook and Messenger open their photo picker
+  // and drop the link, WhatsApp sends the picture and the text as two messages, iOS drops the text. A bare link gets
+  // one message with the page's preview card (og:image + the personal og:title) everywhere.
+  navigator.share({ title, text: shareData.text, url: shareData.url || undefined }).then(() => track('share_complete', { channel: 'system' })).catch((err: { name?: string }) => {
     if (err && err.name === 'AbortError') return;
     window.open(centralHref(preset.central === 'sms' && !isPhone() ? 'whatsapp' : preset.central, shareData.text), '_blank', 'noopener');
   });

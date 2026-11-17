@@ -16,7 +16,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = resolve(HERE, '..', '..');
 const REPO = resolve(TEMPLATE, '..');
 const CLIENT = join(TEMPLATE, 'common-game-code');
-const DIST = join(TEMPLATE, 'dist');
+const DIST = join(TEMPLATE, '.local-dist'); // local build; dist/ is the publish folder and must not change here
 const OUT = join(HERE, 'out');
 const API = process.env.API_BASE || 'http://127.0.0.1:8787';
 
@@ -61,7 +61,7 @@ console.log(`bugcheck ${gameId} (${slug})`);
 let html = '';
 {
   const S = 'build';
-  const b = spawnSync(process.execPath, [join(CLIENT, 'build.mjs'), 'build', gameId], { encoding: 'utf8' });
+  const b = spawnSync(process.execPath, [join(CLIENT, 'build.mjs'), 'build', gameId, '--local'], { encoding: 'utf8' });
   const htmlPath = join(DIST, slug, 'index.html');
   ok(S, 'build succeeds', b.status === 0 && existsSync(htmlPath), (b.stdout + b.stderr).trim().split('\n').slice(-5).join(' | '));
   if (existsSync(htmlPath)) {
@@ -77,7 +77,7 @@ let html = '';
   }
 }
 
-// ---------- static server for dist ----------
+// ---------- static server for .local-dist ----------
 const port = 5199;
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.webp': 'image/webp' };
 const server = createServer((req, res) => {

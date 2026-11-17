@@ -11,7 +11,7 @@ export interface GameConfig {
   audience: Audience;
   lang: Lang;
   version: string;
-  event: { title: string; date: string; sourceUrl: string; sourceLabel?: string; sources?: string[] }; // sources: internal record, never shown (rule 3)
+  event: { title: string; date: string; sourceUrl?: string; sourceLabel?: string; sources?: string[] }; // sourceUrl + sources: internal record (rule 3); build.mjs checks them and strips them from the bundle, so at runtime they are absent
   score: { label: string; max: number; minDurationS: number; higherIsBetter: boolean };
   share: { text: string };                       // {result} {rank} {url}
   screens: { cutscene: boolean; board: boolean; facts: boolean; lose?: boolean };
@@ -50,7 +50,7 @@ export function validateConfig(c: GameConfig): string[] {
   need(c.title && c.tagline, 'title and tagline required');
   need(c.audience === 'il' || c.audience === 'us', 'audience must be il|us');
   need(c.lang === 'he' || c.lang === 'en', 'lang must be he|en');
-  need(c.event?.sourceUrl && c.event?.date, 'event.sourceUrl and event.date required (rule 3)');
+  need(c.event?.date, 'event.date required (rule 3; sourceUrl is checked by build.mjs)');
   need(c.score && c.score.max > 0, 'score.max must be > 0');
   need(c.share?.text?.includes('{url}'), 'share.text must contain {url}');
   need((c.share?.text || '').replace('{url}', '').length <= 200, 'share.text over 200 chars before the link (rule 16)');

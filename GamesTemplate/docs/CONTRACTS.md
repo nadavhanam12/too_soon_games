@@ -6,16 +6,21 @@
 
 | חלק | תיקייה | פקודה | פלט |
 |---|---|---|---|
-| קוד לקוח משותף | `GamesTemplate/common-game-code` | `npm run build -- <GameId>` | `GamesTemplate/dist/<slug>/index.html` (+ `assets/` אם יש) |
+| קוד לקוח משותף | `GamesTemplate/common-game-code` | `npm run build -- <GameId>` (רק `/publish-game`) | `GamesTemplate/dist/<slug>/index.html` (+ `assets/` אם יש) |
+| | | `npm run build -- <GameId> --local` | `GamesTemplate/.local-dist/<slug>/` (כלי הבאגים, כלי התמונות) |
 | | | `npm run check -- <GameId>` | typecheck של התבנית + המשחק, exit 1 בשגיאה |
-| | | `npm run dev -- <GameId>` | שרת סטטי על `http://127.0.0.1:5173/<slug>/` עם build מחדש בשמירה |
+| | | `npm run dev -- <GameId>` | build ל־`GamesTemplate/.local-dist/<slug>/` ושרת סטטי על `http://127.0.0.1:5173/<slug>/` עם build מחדש בשמירה |
 | אתר הסטודיו | `GamesTemplate/frontend` | `npm run build` | `GamesTemplate/dist/index.html`, עמודי החובה, `_headers`, `robots.txt`, `sitemap.xml`, `_worker.js` |
 | שרת | `GamesTemplate/server-and-data/worker` | `npm run dev` / `npm run deploy` / `npm run smoke` | `http://127.0.0.1:8787` מקומית |
 | תמונות שיתוף | `GamesTemplate/other-services/assets` | `node make-assets.mjs <GameId> [--force]` | `Games/<GameId>/assets/og.png` (1200x630), `cover.png` (1200x900); קיימים לא נדרסים |
 | כלי הבאגים | `GamesTemplate/other-services/bugcheck` | `node run.mjs <GameId> [--server]` | `out/report.md` + צילומי מסך; exit 1 באדום |
 | פריסת אתר | מ־`GamesTemplate` | `server-and-data/worker/node_modules/.bin/wrangler pages deploy dist --project-name toosoon-games` (ה־wrangler הנעוץ; `npx wrangler` מחוץ לתיקיית השרת מוריד גרסה שדורשת Node 22) | `https://toosoon-games.pages.dev` |
 
-`<GameId>` = שם התיקייה ב־`Games/` (PascalCase). `<slug>` = `game.json.slug` (kebab-case). `dist/` לא ב־git.
+`<GameId>` = שם התיקייה ב־`Games/` (PascalCase). `<slug>` = `game.json.slug` (kebab-case). `dist/` ו־`.local-dist/` לא ב־git.
+
+**`dist/` = תיקיית הפרסום בלבד.** `/publish-game` מעלה את כל `dist/` ובונה מחדש רק את המשחק שמתפרסם, אז כל מה שנכתב
+ל־`dist/` עולה לאוויר בפרסום הבא של משחק כלשהו. לכן dev, כלי הבאגים ו־`make-assets.mjs` / `make-clip.mjs` בונים
+ל־`.local-dist/` ולא נוגעים ב־`dist/`. רק build בלי `--local` (שלב 6 של `/publish-game`) ובניית האתר (שלב 7) כותבים ל־`dist/`.
 
 ## `game.json` (בתיקיית המשחק)
 

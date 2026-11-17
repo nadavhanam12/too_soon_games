@@ -10,6 +10,12 @@ export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t
 export const squash = (a: number): [number, number] => { const sy = 1 - clamp(a, -0.5, 0.5); return [1 / sy, sy]; };
 /** Damped spring for follow-through: starts at `amp`, overshoots past 0 and settles. `t` = seconds since the kick. */
 export const springOut = (t: number, amp: number, freq = 22, decay = 8): number => amp * Math.exp(-decay * t) * Math.cos(freq * t);
+/** A value on its way from `from` to `to`: `t` = seconds since it started, `dur` = how long it takes. Eased (cubic
+ *  ease-out by default; pass easeOB for an overshoot), never linear (RULES 13ה). */
+export const tween = (t: number, from: number, to: number, dur: number, ease: (x: number) => number = (x) => 1 - Math.pow(1 - x, 3)): number =>
+  from + (to - from) * ease(clamp(t / dur, 0, 1));
+/** Scale of a thing that was just pressed or just changed: 1 → 1 + amp → 1 over `dur` seconds (`t` = seconds since). */
+export const pop = (t: number, dur = 0.14, amp = 0.18): number => (t < 0 || t >= dur ? 1 : 1 + amp * Math.sin((t / dur) * Math.PI));
 export const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)] as T;
 export const fmtTime = (s: number): string => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 export const fmtInt = (n: number): string => Math.round(n).toLocaleString('en-US');

@@ -34,7 +34,7 @@ export const factsScene: Scene = {
       ls.forEach((l, k) => txt(l, textX, y + k * 15, 12, line.bold ? th.colors.accent : th.colors.ink, rtl ? 'right' : 'left', line.bold ? 900 : 400));
       y += Math.max(1, ls.length) * 15 + 10;
     }
-    let fy = 458;
+    let fy = 492; // the notes sit under the panel (it ends at 476), above the button (548)
     if (c.disclaimer) for (const l of wrap(c.disclaimer, 11, W - 40, 400)) { th.text(l, W / 2, fy, 11, th.colors.muted, 'center', 400); fy += 14; }
     th.text(s.parodyNote, W / 2, fy + 4, 11, th.colors.muted, 'center', 400);
     // continue at 548..596, the report link (our contact page) at 598..618

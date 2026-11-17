@@ -51,6 +51,10 @@
 **נוסף לתבנית (2026-11-17, עם HalfMarathon):** `squash(a)` ו־`springOut(t, amp)` ב־`draw/prims.ts`, ו־`R.hitStop(s)`
 ב־runtime (מקפיא את ה־dt של המסך, הטוסטים, הרעידה והפלאש ממשיכים). easing כבר היה: `easeO`, `easeOB` ב־`core/scenes.ts`.
 
+**נוסף לתבנית (2026-11-17, עם WastedForSix):** `tween(t, from, to, dur, ease)` ו־`pop(t, dur, amp)` ב־`draw/prims.ts`,
+ו־`haptic(ms | pattern)` ב־`core/haptics.ts` (רטט דרך מודול אחד; באייפון אין `navigator.vibrate` והקריאה לא עושה כלום).
+המסכים המשותפים (title, banner, result, lose) עדיין לא עברו להשתמש ב־`tween` / `pop`.
+
 מה **עדיין חסר**: חוק שמחייב משוב לכל לחיצה, ו־`tween` אחד שהמסכים המשותפים משתמשים בו. כל משחק עדיין מחליט
 לבד מתי להשתמש בעזרים.
 

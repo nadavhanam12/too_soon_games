@@ -1,10 +1,12 @@
 // Public surface for games: `import { createGame, R, ... } from '@tsg/index'`.
 export { createGame, type GameDef } from './core/game';
 export { R, type Content, type CutStep, type Hooks, type RunResult, type Runtime } from './core/runtime';
-export { W, SAFE_H, view, ctx, cv, fullBleed, fillBg, place } from './core/canvas';
+export { W, SAFE_H, view, ctx, cv, fullBleed, fillBg, place, drawOn } from './core/canvas';
 export { input, takeTap, clearTaps, keyHeld, keyLeft, keyRight, setPointerIntercept, onKeyDown, type Tap } from './core/input';
 export { scenes, S, state, go, goNow, easeO, easeOB, type Scene } from './core/scenes';
+export { startFromTitle } from './screens/title';
 export * from './draw/prims';
+export { haptic, haptics } from './core/haptics';
 export { getSeed } from './core/rng';
 export { loadLazy } from './core/lazy';
 export { defaultTheme, type Theme, type ThemeColors } from './draw/theme';

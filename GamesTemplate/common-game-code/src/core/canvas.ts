@@ -73,6 +73,12 @@ export function fullBleed(fn: (h: number) => void): void {
   ctx.restore();
 }
 
+/** Run `fn` with every drawing call going to another 2D context (an off-screen picture, e.g. a share image). */
+export function drawOn<T>(c: CanvasRenderingContext2D, fn: () => T): T {
+  const prev = ctx; ctx = c;
+  try { return fn(); } finally { ctx = prev; }
+}
+
 /** Fill the whole canvas with a colour or a vertical gradient (two colours). */
 export function fillBg(a: string, b?: string): void {
   fullBleed((h) => {

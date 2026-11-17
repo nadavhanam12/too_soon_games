@@ -26,6 +26,9 @@ export interface Theme {
   text(s: string, x: number, y: number, size?: number, color?: string, align?: Align, weight?: number | string): void;
   /** Small label chip (used for "New best", dates in facts). */
   chip(s: string, x: number, y: number, bg?: string, fg?: string, size?: number): void;
+  /** Optional: the game's own stage-banner card (R.banner). `t` = seconds shown. The template still dims the game
+   *  behind it and handles the tap; without this it draws its default panel. */
+  banner?(title: string, lines: string[], t: number): void;
 }
 
 export function defaultTheme(c: Partial<ThemeColors> = {}): Theme {
