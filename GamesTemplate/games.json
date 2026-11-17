@@ -9,7 +9,7 @@
       "tagline": "13 years of waiting. One boss, one store, one chase home. Get free for launch day.",
       "audience": "us",
       "lang": "en",
-      "version": "0.1.14",
+      "version": "0.1.16",
       "event": {
         "title": "Launch day of the most-awaited game in history",
         "headline": "The most-awaited game in history launches Thursday.",
@@ -48,7 +48,7 @@
       "tagline": "21.1 km in Cyprus: halloumi, street cats, 29°C in November, and the baby waiting at the finish.",
       "audience": "us",
       "lang": "en",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "event": {
         "title": "A founder's half marathon, Cyprus",
         "headline": "One of our founders ran a half marathon today.",
@@ -62,24 +62,24 @@
       "status": "draft",
       "themeColor": "#0b2545",
       "music": true,
-      "publishedAt": "2026-11-15",
+      "publishedAt": "2026-11-17",
       "clip": "assets/clip.webm"
     },
     {
       "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
       "id": "FlightHeros",
       "slug": "safe-flight",
-      "title": "חופשה בטוחה",
-      "tagline": "174 נוסעים, קוקפיט פרוץ, גובה שיורד. כמה מהר אתה מציל את הטיסה?",
-      "audience": "il",
-      "lang": "he",
-      "version": "1.0.4",
+      "title": "Not On My Flight",
+      "tagline": "174 passengers, a hijacked cockpit, a plane going down. How fast can you save the flight?",
+      "audience": "us",
+      "lang": "en",
+      "version": "1.0.7",
       "event": {
-        "title": "טיסת פליי-דובאי FZ1073, דובאי–תל אביב",
+        "title": "Flydubai flight FZ1073, Dubai to Tel Aviv",
         "headline": "Flydubai FZ1073, Dubai to Tel Aviv.",
         "date": "2026-09-30",
-        "sourceUrl": "https://www.ynet.co.il/news",
-        "sourceLabel": "ynet, 30.9.2026"
+        "sourceUrl": "https://www.aljazeera.com/news/2026/10/2/12-minutes-of-madness-how-flydubai-pilot-passengers-saved-plane-midfall",
+        "sourceLabel": "Al Jazeera, Oct 2, 2026"
       },
       "showPlayerCountFrom": 500,
       "cover": "assets/cover.png",
@@ -87,7 +87,7 @@
       "ogImage": "assets/og.png",
       "status": "draft",
       "themeColor": "#0f1a2b",
-      "publishedAt": "2026-11-15"
+      "publishedAt": "2026-11-17"
     },
     {
       "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
@@ -97,7 +97,7 @@
       "tagline": "Icy Tower in reverse: how long can a CEO keep falling before the board meeting catches up?",
       "audience": "us",
       "lang": "en",
-      "version": "1.0.6",
+      "version": "1.0.9",
       "event": {
         "title": "Nvidia CEO resignation, November 2026",
         "headline": "Nvidia's CEO resigns.",
@@ -114,7 +114,7 @@
         "Patrick Hand"
       ],
       "themeColor": "#161616",
-      "publishedAt": "2026-11-15"
+      "publishedAt": "2026-11-17"
     }
   ]
 }

@@ -130,6 +130,15 @@ function networks(ctx: SiteCtx): { key: keyof typeof icons; label: string; href:
   ];
 }
 
+/**
+ * The account's own name on a network, from its address: the handle differs between networks ("@TooSoonGamesHQ" on X,
+ * "@toosoongames" on TikTok), and an address without a handle (facebook.com/profile.php?id=...) shows the studio's name.
+ */
+function networkHandle(href: string, studioName: string): string {
+  const seg = new URL(href).pathname.split('/').filter(Boolean)[0] || '';
+  return !seg || seg.includes('.') ? studioName : '@' + seg.replace(/^@/, '');
+}
+
 /** Compact network buttons (the follow prompt on top of the home timeline). */
 export function netButtons(ctx: SiteCtx): string {
   return networks(ctx)
@@ -148,7 +157,7 @@ function sidebar(ctx: SiteCtx): string {
   const lead = defaultFeatured(ctx.games);
   const handle = studioHandle(ctx.studio.name);
   const follow = networks(ctx)
-    .map(({ key, label, href }) => `<div class="row"><span class="ic">${icons[key]}</span><span class="t"><b>${label}</b><small>${esc(handle)}</small></span>${href ? `<a class="btn-sm" href="${attr(href)}" target="_blank" rel="noopener" aria-label="Follow us on ${label}">Follow</a>` : '<span class="btn-sm" aria-disabled="true">Soon</span>'}</div>`)
+    .map(({ key, label, href }) => `<div class="row"><span class="ic">${icons[key]}</span><span class="t"><b>${label}</b><small>${esc(href ? networkHandle(href, ctx.studio.name) : handle)}</small></span>${href ? `<a class="btn-sm" href="${attr(href)}" target="_blank" rel="noopener" aria-label="Follow us on ${label}" data-network="${key}">Follow</a>` : '<span class="btn-sm" aria-disabled="true">Soon</span>'}</div>`)
     .join('');
   const events = [...ctx.events].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
   return `<aside class="side" aria-label="More">
@@ -263,6 +272,43 @@ const CLIENT_JS = `
     if(!e.persisted)return;
     all('.is-going').forEach(function(a){a.classList.remove('is-going');var l=a.querySelector('.lbl');if(l&&l.hasAttribute('data-l'))l.textContent=l.getAttribute('data-l');});
   });
+
+  // ---- the visit: where it came from, carried on to the games, and counted under the game id "site" (docs/EVENTS.md) ----
+  // The channel follows the games' own rule (common-game-code analytics/track.ts, channelOf): "medium:source" from
+  // UTM tags, "ref:<host>" for another site, else "direct". The anonymous id and the studio-device switch
+  // (?internal=1) are the games' too (tsg:uid, tsg:internal, same origin), so one person is one user everywhere.
+  var qs=new URLSearchParams(location.search);
+  var clean=function(s,max){return String(s||'').toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,max||32);};
+  var utm=[];qs.forEach(function(v,k){if(k.indexOf('utm_')===0)utm.push(encodeURIComponent(k)+'='+encodeURIComponent(v));});
+  var refHost='';try{refHost=document.referrer?new URL(document.referrer).host:'';}catch(e){/* an unparsable referrer counts as none */}
+  var src=clean(qs.get('utm_source')),med=clean(qs.get('utm_medium'));
+  var here=(src||med)?(med||'none')+':'+(src||'none'):(refHost&&refHost!==location.host)?'ref:'+clean(refHost,48):'direct';
+  // one visit per tab: the first page decides the channel, the pages after it (and coming back from a game) reuse it
+  var visit=null,first=false;
+  try{visit=JSON.parse(sessionStorage.getItem('tsg:visit')||'null');}catch(e){/* storage blocked: every page counts as a new visit */}
+  if(!visit||!visit.ch||!visit.sid){first=true;visit={ch:here,sid:Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)};try{sessionStorage.setItem('tsg:visit',JSON.stringify(visit));}catch(e){/* storage blocked, as above */}}
+  // links inside the site: UTM tags travel as they are (the game works the same channel out of them). A visit from
+  // another site without tags passes its channel as the share-chain origin (o=), the one thing a game reads for it.
+  var carry=utm.length?utm.join('&'):(visit.ch.indexOf('ref:')===0?'o='+encodeURIComponent(visit.ch):'');
+  if(carry)all('a[href^="/"]').forEach(function(a){
+    var h=a.getAttribute('href'),i=h.indexOf('#'),path=i<0?h:h.slice(0,i),hash=i<0?'':h.slice(i);
+    a.setAttribute('href',path+(path.indexOf('?')<0?'?':'&')+carry+hash);
+  });
+  var store=function(k,v){try{if(v===undefined)return localStorage.getItem('tsg:'+k);localStorage.setItem('tsg:'+k,v);}catch(e){/* storage blocked: nothing is remembered */}return null;};
+  if(qs.get('internal')==='1')store('internal','1');
+  if(qs.get('internal')==='0')store('internal','');
+  var uid=store('uid')||(document.cookie.match(/(?:^|; )tsg_uid=([^;]*)/)||[])[1]||'';
+  if(!/^[0-9a-f-]{36}$/i.test(uid)&&window.crypto&&crypto.randomUUID){uid=crypto.randomUUID();store('uid',uid);document.cookie='tsg_uid='+uid+'; max-age=34560000; path=/; samesite=lax'+(location.protocol==='https:'?'; secure':'');}
+  var send=function(name,props){
+    if(!api||!uid||store('internal')==='1')return;
+    var url=api+'/v1/games/site/events';
+    var body=JSON.stringify({userId:uid,version:'site',lang:'en',ch:visit.ch,origin:visit.ch,events:[{name:name,ts:Date.now(),sessionId:visit.sid,props:props||{}}]});
+    // fetch, not sendBeacon: a beacon always carries credentials, and the API (another origin) answers without
+    // Access-Control-Allow-Credentials, so the browser drops the beacon while sendBeacon still returns true
+    fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:body,keepalive:true}).catch(function(){/* counting a visit never breaks the page */});
+  };
+  if(first)send('session_start',{ref:refHost,utm_source:qs.get('utm_source')||'',utm_medium:qs.get('utm_medium')||'',utm_campaign:qs.get('utm_campaign')||'',utm_content:qs.get('utm_content')||'',lang:navigator.language,viewportW:innerWidth,viewportH:innerHeight,dpr:Math.round((window.devicePixelRatio||1)*10)/10,page:location.pathname});
+  all('a[data-network]').forEach(function(a){a.addEventListener('click',function(){send('follow_click',{network:a.getAttribute('data-network')});});});
 
   var board=document.getElementById('board'),side=document.getElementById('side-board');
   var noBoard=function(){if(board){board.hidden=true;board.removeAttribute('aria-busy');}};

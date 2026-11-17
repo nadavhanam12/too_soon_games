@@ -51,14 +51,17 @@ export const api = {
   score: (slug: string, body: { userId: string; nick?: string | null; score: number; durationS: number; stage?: string; version: string }) =>
     call<ScoreResult>('POST', `/v1/games/${slug}/scores`, body),
   events: (slug: string, body: unknown) => call<Record<string, never>>('POST', `/v1/games/${slug}/events`, body),
-  /** Fire-and-forget on page hide; falls back to keepalive fetch. */
+  /**
+   * Fire-and-forget on page hide: a keepalive fetch, which the browser finishes after the page is gone.
+   * Not navigator.sendBeacon: a beacon always carries credentials, the API is another origin and answers without
+   * Access-Control-Allow-Credentials, so the browser dropped every beacon at the preflight while sendBeacon returned
+   * true. Until 2026-11-18 that lost session_end and whatever was still queued when the player left.
+   */
   beacon(slug: string, body: unknown): void {
     if (!env.apiBase || internalDevice) return;
     const url = env.apiBase.replace(/\/$/, '') + `/v1/games/${slug}/events`;
-    const data = JSON.stringify(body);
-    try {
-      if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }))) return;
-    } catch { /* fall through */ }
-    try { void fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: data, keepalive: true }); } catch { /* ignore */ }
+    // the request may be refused while the page is closing (offline, quota of pending keepalive bytes): analytics
+    // never breaks the game, and there is nobody left to retry for
+    fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => { /* see above */ });
   },
 };
