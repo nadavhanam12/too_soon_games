@@ -48,8 +48,7 @@ const readJsonIf = (f) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) :
   const links = new Map();
   const put = (who, link) => { if (link) links.set(link, who); };
   const copy = readJsonIf(join(L, 'copy.final.json'));
-  for (const [net, p] of Object.entries(copy?.posts || {})) put(`post ${net}`, p.link);
-  if (copy?.bioLink) put('bio', copy.bioLink);
+  for (const [net, p] of Object.entries(copy?.posts || {})) { put(`post ${net}`, p.link); put(`profile ${net}`, p.profileLink); }
   for (const j of readJsonIf(join(L, 'private', 'journalists.checked.json')) || []) if (j.status === 'ok') put(`journalist ${j.outlet}`, j.link);
   for (const c of readJsonIf(join(L, 'private', 'creators.checked.json')) || []) if (c.status === 'ok') put(`creator ${c.handle}`, c.link);
   for (const a of readJsonIf(join(L, 'paid.json'))?.ads || []) put(`ad ${a.name}`, a.link);

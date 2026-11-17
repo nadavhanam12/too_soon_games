@@ -39,7 +39,7 @@ The map of stages, folders and status of each is `PublishGamesPipeline/README.md
 ### videos
 `node PublishGamesPipeline/stages/videos/make-videos.mjs <GameId>` (see its header for flags). Builds the game into
 `.local-dist`, plays it in a 9:16 browser, records, cuts three 10-15 s clips (fail-hook, arc, challenge), burns the
-caption and end card, and writes MP4s (1080x1920, 30 fps, silent), an email GIF and one cover image to `Games/<GameId>/launch/videos/`.
+caption and end card, and writes MP4s (1080x1920, 30 fps, with the game's own synth sound), an email GIF and one cover image to `Games/<GameId>/launch/videos/`.
 Before the first run, write `Games/<GameId>/launch/videos/captions.json` in the game's language from `game.json`
 and `research.md`: `hook` (the punchline, under 50 chars: it must read in the first second), `arc`, `challenge`
 (may use the run's score, known after the run: rerun with `--reuse` once it is), `endTitle`, `endLine`, `endCta`.
@@ -112,7 +112,8 @@ scripts refuse to run until `launch/t0-check.md` says 6/6.
 `stages/post/adapters/<network>.mjs` and its credentials posts by itself; the others get a packet (video, cover,
 caption) and the upload page. For a by-hand network, open the upload page in the browser pane for the user, who uploads
 and presses publish, then record it with `--mark-posted <network> <post url>`. The first post sets T0. TikTok and
-Instagram: put the bio link (`copy.final.json` → `bioLink`) in the profile.
+Instagram: the profile links to the studio site, never to one game (`copy.final.json` → `posts.<network>.profileLink`,
+tagged per network so the admin counts each one apart; the site passes the tags on to the game the visitor opens).
 
 ### send-emails, send-creators (distribution: list every recipient and wait for an explicit yes)
 `node PublishGamesPipeline/stages/send/send.mjs <GameId> pitches|creators --next` gives today's batch (daily limit in

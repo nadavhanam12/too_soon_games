@@ -1,6 +1,6 @@
 # Copy: Drop the Chip
 
-Campaign `chip-drop-20261115` · bio link: https://toosoongames.app/chip-drop/?utm_source=bio&utm_medium=social&utm_campaign=chip-drop-20261115
+Campaign `chip-drop-20261115`
 
 **Description:** The chip CEO just resigned, and the floor is coming for him. Drop the Chip is a free one-minute browser game: keep falling, dodge the headlines, beat the leaderboard.
 
@@ -12,11 +12,15 @@ Campaign `chip-drop-20261115` · bio link: https://toosoongames.app/chip-drop/?u
 
 The CEO quit. The floor is coming for him 📉 How long can you keep him falling? Free game, link in bio #Nvidia #CEO #browsergame #indiegame
 
+Link for the profile, to the studio site (a caption link is not clickable there): https://toosoongames.app/?utm_source=tiktok&utm_medium=social&utm_campaign=profile
+
 ### Instagram Reels · clip `hook` · 174 chars
 
 The CEO quit. The board meeting is rising to catch him 📉
 Keep him falling as long as you can. Free browser game, no signup, link in bio.
 #Nvidia #CEO #browsergame #indiegame
+
+Link for the profile, to the studio site (a caption link is not clickable there): https://toosoongames.app/?utm_source=instagram&utm_medium=social&utm_campaign=profile
 
 ### YouTube Shorts · clip `arc` · 188 chars
 

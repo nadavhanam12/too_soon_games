@@ -2,7 +2,6 @@
   "game": "FallingCEO",
   "lang": "en",
   "campaign": "chip-drop-20261115",
-  "bioLink": "https://toosoongames.app/chip-drop/?utm_source=bio&utm_medium=social&utm_campaign=chip-drop-20261115",
   "hashtags": [
     "#Nvidia",
     "#CEO",
@@ -25,6 +24,7 @@
       "network": "TikTok",
       "text": "The CEO quit. The floor is coming for him 📉 How long can you keep him falling? Free game, link in bio #Nvidia #CEO #browsergame #indiegame",
       "link": "https://toosoongames.app/chip-drop/?utm_source=tiktok&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "profileLink": "https://toosoongames.app/?utm_source=tiktok&utm_medium=social&utm_campaign=profile",
       "clip": "hook",
       "chars": 139
     },
@@ -32,6 +32,7 @@
       "network": "Instagram Reels",
       "text": "The CEO quit. The board meeting is rising to catch him 📉\nKeep him falling as long as you can. Free browser game, no signup, link in bio.\n#Nvidia #CEO #browsergame #indiegame",
       "link": "https://toosoongames.app/chip-drop/?utm_source=instagram&utm_medium=social&utm_campaign=chip-drop-20261115",
+      "profileLink": "https://toosoongames.app/?utm_source=instagram&utm_medium=social&utm_campaign=profile",
       "clip": "hook",
       "chars": 174
     },

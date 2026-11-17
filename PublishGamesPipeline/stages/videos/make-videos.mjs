@@ -110,9 +110,9 @@ async function playRun(page, onTick) {
     releaseAll: async () => { for (const k of [...held]) await io.up(k); },
   };
   const step = (d) => page.evaluate((d) => {
-    const w = window; if (d) w.__advance(d);
+    const w = window; if (d) { w.__advance(d); w.__audioT = (w.__audioT || 0) + d; } // the sound clock follows the game clock
     const st = w.__state();
-    return { scene: st.scene, banner: st.banner, run: st.run, world: w.__world ? w.__world() : null, peek: w.__peek ? w.__peek() : null };
+    return { scene: st.scene, banner: st.banner, run: st.run, world: w.__world ? w.__world() : null, peek: w.__peek ? w.__peek() : null, music: w.__music ? w.__music() : null };
   }, d);
   // Autopilot for stages without a bot: hold a direction for a while, sometimes jump. Seeded, so both passes match.
   const rng = makeRng(SEED * 31 + 5);
@@ -210,19 +210,82 @@ if (!flag('--reuse')) {
   rmSync(WORK, { recursive: true, force: true }); mkdirSync(FRAMES, { recursive: true });
   const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: DPR, hasTouch: false, locale: rtl ? 'he-IL' : 'en-US' });
   await blockApi(ctx); // never write the capture runs into production analytics
+  // Sound: the game's synth (sfx + sequencer music) schedules on AudioContext.currentTime. Here the context is an
+  // offline one whose clock is the game clock (__audioT, moved by playRun's step), so every sound lands on the frame
+  // that caused it, and the whole run renders to one WAV after the replay. Only synth sound is captured: music that a
+  // game plays from files (new Audio) is counted and reported below, not mixed in.
+  await ctx.addInitScript((seconds) => {
+    const RATE = 44100;
+    window.__audioT = 0; window.__fileAudio = [];
+    class GameClockContext extends OfflineAudioContext {
+      constructor() { super(1, Math.ceil(seconds * RATE), RATE); window.__audioCtx = this; }
+      get currentTime() { return window.__audioT; }
+      get state() { return 'running'; }
+      resume() { return Promise.resolve(); }
+    }
+    window.AudioContext = GameClockContext; window.webkitAudioContext = GameClockContext;
+    const RealAudio = window.Audio;
+    window.Audio = function (...a) { window.__fileAudio.push(String(a[0] || '')); return new RealAudio(...a); };
+    window.__renderAudio = async () => {
+      const c = window.__audioCtx; if (!c) return null;
+      const d = (await c.startRendering()).getChannelData(0);
+      const pcm = new Int16Array(d.length);
+      for (let i = 0; i < d.length; i++) pcm[i] = Math.max(-1, Math.min(1, d[i])) * 32767;
+      const bytes = new Uint8Array(pcm.buffer); let s = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return { rate: RATE, pcm: btoa(s) };
+    };
+  }, timeline.duration + 3);
   const page = await ctx.newPage();
   await openRun(page);
   const size = await page.evaluate(() => { const c = document.querySelector('canvas#c'); return c ? [c.width, c.height] : null; });
   if (!size) throw new Error('canvas#c not found');
   if (size[0] !== W || size[1] !== H) log(`note: the canvas is ${size[0]}x${size[1]}, scaled to ${W}x${H}`);
   let n = 0; const t0 = Date.now();
-  const replay = await playRun(page, async (t) => {
+  const modes = [], heard = {}; // file music: when each track was on (game time) and how loud the game played it
+  const replay = await playRun(page, async (t, snap) => {
+    if (snap.music) {
+      if (!modes.length || modes[modes.length - 1].mode !== snap.music.mode) modes.push({ t, mode: snap.music.mode });
+      for (const [k, f] of Object.entries(snap.music.files)) heard[k] = Math.max(heard[k] || 0, f.volume);
+    }
     if (!want(t)) return;
     const url = await page.evaluate(() => document.querySelector('canvas#c').toDataURL('image/jpeg', 0.92));
     writeFileSync(join(FRAMES, frameName(t)), Buffer.from(url.slice(url.indexOf(',') + 1), 'base64'));
     n++;
   });
+  await page.waitForTimeout(250); // the music sequencer schedules on a 90 ms timer: let it reach the end of the run
+  const audio = await page.evaluate(() => window.__renderAudio());
+  const fileAudio = await page.evaluate(() => window.__fileAudio);
   await ctx.close();
+  if (!audio) throw new Error('the game made no sound during the run (no AudioContext was created): the clips would be silent');
+  const pcm = Buffer.from(audio.pcm, 'base64'), head = Buffer.alloc(44);
+  head.write('RIFF', 0); head.writeUInt32LE(36 + pcm.length, 4); head.write('WAVEfmt ', 8); head.writeUInt32LE(16, 16);
+  head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22); head.writeUInt32LE(audio.rate, 24); head.writeUInt32LE(audio.rate * 2, 28);
+  head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34); head.write('data', 36); head.writeUInt32LE(pcm.length, 40);
+  writeFileSync(join(WORK, 'synth.wav'), Buffer.concat([head, pcm]));
+  // audio.wav = the run's whole sound. The synth part is mostly kick and bass under 200 Hz, which a phone speaker
+  // cannot play (a clip of synth alone sounded silent there): its bass is cut and everything above 1.2 kHz lifted.
+  // Music a game plays from files (music.files) is not in the offline context, so it is laid in here from the files
+  // themselves: each track over the game seconds its mode was on, at the volume the game reached, with the game's
+  // own fade speed (1.2 per second), every track starting from its beginning as the game does after a pause.
+  const SYNTH_EQ = 'highpass=f=180,bass=g=-8:f=250,treble=g=9:f=1200';
+  const keys = Object.keys(heard);
+  if (keys.length !== fileAudio.length) throw new Error(`the game made ${fileAudio.length} audio elements but reports ${keys.length} music tracks: cannot tell which file is which track`);
+  const ins = ['-i', join(WORK, 'synth.wav')], parts = [`[0:a]${SYNTH_EQ}[syn]`], mix = ['[syn]'];
+  modes.forEach((m, i) => {
+    const k = keys.indexOf(m.mode); if (k < 0) return; // 'off', or a synth-sequencer mode
+    const vol = heard[m.mode];
+    if (!vol) throw new Error(`music track "${m.mode}" never played during the capture (the browser refused it, or the file is missing): the clip would lack the game's music`);
+    const file = join(DIST, decodeURIComponent(new URL(fileAudio[k], base).pathname));
+    if (!existsSync(file)) throw new Error(`music file not found: ${file}`);
+    const len = (modes[i + 1]?.t ?? timeline.duration) - m.t + vol / 1.2, fade = (vol / 1.2).toFixed(3);
+    ins.push('-stream_loop', '-1', '-i', file);
+    const n = mix.length;
+    parts.push(`[${n}:a]atrim=0:${len.toFixed(3)},asetpts=PTS-STARTPTS,aresample=${audio.rate},pan=mono|c0=0.5*c0+0.5*c1,volume=${vol},afade=t=in:d=${fade},afade=t=out:st=${(len - vol / 1.2).toFixed(3)}:d=${fade},adelay=${Math.round(m.t * 1000)}[m${n}]`);
+    mix.push(`[m${n}]`);
+  });
+  ff([...ins, '-filter_complex', `${parts.join(';')};${mix.join('')}amix=inputs=${mix.length}:normalize=0:duration=first[out]`, '-map', '[out]', '-ac', '1', '-ar', String(audio.rate), join(WORK, 'audio.wav')], 'run audio');
+  if (mix.length > 1) log(`music from files: ${modes.filter((m) => keys.includes(m.mode)).map((m) => `${m.mode} from ${m.t.toFixed(1)} s`).join(', ')}`);
   if (Math.abs(replay.end.t - timeline.end.t) > 1e-3) throw new Error(`the replay ended at ${replay.end.t} s, pass 1 at ${timeline.end.t} s: the run is not deterministic (a bot that reads the wall clock or Math.random?)`);
   writeFileSync(tlFile, JSON.stringify(timeline, null, 2));
   log(`pass 2: ${n} frames at ${size[0]}x${size[1]}, ${((Date.now() - t0) / 1000).toFixed(0)} s wall`);
@@ -289,6 +352,8 @@ await renderPng(shell(`<div class="glow"></div><div class="card">${logo ? `<img 
 
 // ---------- encode ----------
 const made = [];
+const wav = join(WORK, 'audio.wav');
+if (!existsSync(wav)) { console.error('--reuse: the last capture has no sound (launch/.work/videos/audio.wav): rerun without --reuse, with --seed ' + SEED); process.exit(1); }
 for (const [name, segs] of Object.entries(clips)) {
   const dir = join(WORK, `seq-${name}`); rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
   let i = 0;
@@ -300,11 +365,21 @@ for (const [name, segs] of Object.entries(clips)) {
     }
   }
   const out = join(OUT, `${name}.mp4`);
+  // sound: the same seconds of the run as the frames, short fades at each cut (a hard cut clicks), a longer fade into
+  // the end card, which is silent. A compressor brings the music up toward the loud one-shot effects, and loudnorm
+  // sets the level the feeds expect (-14 LUFS). The run's sound itself (audio.wav) is built after the capture.
+  const cuts = segs.map(([a, b], k) => {
+    const s = Math.round(a * FPS) / FPS, len = Math.round(b * FPS) / FPS - s, out = k === segs.length - 1 ? 0.4 : 0.04;
+    return `[3:a]atrim=${s}:${s + len},asetpts=PTS-STARTPTS,afade=t=in:d=0.03,afade=t=out:st=${(len - out).toFixed(3)}:d=${out}[s${k}]`;
+  });
   ff(['-framerate', String(FPS), '-i', join(dir, '%05d.jpg'), '-i', capPng[name], '-loop', '1', '-framerate', String(FPS), '-t', String(CARD_S), '-i', cardPng,
+    '-i', wav, '-f', 'lavfi', '-t', String(CARD_S), '-i', 'anullsrc=r=44100:cl=mono',
     '-filter_complex',
     `[0:v]scale=${W}:${H}:flags=lanczos,setsar=1[g];[g][1:v]overlay=0:0,format=yuv420p[a];` +
-    `[2:v]scale=${W}:${H},setsar=1,format=yuv420p,fade=t=in:st=0:d=0.25[c];[a][c]concat=n=2:v=1:a=0[v]`,
-    '-map', '[v]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-movflags', '+faststart', out], name);
+    `[2:v]scale=${W}:${H},setsar=1,format=yuv420p,fade=t=in:st=0:d=0.25[c];[a][c]concat=n=2:v=1:a=0[v];` +
+    `${cuts.join(';')};${segs.map((_, k) => `[s${k}]`).join('')}[4:a]concat=n=${segs.length + 1}:v=0:a=1,acompressor=threshold=-28dB:ratio=6:attack=5:release=150:makeup=10,loudnorm=I=-14:TP=-1:LRA=7,aresample=44100[au]`,
+    '-map', '[v]', '-map', '[au]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(FPS),
+    '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-movflags', '+faststart', out], name);
   made.push({ name, file: `${name}.mp4`, seconds: +(i / FPS + CARD_S).toFixed(1), caption: captions[name], segments: segs.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]) });
   log(`${name}.mp4  ${(i / FPS + CARD_S).toFixed(1)} s  ${(statSync(out).size / 1e6).toFixed(1)} MB`);
 }

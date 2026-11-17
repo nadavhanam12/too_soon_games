@@ -1,0 +1,36 @@
+{
+  "hashtags": [
+    "#halfmarathon",
+    "#running",
+    "#browsergame",
+    "#indiegame"
+  ],
+  "description": "21.1 km in Cyprus, 29°C in November, halloumi, street cats and a baby waiting at the finish. Half a Marathon, Whole Halloumi is a free browser game: five short stages, one race against the sweeper bus.",
+  "press": {
+    "headline": "A founder ran a half marathon. The studio made it a game.",
+    "about": "Half a Marathon, Whole Halloumi is a free browser game from Too Soon Games, made after one of the studio's founders ran a half marathon in Cyprus in November 2026. The player runs 21.1 km in five short arcade stages and has to finish before the course closes. It plays on any phone without signup and ends with a share link that challenges a friend to beat your time.",
+    "facts": [
+      "Free, no signup, plays in any mobile or desktop browser",
+      "Five short arcade stages, global leaderboard, friend-challenge links",
+      "Made by Too Soon Games, a small studio that turns moments into games"
+    ]
+  },
+  "posts": {
+    "tiktok": {
+      "text": "21.1 km in Cyprus, 29°C in November, and a baby waiting at the finish 🏃 Can you make it before the course closes? Free game, link in bio #halfmarathon #running #browsergame #indiegame",
+      "clip": "hook"
+    },
+    "x": {
+      "text": "One of our founders ran a half marathon in Cyprus. We made it a game: 21.1 km, 29°C, halloumi, street cats 🏃\n\nCan you finish before the course closes? {link}",
+      "clip": "challenge"
+    },
+    "instagram": {
+      "text": "21.1 km in Cyprus, 29°C in November, and a baby waiting at the finish 🏃\nCan you make it before the course closes? Free browser game, no signup, link in bio.\n#halfmarathon #running #browsergame #indiegame",
+      "clip": "hook"
+    },
+    "facebook": {
+      "text": "One of our founders ran a half marathon in Cyprus, so we built a game about it 🏃 21.1 km, 29°C, halloumi and street cats. Finish before the course closes. Free, no signup: {link}",
+      "clip": "hook"
+    }
+  }
+}

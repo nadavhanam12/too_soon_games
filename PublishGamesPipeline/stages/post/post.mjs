@@ -77,6 +77,6 @@ for (const net of nets) {
   } else {
     posts[net] = { ...(posts[net] || {}), prepared: true };
     save();
-    console.log(`[post] ${net}: by hand → ${UPLOAD[net]}\n        video ${video}\n        caption ${join(dir, 'caption.txt')}${net === 'tiktok' || net === 'instagram' ? `\n        bio link ${copy.bioLink}` : ''}\n        then: node PublishGamesPipeline/stages/post/post.mjs ${gameId} --mark-posted ${net} <post url>`);
+    console.log(`[post] ${net}: by hand → ${UPLOAD[net]}\n        video ${video}\n        caption ${join(dir, 'caption.txt')}${p.profileLink ? `\n        link for the profile ${p.profileLink}` : ''}\n        then: node PublishGamesPipeline/stages/post/post.mjs ${gameId} --mark-posted ${net} <post url>`);
   }
 }

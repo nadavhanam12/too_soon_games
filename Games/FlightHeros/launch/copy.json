@@ -1,0 +1,37 @@
+{
+  "hashtags": [
+    "#browsergame",
+    "#indiegame",
+    "#arcade",
+    "#gaming"
+  ],
+  "description": "174 passengers, a hijacked cockpit, a plane going down. Not On My Flight is a free browser game: five short stages from the aisle to the yoke. How fast can you save the flight?",
+  "press": {
+    "headline": "A plane is going down. You have five stages to save it.",
+    "about": "Not On My Flight is a free browser game from Too Soon Games. The player runs down the aisle of a diving airliner, breaks into the cockpit, stops the attacker and levels the plane, in five short arcade stages. The family in the game is fictional and the attacker and captain are generic; the facts screen at the end gives the details of the real flight the game is based on. It plays on any phone without signup and ends with a share link that challenges a friend to beat your score.",
+    "facts": [
+      "Free, no signup, plays in any mobile or desktop browser",
+      "Five short arcade stages, global leaderboard, friend-challenge links",
+      "Fictional characters; the facts screen covers the real event",
+      "Made by Too Soon Games, a small studio that turns news moments into games"
+    ]
+  },
+  "posts": {
+    "tiktok": {
+      "text": "The plane is going down and the cockpit is 30 rows away ✈️ Can you save the flight? Free browser game, link in bio #browsergame #indiegame #arcade #gaming",
+      "clip": "hook"
+    },
+    "x": {
+      "text": "The plane is going down and the cockpit is 30 rows away ✈️\n\nFive short stages to save the flight. Our score is 7,960. Yours? {link}",
+      "clip": "challenge"
+    },
+    "instagram": {
+      "text": "The plane is going down and the cockpit is 30 rows away ✈️\nFive short stages to save the flight. Free browser game, no signup, link in bio.\n#browsergame #indiegame #arcade #gaming",
+      "clip": "hook"
+    },
+    "facebook": {
+      "text": "The plane is going down and the cockpit is 30 rows away ✈️ Five short stages to save the flight, then send your score to a friend. Free, no signup: {link}",
+      "clip": "hook"
+    }
+  }
+}

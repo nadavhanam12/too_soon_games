@@ -21,7 +21,7 @@
 //   }
 // }
 // "{link}" is replaced with the tracked link. TikTok and Instagram captions cannot hold a clickable link, so their
-// link goes in the bio and "{link}" is refused there.
+// "{link}" is refused there; the profile carries a tracked link to the studio site instead (`profileLink`).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,6 +53,9 @@ const NETS = {
 const rel = existsSync(join(GAME, '.release.json')) ? JSON.parse(readFileSync(join(GAME, '.release.json'), 'utf8')) : null;
 const day = (rel?.publishedAt ? new Date(rel.publishedAt) : new Date()).toISOString().slice(0, 10).replace(/-/g, '');
 const base = `${(studio.publicBase || '').replace(/\/$/, '')}/${cfg.slug}/`;
+// The studio's profile on a network links to the studio site, not to one game (the account outlives the game); the site
+// carries the UTM tags on to whichever game the visitor opens (frontend layout.ts).
+const profileLink = (source) => `${(studio.publicBase || '').replace(/\/$/, '')}/?utm_source=${source}&utm_medium=social&utm_campaign=profile`;
 const link = (source) => `${base}?utm_source=${source}&utm_medium=social&utm_campaign=${cfg.slug}-${day}`;
 
 const problems = [];
@@ -63,12 +66,12 @@ need(copy.press?.headline && copy.press?.about, 'press: headline and about');
 need(copy.posts && Object.keys(copy.posts).length, 'posts: at least one network');
 
 const clipNames = new Set((videos?.clips || []).map((c) => c.name));
-const final = { game: gameId, lang: cfg.lang, campaign: `${cfg.slug}-${day}`, bioLink: link('bio'), hashtags: copy.hashtags, description: copy.description, press: copy.press, posts: {} };
+const final = { game: gameId, lang: cfg.lang, campaign: `${cfg.slug}-${day}`, hashtags: copy.hashtags, description: copy.description, press: copy.press, posts: {} };
 for (const [net, p] of Object.entries(copy.posts || {})) {
   const n = NETS[net];
   if (!n) { problems.push(`posts.${net}: unknown network (${Object.keys(NETS).join(', ')})`); continue; }
   const url = link(net);
-  if (!n.linkInText && p.text.includes('{link}')) problems.push(`${n.label}: a caption link is not clickable there, drop {link} (the bio link is ${final.bioLink})`);
+  if (!n.linkInText && p.text.includes('{link}')) problems.push(`${n.label}: a caption link is not clickable there, drop {link} (its tracked link goes in the profile)`);
   if (n.linkInText && !p.text.includes('{link}')) problems.push(`${n.label}: the text has no {link}`);
   const text = p.text.replace('{link}', url);
   const counted = n.url ? p.text.replace('{link}', 'x'.repeat(n.url)).length : text.length;
@@ -77,7 +80,7 @@ for (const [net, p] of Object.entries(copy.posts || {})) {
   const tags = (text.match(/#[\p{L}\p{N}_]+/gu) || []).length;
   if (n.hashtagsMax && tags > n.hashtagsMax) problems.push(`${n.label}: ${tags} hashtags, at most ${n.hashtagsMax}`);
   if (videos && !clipNames.has(p.clip)) problems.push(`${n.label}: clip "${p.clip}" is not one of ${[...clipNames].join(', ')}`);
-  final.posts[net] = { network: n.label, ...(p.title ? { title: p.title } : {}), text, link: url, clip: p.clip, chars: counted };
+  final.posts[net] = { network: n.label, ...(p.title ? { title: p.title } : {}), text, link: url, ...(n.linkInText ? {} : { profileLink: profileLink(net) }), clip: p.clip, chars: counted };
 }
 
 if (problems.length) { console.error('copy.json has problems:\n- ' + problems.join('\n- ')); process.exit(1); }
@@ -85,11 +88,11 @@ if (problems.length) { console.error('copy.json has problems:\n- ' + problems.jo
 writeFileSync(join(LAUNCH, 'copy.final.json'), JSON.stringify(final, null, 2) + '\n');
 const md = [
   `# Copy: ${cfg.title}`, '',
-  `Campaign \`${final.campaign}\` · bio link: ${final.bioLink}`, '',
+  `Campaign \`${final.campaign}\``, '',
   `**Description:** ${copy.description}`, '',
   `**Hashtags:** ${copy.hashtags.join(' ')}`, '',
   '## Posts', '',
-  ...Object.values(final.posts).flatMap((p) => [`### ${p.network} · clip \`${p.clip}\` · ${p.chars} chars`, '', ...(p.title ? [`**${p.title}**`, ''] : []), p.text, '']),
+  ...Object.values(final.posts).flatMap((p) => [`### ${p.network} · clip \`${p.clip}\` · ${p.chars} chars`, '', ...(p.title ? [`**${p.title}**`, ''] : []), p.text, '', ...(p.profileLink ? [`Link for the profile, to the studio site (a caption link is not clickable there): ${p.profileLink}`, ''] : [])]),
   '## Press', '', `**${copy.press.headline}**`, '', copy.press.about, '', ...(copy.press.facts || []).map((f) => `- ${f}`), '',
 ];
 writeFileSync(join(LAUNCH, 'copy.md'), md.join('\n'));
