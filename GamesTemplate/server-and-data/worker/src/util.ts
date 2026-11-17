@@ -103,15 +103,17 @@ export function makeCtx(req: Request, env: Env, ec: ExecutionContext): Ctx {
 // ---------- test traffic ----------
 
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const isLocalHost = (h: string): boolean => h === 'localhost' || h === '127.0.0.1';
 
 /**
  * A page served from localhost (dev server, bug check, asset tools) must not write events or scores into the live
- * data. The deployed worker refuses those writes; `wrangler dev` (itself on localhost) accepts them.
+ * data. The deployed worker refuses those writes; `wrangler dev` accepts them. The local worker is told apart by
+ * LOCAL_DEV=1 in .dev.vars (read only by `wrangler dev`), not by its own URL: `wrangler dev` hands the worker the
+ * route's host (api.toosoongames.app), so by its URL the local API looked live and refused every local write
+ * (the smoke test and the bug check's server part went red, 2026-11-17).
  */
 export function refuseLocalWrite(ctx: Ctx): void {
-  if (ctx.origin && LOCAL_ORIGIN.test(ctx.origin) && !isLocalHost(ctx.url.hostname)) {
-    throw new HttpError(403, 'a localhost page cannot write to the live API', 'local_origin');
+  if (ctx.origin && LOCAL_ORIGIN.test(ctx.origin) && ctx.env.LOCAL_DEV !== '1') {
+    throw new HttpError(403, 'a localhost page cannot write to the live API (a local API needs LOCAL_DEV=1 in .dev.vars)', 'local_origin');
   }
 }
 

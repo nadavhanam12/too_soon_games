@@ -1,4 +1,7 @@
 # Copy to .dev.vars (git-ignored) and fill in. Production: `wrangler secret put <NAME>`.
+# LOCAL_DEV marks this worker as the local API (never set it in production): it then takes scores and events from
+# localhost pages, which the live API refuses (src/util.ts refuseLocalWrite).
+LOCAL_DEV=1
 ADMIN_KEY=change-me
 CF_ACCOUNT_ID=
 CF_API_TOKEN=

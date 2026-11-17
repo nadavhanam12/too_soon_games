@@ -17,6 +17,8 @@ export interface Env {
   ADMIN_KEY?: string;
   CF_ACCOUNT_ID?: string;
   CF_API_TOKEN?: string;
+  /** "1" only under `wrangler dev` (.dev.vars): this worker is the local API and takes writes from localhost pages. */
+  LOCAL_DEV?: string;
 }
 
 /** Per-request context derived once in the router. */
