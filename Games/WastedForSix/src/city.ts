@@ -31,15 +31,18 @@ export interface Place { id: PlaceId; i: number; j: number; side: 'N' | 'S' | 'E
 
 // ---------- the story's places: blocks reserved in the scene's grid, door on the road beside the block ----------
 const PLACE_DEF: Array<[PlaceId, number, number, Place['side']]> = [
-  // Spread over the map (2026-11-17, Nadav: the run should show more of it). Measured on the nav grid: the commute is
-  // short, it is the first mission: suburbs, mall, park (390 u); the sick branch goes north under the ring road, then
-  // through the plaza and the bends (638); the quit branch the docks and the bends (680); the chase home runs the
-  // whole beach road, east to west (485). The office was north of the ring road for a day (commute 702): too far.
+  // Placed for winding routes (2026-11-17, Nadav: the run should show more of the map, the first mission must be
+  // short, and no leg may be one straight line). Picked by a search over ~3000 layouts for the shortest "longest
+  // straight stretch" on the GPS route. Lengths / longest straight, in units: commute 390 / 60 (suburbs, mall, park);
+  // sick branch 531 / 81 (south past the park, then north-east); quit branch 588 / 111 (north-east by the ring road);
+  // chase home 652 / 111 (diagonally across the park, the mall and the suburbs). Tried and dropped the same day: the
+  // office north of the ring road (commute 702) and the store on the beach road or the docks' east edge (the chase
+  // home had a straight of 333+).
   ['home', -5, 4, 'E'],     // suburbs, south-west, a block from the beach
   ['office', -2, -1, 'E'],  // midtown, facing the central park from the west
-  ['store', 4, 4, 'W'],     // south-east, on the beach road
-  ['clinic', 1, -3, 'S'],   // north, just under the ring road (sick branch detour)
-  ['gas', 5, -1, 'W'],      // deep in the docks (quit branch detour)
+  ['store', 3, -3, 'S'],    // north-east, where the docks meet the ring road
+  ['clinic', 0, 1, 'S'],    // just south of the park (sick branch detour)
+  ['gas', 4, -5, 'W'],      // the north edge of the docks (quit branch detour)
 ];
 const door = (i: number, j: number, side: Place['side']): { x: number; y: number } => {
   const cx = i * CELL, cz = j * CELL, o = CELL / 2;
