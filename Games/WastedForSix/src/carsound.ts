@@ -15,6 +15,7 @@ const HR_NEAR = 75;         // HR beeper range beyond its red circle (u), same f
 interface Nodes {
   engA: OscillatorNode; engB: OscillatorNode; engF: BiquadFilterNode; engV: GainNode; skidV: GainNode; scrV: GainNode;
   sirLfo: OscillatorNode; sirF: BiquadFilterNode; sirV: GainNode;
+  heliLfo: OscillatorNode; heliF: BiquadFilterNode; heliV: GainNode;
 }
 // police siren (copSiren): a US-style wail that turns into a fast yelp when the cop is right behind you
 const SIREN_G = 0.05;        // at the bumper; fades out over SIREN_FAR
@@ -56,9 +57,35 @@ function build(): Nodes {
   window.setInterval(() => {
     if (!N || performance.now() - lastCall < 200) return;
     const t = c.currentTime;
-    for (const g of [N.engV, N.skidV, N.scrV, N.sirV]) g.gain.setTargetAtTime(0, t, 0.08);
+    for (const g of [N.engV, N.skidV, N.scrV, N.sirV, N.heliV]) g.gain.setTargetAtTime(0, t, 0.08);
   }, 150);
-  return { engA, engB, engF, engV, skidV, scrV, sirLfo, sirF, sirV };
+  // helicopter rotor: soft low noise pulsed at the blade rate ("whup-whup") plus a quiet low hum, under one gain
+  const heliV = c.createGain(); heliV.gain.value = 0;
+  const heliF = c.createBiquadFilter(); heliF.type = 'lowpass'; heliF.frequency.value = 500; heliF.Q.value = 0.7;
+  const heliMod = c.createGain(); heliMod.gain.value = 0.55;           // pulse depth rides on this base level
+  const heliN = c.createBufferSource(); heliN.buffer = noiseBuffer(); heliN.loop = true;
+  heliN.connect(heliF); heliF.connect(heliMod); heliMod.connect(heliV);
+  const heliLfo = c.createOscillator(); heliLfo.type = 'sine'; heliLfo.frequency.value = HELI_BLADE_HZ;
+  const heliDepth = c.createGain(); heliDepth.gain.value = 0.45; heliLfo.connect(heliDepth); heliDepth.connect(heliMod.gain);
+  const heliHum = c.createOscillator(); heliHum.type = 'sine'; heliHum.frequency.value = 58;
+  const heliHumV = c.createGain(); heliHumV.gain.value = 0.35; heliHum.connect(heliHumV); heliHumV.connect(heliV);
+  heliV.connect(out); heliN.start(); heliLfo.start(); heliHum.start();
+  return { engA, engB, engF, engV, skidV, scrV, sirLfo, sirF, sirV, heliLfo, heliF, heliV };
+}
+
+// police helicopter (heliSound): gentle on purpose, it is background atmosphere, not an alarm
+const HELI_G = 0.03;         // right overhead: about the engine's level at full gas (ENGINE_G), so it never covers the car
+const HELI_HEAR = 110;       // u: silent beyond this (drive.ts HELI_FAR, where it appears and leaves)
+const HELI_BLADE_HZ = 11;    // blade pulses per second
+
+/** One world step of the helicopter. `heli` = its distance from you, or null when none is over the city. */
+export function heliSound(heli: number | null): void {
+  if (!N) N = build();
+  const t = sfxOut().context.currentTime;
+  const near = heli === null ? 0 : Math.min(1, Math.max(0, 1 - heli / HELI_HEAR));
+  N.heliV.gain.setTargetAtTime(HELI_G * near * near, t, 0.3);           // squared: fades in slowly from far away
+  N.heliF.frequency.setTargetAtTime(260 + near * 520, t, 0.3);          // duller far away
+  N.heliLfo.frequency.setTargetAtTime(HELI_BLADE_HZ * (0.94 + 0.08 * near), t, 0.5);
 }
 
 /** One world step of the police siren. `cop` = distance to the nearest chasing cop, or null / Infinity for none. */
@@ -113,7 +140,7 @@ export function carSound(dt: number, p: CarState, hr: number | null, squeal = 0)
 (window as unknown as Record<string, unknown>).__carSound = () => (N ? {
   engine: +N.engV.gain.value.toFixed(3), hz: Math.round(N.engA.frequency.value), cutoff: Math.round(N.engF.frequency.value),
   skid: +N.skidV.gain.value.toFixed(3), scrape: +N.scrV.gain.value.toFixed(3),
-  siren: +N.sirV.gain.value.toFixed(3), sirenSweepsPerS: +N.sirLfo.frequency.value.toFixed(2), ctx: N.engV.context.state,
+  siren: +N.sirV.gain.value.toFixed(3), sirenSweepsPerS: +N.sirLfo.frequency.value.toFixed(2), heli: +N.heliV.gain.value.toFixed(3), ctx: N.engV.context.state,
 } : null);
 
 /** drive.ts: the car is sliding along a wall at `speed` u/s (called every step while it touches). */

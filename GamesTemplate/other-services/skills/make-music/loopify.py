@@ -24,9 +24,10 @@ XF = 0.5  # crossfade seconds
 
 
 # libsndfile maps compression_level 0..1 onto MP3 bitrate steps (measured at 48kHz mono):
-# 0.85 -> 80kbps, 0.9 -> 56kbps. Instrumentals at 56; vocals at 80 so words stay clear.
-def mp3(has_vocals):
-    return dict(format="MP3", bitrate_mode="CONSTANT", compression_level=0.85 if has_vocals else 0.9)
+# 0.85 -> 80kbps, 0.9 -> 56kbps, 0.93 -> 48kbps, 0.97 -> 40kbps. Instrumentals at 56; vocals at 80 so words stay
+# clear. A track's `mp3_level` in the spec overrides it (e.g. extra radio stations at 0.97 to fit the 1.5 MB budget).
+def mp3(has_vocals, level=None):
+    return dict(format="MP3", bitrate_mode="CONSTANT", compression_level=level or (0.85 if has_vocals else 0.9))
 
 
 def make_loop(x, sr, bpm, bars):
@@ -61,5 +62,5 @@ for name, t in log.items():
         y = make_loop(x, sr, bpm, t["loop_bars"]) if t.get("loop_bars") else trim_and_fade(x, sr)
         y = y / max(1e-9, np.abs(y).max()) * 0.89  # peak -1 dBFS
         dst = OUT / f"{name}-{r['n']}.mp3"
-        sf.write(dst, y.astype(np.float32), sr, **mp3(vocals))
+        sf.write(dst, y.astype(np.float32), sr, **mp3(vocals, t.get("mp3_level")))
         print(f"{dst.name}: {len(y) / sr:5.1f}s  {dst.stat().st_size // 1024:4d}KB  bpm={bpm:g}")

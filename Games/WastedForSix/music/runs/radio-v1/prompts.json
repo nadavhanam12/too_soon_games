@@ -1,0 +1,322 @@
+{
+  "R-midnight": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 40,
+    "batch": 3,
+    "loop_bars": 12,
+    "label": "שעת לילה – לואוריידר איטי וחלק, טוקבוקס, Rhodes",
+    "prompt": "late night slow-rolling lowrider soul instrumental, smooth talkbox melody, warm Fender Rhodes, live round bass guitar, soft swung drums slightly behind the beat, city lights at 2am, smooth and sly, analog tape warmth",
+    "bpm": 84,
+    "key_scale": "Eb minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "late night slow-rolling lowrider soul instrumental, smooth talkbox melody, warm Fender Rhodes, live round bass guitar, soft swung drums slightly behind the beat, city lights at 2am, smooth and sly, analog tape warmth",
+      "lyrics": "[Instrumental]",
+      "bpm": 84,
+      "key_scale": "Eb minor",
+      "time_signature": "4",
+      "audio_duration": 40,
+      "batch_size": 3,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/radio-v1/raw/R-midnight-1.wav",
+        "seed": "3566488042,1911563433,153073866",
+        "metas": {
+          "bpm": 84,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "Eb minor",
+          "timesignature": "4",
+          "prompt": "late night slow-rolling lowrider soul instrumental, smooth talkbox melody, warm Fender Rhodes, live round bass guitar, soft swung drums slightly behind the beat, city lights at 2am, smooth and sly, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 2,
+        "file": "runs/radio-v1/raw/R-midnight-2.wav",
+        "seed": "3566488042,1911563433,153073866",
+        "metas": {
+          "bpm": 84,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "Eb minor",
+          "timesignature": "4",
+          "prompt": "late night slow-rolling lowrider soul instrumental, smooth talkbox melody, warm Fender Rhodes, live round bass guitar, soft swung drums slightly behind the beat, city lights at 2am, smooth and sly, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 3,
+        "file": "runs/radio-v1/raw/R-midnight-3.wav",
+        "seed": "3566488042,1911563433,153073866",
+        "metas": {
+          "bpm": 84,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "Eb minor",
+          "timesignature": "4",
+          "prompt": "late night slow-rolling lowrider soul instrumental, smooth talkbox melody, warm Fender Rhodes, live round bass guitar, soft swung drums slightly behind the beat, city lights at 2am, smooth and sly, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ],
+    "mp3_level": 0.97
+  },
+  "R-bounce": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 40,
+    "batch": 3,
+    "loop_bars": 14,
+    "label": "באונס – West Coast של שנות ה־2000, כפיים, סינת׳ בס קופצני",
+    "prompt": "2000s West Coast club bounce instrumental, bouncy synth bass, crisp handclaps, snappy live drums, high whistle synth lead, party on the boulevard, playful swagger, polished mix",
+    "bpm": 100,
+    "key_scale": "G minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "2000s West Coast club bounce instrumental, bouncy synth bass, crisp handclaps, snappy live drums, high whistle synth lead, party on the boulevard, playful swagger, polished mix",
+      "lyrics": "[Instrumental]",
+      "bpm": 100,
+      "key_scale": "G minor",
+      "time_signature": "4",
+      "audio_duration": 40,
+      "batch_size": 3,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/radio-v1/raw/R-bounce-1.wav",
+        "seed": "3578686842,1667164062,724804151",
+        "metas": {
+          "bpm": 100,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "G minor",
+          "timesignature": "4",
+          "prompt": "2000s West Coast club bounce instrumental, bouncy synth bass, crisp handclaps, snappy live drums, high whistle synth lead, party on the boulevard, playful swagger, polished mix",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 2,
+        "file": "runs/radio-v1/raw/R-bounce-2.wav",
+        "seed": "3578686842,1667164062,724804151",
+        "metas": {
+          "bpm": 100,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "G minor",
+          "timesignature": "4",
+          "prompt": "2000s West Coast club bounce instrumental, bouncy synth bass, crisp handclaps, snappy live drums, high whistle synth lead, party on the boulevard, playful swagger, polished mix",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 3,
+        "file": "runs/radio-v1/raw/R-bounce-3.wav",
+        "seed": "3578686842,1667164062,724804151",
+        "metas": {
+          "bpm": 100,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "G minor",
+          "timesignature": "4",
+          "prompt": "2000s West Coast club bounce instrumental, bouncy synth bass, crisp handclaps, snappy live drums, high whistle synth lead, party on the boulevard, playful swagger, polished mix",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ],
+    "mp3_level": 0.97
+  },
+  "R-jazzy": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 40,
+    "batch": 3,
+    "loop_bars": 12,
+    "label": "ג׳אזי – בום־באפ רגוע, חצוצרה עמומה, קונטרבס",
+    "prompt": "laid-back jazzy West Coast hip-hop instrumental, muted trumpet melody, upright bass, dusty swung boom-bap drums, vibraphone and Rhodes chords, vinyl crackle, cool and relaxed with a cheeky wink",
+    "bpm": 88,
+    "key_scale": "D minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "laid-back jazzy West Coast hip-hop instrumental, muted trumpet melody, upright bass, dusty swung boom-bap drums, vibraphone and Rhodes chords, vinyl crackle, cool and relaxed with a cheeky wink",
+      "lyrics": "[Instrumental]",
+      "bpm": 88,
+      "key_scale": "D minor",
+      "time_signature": "4",
+      "audio_duration": 40,
+      "batch_size": 3,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/radio-v1/raw/R-jazzy-1.wav",
+        "seed": "1819479481,2469033498,385556676",
+        "metas": {
+          "bpm": 88,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "D minor",
+          "timesignature": "4",
+          "prompt": "laid-back jazzy West Coast hip-hop instrumental, muted trumpet melody, upright bass, dusty swung boom-bap drums, vibraphone and Rhodes chords, vinyl crackle, cool and relaxed with a cheeky wink",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 2,
+        "file": "runs/radio-v1/raw/R-jazzy-2.wav",
+        "seed": "1819479481,2469033498,385556676",
+        "metas": {
+          "bpm": 88,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "D minor",
+          "timesignature": "4",
+          "prompt": "laid-back jazzy West Coast hip-hop instrumental, muted trumpet melody, upright bass, dusty swung boom-bap drums, vibraphone and Rhodes chords, vinyl crackle, cool and relaxed with a cheeky wink",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 3,
+        "file": "runs/radio-v1/raw/R-jazzy-3.wav",
+        "seed": "1819479481,2469033498,385556676",
+        "metas": {
+          "bpm": 88,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "D minor",
+          "timesignature": "4",
+          "prompt": "laid-back jazzy West Coast hip-hop instrumental, muted trumpet melody, upright bass, dusty swung boom-bap drums, vibraphone and Rhodes chords, vinyl crackle, cool and relaxed with a cheeky wink",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      }
+    ],
+    "mp3_level": 0.97
+  },
+  "R-electro": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 40,
+    "batch": 3,
+    "loop_bars": 14,
+    "label": "אלקטרו־פאנק אייטיז – וקודר, דראם־מאשין, גיטרה פאנקית",
+    "prompt": "1980s electro-funk instrumental, vocoder and talkbox hooks, punchy drum machine with live percussion, slap-free funky rhythm guitar, synth bass, neon roller-disco energy, fun and goofy",
+    "bpm": 108,
+    "key_scale": "A minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "1980s electro-funk instrumental, vocoder and talkbox hooks, punchy drum machine with live percussion, slap-free funky rhythm guitar, synth bass, neon roller-disco energy, fun and goofy",
+      "lyrics": "[Instrumental]",
+      "bpm": 108,
+      "key_scale": "A minor",
+      "time_signature": "4",
+      "audio_duration": 40,
+      "batch_size": 3,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/radio-v1/raw/R-electro-1.wav",
+        "seed": "1300503543,3778347668,2322292749",
+        "metas": {
+          "bpm": 108,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "A minor",
+          "timesignature": "4",
+          "prompt": "1980s electro-funk instrumental, vocoder and talkbox hooks, punchy drum machine with live percussion, slap-free funky rhythm guitar, synth bass, neon roller-disco energy, fun and goofy",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 2,
+        "file": "runs/radio-v1/raw/R-electro-2.wav",
+        "seed": "1300503543,3778347668,2322292749",
+        "metas": {
+          "bpm": 108,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "A minor",
+          "timesignature": "4",
+          "prompt": "1980s electro-funk instrumental, vocoder and talkbox hooks, punchy drum machine with live percussion, slap-free funky rhythm guitar, synth bass, neon roller-disco energy, fun and goofy",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft",
+        "pruned": true
+      },
+      {
+        "n": 3,
+        "file": "runs/radio-v1/raw/R-electro-3.wav",
+        "seed": "1300503543,3778347668,2322292749",
+        "metas": {
+          "bpm": 108,
+          "duration": 40,
+          "genres": "N/A",
+          "keyscale": "A minor",
+          "timesignature": "4",
+          "prompt": "1980s electro-funk instrumental, vocoder and talkbox hooks, punchy drum machine with live percussion, slap-free funky rhythm guitar, synth bass, neon roller-disco energy, fun and goofy",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ],
+    "mp3_level": 0.97
+  }
+}

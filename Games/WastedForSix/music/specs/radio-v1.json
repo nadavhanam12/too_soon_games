@@ -1,0 +1,41 @@
+{
+  "note": "Car radio stations: 4 new directions in the same West Coast family as the game's loops, each clearly its own station. Production traits only, no artist or song names. Encoded at 40 kbps (mp3_level 0.97) so 8 tracks fit the 1.5 MB audio budget.",
+  "defaults": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 40,
+    "batch": 3,
+    "loop_bars": 12,
+    "mp3_level": 0.97
+  },
+  "tracks": {
+    "R-midnight": {
+      "label": "שעת לילה – לואוריידר איטי וחלק, טוקבוקס, Rhodes",
+      "prompt": "late night slow-rolling lowrider soul instrumental, smooth talkbox melody, warm Fender Rhodes, live round bass guitar, soft swung drums slightly behind the beat, city lights at 2am, smooth and sly, analog tape warmth",
+      "bpm": 84,
+      "key_scale": "Eb minor"
+    },
+    "R-bounce": {
+      "label": "באונס – West Coast של שנות ה־2000, כפיים, סינת׳ בס קופצני",
+      "prompt": "2000s West Coast club bounce instrumental, bouncy synth bass, crisp handclaps, snappy live drums, high whistle synth lead, party on the boulevard, playful swagger, polished mix",
+      "bpm": 100,
+      "key_scale": "G minor",
+      "loop_bars": 14
+    },
+    "R-jazzy": {
+      "label": "ג׳אזי – בום־באפ רגוע, חצוצרה עמומה, קונטרבס",
+      "prompt": "laid-back jazzy West Coast hip-hop instrumental, muted trumpet melody, upright bass, dusty swung boom-bap drums, vibraphone and Rhodes chords, vinyl crackle, cool and relaxed with a cheeky wink",
+      "bpm": 88,
+      "key_scale": "D minor"
+    },
+    "R-electro": {
+      "label": "אלקטרו־פאנק אייטיז – וקודר, דראם־מאשין, גיטרה פאנקית",
+      "prompt": "1980s electro-funk instrumental, vocoder and talkbox hooks, punchy drum machine with live percussion, slap-free funky rhythm guitar, synth bass, neon roller-disco energy, fun and goofy",
+      "bpm": 108,
+      "key_scale": "A minor",
+      "loop_bars": 14
+    }
+  }
+}

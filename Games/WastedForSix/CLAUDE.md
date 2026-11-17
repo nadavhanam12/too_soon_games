@@ -56,7 +56,9 @@ src/sfx.ts, theme.ts game sounds + MUSIC (4 looped files); asphalt / sunset them
                      choose (boss/clerk option), type / erase / pwWrong / pwRight (PC), fuelLow. Debug: __sfx(name)
 src/carsound.ts      continuous driving sounds (synth, 0 KB): engine (4 arcade gears, louder on gas), drift squeal, wall
                      scrape, HR proximity beeper (sick branch before the note), police siren (copSiren: a wail that
-                     grows with the nearest cop and turns into a yelp at the bumper). drive.ts stepWorld calls both every
+                     grows with the nearest cop and turns into a yelp at the bumper), helicopter rotor (heliSound: soft
+                     11 Hz "whup" + low hum, fades in over HELI_HEAR 110 u, peak HELI_G 0.03 ≈ the engine at full gas).
+                     drive.ts stepWorld calls them every
                      step; a watchdog fades it out when no leg is driving. Low fuel = one sfx.fuelLow chime (legs.ts)
 assets/audio/        4 G-funk loops from ACE-Step, ~215 KB each (DECISIONS 74): theme = title/cutscene/PRESS START/result,
                      drive = commute + launch, chase = home, scheme = boss/clerk/pc (play.ts STAGE_MUSIC); lose = silence.
