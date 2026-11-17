@@ -6,6 +6,8 @@
 // for the story's places (home, office, store, clinic, gas) and build a navigation grid for the GPS and the chasers.
 // Units: the scene's world units. x = east, y = the scene's z (south). A car is ~6 long, a road 16 wide.
 
+import { SIGNS } from './content';
+
 export const BLOCK = 40, ROAD = 16, CELL = BLOCK + ROAD, N = 6;
 export const BMIN = -N * CELL - CELL / 2 - 6, BMAX = (N - 1) * CELL + CELL / 2 + 6, BMID = (BMIN + BMAX) / 2, BSIZE = BMAX - BMIN;
 /** x (or y) of grid road k (k = -N..N). */
@@ -58,10 +60,12 @@ export const lamps: Array<{ x: number; z: number }> = [];
 const R = mulberry(19112026);
 const pick = <T>(a: readonly T[]): T => a[Math.floor(R() * a.length)]!;
 const bodyCols = [0xf2d8b0, 0xe8b8a0, 0xc8dcd0, 0xf0e6d0, 0xd8c8e0, 0xe8d090, 0xb8c8d8, 0xe0a888];
-export const ISLANDS = [{ x: 84, z: -140, r: 7 }, { x: -28, z: 196, r: 7 }, { x: 196, z: -140, r: 7 }, { x: -196, z: -196, r: 7 }];
+// The scene's four roundabouts were removed (2026-11-17: fewer obstacles on the road); the list stays so adding one
+// back is one entry: { x, z, r } at a grid intersection.
+export const ISLANDS: Array<{ x: number; z: number; r: number }> = [];
 export const FOUNTAIN = { x: -CELL / 2, z: -CELL / 2, r: 9 };
 const SUPER = [
-  { i: -1, j: -1, w: 2, h: 2, kind: 'plaza' }, { i: 1, j: 2, w: 2, h: 2, kind: 'park' }, { i: -3, j: 2, w: 2, h: 2, kind: 'mall' },
+  { i: -1, j: -1, w: 2, h: 2, kind: 'park' }, { i: 1, j: 2, w: 2, h: 2, kind: 'plaza' }, { i: -3, j: 2, w: 2, h: 2, kind: 'mall' },
   { i: -6, j: -2, w: 2, h: 4, kind: 'hills' }, { i: 0, j: -5, w: 3, h: 2, kind: 'ring' }, { i: 3, j: 1, w: 2, h: 2, kind: 'bends' },
 ];
 export const inSuper = (i: number, j: number) => SUPER.find((q) => i >= q.i && i < q.i + q.w && j >= q.j && j < q.j + q.h);
@@ -177,21 +181,21 @@ function placeBuilding(p: Place): void {
       const dw = front(H - 6); plain(fx ? 12 : 7, 0.2, fx ? 7 : 12, dw.x, 0.2, dw.z, 0xb8b0a0);   // driveway
       cyl('neon', 0.15, 0.15, 1.6, 4, dw.x + (fx ? 0 : 6), 0.8, dw.z + (fx ? 6 : 0), 0x5a5a60);       // mailbox post
       palm(cx + 14, cz - 14); palm(cx - 14, cz + 14);
-      sign(cx - fx * 4, 9.5, cz - fz * 4, 12, 4, 'HOME', '#ff3fa4', '#ffffff');
+      sign(cx - fx * 4, 9.5, cz - fz * 4, 12, 4, SIGNS.home,'#ff3fa4', '#ffffff');
       break;
     }
     case 'office': {
       groundRect(cx, cz, BLOCK - 1, BLOCK - 1, 0x48484e);
       box(cx, cz, 32, 32, 46, 0xb8c8d8); roofJunk(cx, cz, 32, 32, 46.4, 4);
       neon(32.3, 0.35, 32.3, cx, 46.4, cz, 0xf8f4ec);
-      sign(cx, 47, cz, 26, 6, 'MEGACORP', '#1b2a44', '#7fd0ff');
+      sign(cx, 47, cz, 26, 6, SIGNS.office,'#1b2a44', '#7fd0ff');
       break;
     }
     case 'store': {
       groundRect(cx, cz, BLOCK - 1, BLOCK - 1, 0x48484e);
       box(cx - fx * 5, cz - fz * 5, 34, 26, 9, 0x3a2a5a);
       neon(34.3, 0.5, 26.3, cx - fx * 5, 9.6, cz - fz * 5, 0xff3fa4);
-      sign(cx - fx * 5, 10.2, cz - fz * 5, 24, 7, 'GAMES', '#ff3fa4', '#fff6b0');
+      sign(cx - fx * 5, 10.2, cz - fz * 5, 24, 7, SIGNS.store,'#ff3fa4', '#fff6b0');
       // launch-day line along the front of the store
       const along = fx ? { x: 0, z: 1 } : { x: 1, z: 0 }, row = front(H - 3);
       for (let k = 0; k < 18; k++) {
@@ -309,7 +313,14 @@ for (let i = -N; i < N; i++) for (let j = -N; j < N; j++) {
   if (pl) { placeBuilding(pl); continue; }
   prims.push({ k: 'sidewalk', x: cx, z: cz, col: 0xc8c0b0 });
   const H = BLOCK / 2;
-  if (i <= -4) {                                   // suburbs (west): lawns + houses with pitched roofs
+  const central = Math.max(Math.abs(i + 0.5), Math.abs(j + 0.5)) <= 2.5;   // the green heart around the central park
+  if (central && R() < 0.3) {                      // pocket parks with a pond
+    groundRect(cx, cz, BLOCK, BLOCK, 0x6a9a42);
+    if (R() < 0.6) { cyl('neon', 7, 7, 0.1, 24, cx, 0.2, cz, 0x3a9ad8); grounds.push({ x: cx, z: cz, w: 14, d: 14, c: 0x3a9ad8, oval: true }); }
+    for (let p = 0; p < 6; p++) palm(cx + (R() - 0.5) * 30, cz + (R() - 0.5) * 30);
+    continue;
+  }
+  if (i <= -4 || central) {                        // suburbs (west) and the centre: lawns + houses with pitched roofs
     groundRect(cx, cz, BLOCK - 2, BLOCK - 2, 0x7aaa4e);
     const n = R() < 0.5 ? 2 : 3, s = (BLOCK - 2) / n;
     for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {

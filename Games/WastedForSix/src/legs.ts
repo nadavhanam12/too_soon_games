@@ -4,11 +4,11 @@
 //   quit: the tank drains; empty = WASTED. The gas station "beat" (no gray scene) fills it and starts a police chase.
 // Leg 3: the store choice picks the chaser (loan sharks / cops / spouse); the quit branch's gas-theft cop resumes from
 // where it froze when you walked into the store. Caught = WASTED.
-import { R, W, ctx, input, pick, rr, txt, clamp, sfx } from '@tsg/index';
-import { G, registerStage, stageDone, fail, addScore, say, hud, hint, demoDrag, LEG_TARGET_S, setPlaceLabels } from './play';
-import { D, ev, resetWorld, stepWorld, renderWorld, renderStick, addPickups, addLetters, addHr, addChaser, behind, floatText, stickPos, type ChaserKind } from './drive';
-import { PLACES, type PlaceId } from './city';
-import { BANNERS, HINT, LINES, PLACE_NAME } from './content';
+import { R, W, view, ctx, state, input, pick, rr, txt, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
+import { G, registerStage, stageDone, fail, addScore, say, hud, hint, demoDrag, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
+import { D, ev, resetWorld, stepWorld, renderWorld, renderStick, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, stickPos, renderMinimap, MINI, type ChaserKind } from './drive';
+import { PLACES, CELL, type PlaceId } from './city';
+import { BANNERS, HINT, LINES, PLACE_NAME, BOOST_TEXT, UI, TAUNTS } from './content';
 import { C } from './art';
 import { ptxt } from './pixel';
 
@@ -27,63 +27,122 @@ function startBeat(label: string, dur: number, done: () => void): void { if (!be
 function stepBeat(dt: number): boolean {
   if (!beat) return false;
   beat.t += dt;
-  if (beat.t >= beat.dur) { const b = beat; beat = null; D.control = true; b.done(); }
+  if (beat.t >= beat.dur) { const b = beat; beat = null; walk = null; D.control = true; b.done(); }
   return true;
 }
 function renderBeat(): void {
   if (!beat) return;
-  const k = clamp(beat.t / beat.dur, 0, 1), x = W / 2, y = 250;
-  rr(x - 80, y - 46, 160, 30, 8, 'rgba(12,8,20,.85)'); ptxt(beat.label, x, y - 31, 2, C.yellow);
+  const k = clamp(beat.t / beat.dur, 0, 1), x = W / 2, y = 250, inK = easeOB(Math.min(1, beat.t / 0.2));
+  ctx.save(); ctx.translate(x, y - 10); ctx.scale(inK, inK); ctx.translate(-x, -(y - 10));   // the card pops in
+  rr(x - 80, y - 46, 160, 30, 8, 'rgba(14,14,16,.85)'); ptxt(beat.label, x, y - 31, 2, C.yellow);
   ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(x, y + 10, 18, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeStyle = C.pink; ctx.beginPath(); ctx.arc(x, y + 10, 18, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke();
+  ctx.restore();
 }
 
-/** Arriving at the leg's destination: brake, time bonus, next stage. */
-function arriveEnd(label: string, extra = 0, after?: () => void): void {
-  startBeat(label, 0.9, () => {
+/** After parking, the fan gets out of the car and walks into the building; then `done` runs. */
+interface Walk { t: number; dur: number; x0: number; y0: number; x1: number; y1: number; done: () => void }
+let walk: Walk | null = null;
+const WALK_S = 2.4;   // 1.6 → 2.4 on 2026-11-17 (Nadav): the timeline moment during the walk needs the time to be read
+function startWalk(id: PlaceId, done: () => void): void {
+  const pl = PLACES[id], cx = pl.i * CELL, cy = pl.j * CELL;
+  // out of the driver's door, then toward the middle of the building's block (the door side faces the road)
+  const side = { x: D.p.x - Math.sin(D.p.a) * -2.2, y: D.p.y + Math.cos(D.p.a) * -2.2 };
+  const dx = cx - pl.x, dy = cy - pl.y, L = Math.hypot(dx, dy) || 1;
+  walk = { t: 0, dur: WALK_S, x0: side.x, y0: side.y, x1: pl.x + (dx / L) * 17, y1: pl.y + (dy / L) * 17, done };
+  D.control = false; D.closeUp = true;   // the camera comes down on him: one thing to look at (staging)
+}
+function stepWalk(dt: number): boolean {
+  if (!walk) return false;
+  walk.t += dt; G.arrive = walk.t;   // play.ts hud: the timeline comes down and the pin rides to the next stop
+  const k =clamp(walk.t / walk.dur, 0, 1), x = walk.x0 + (walk.x1 - walk.x0) * k, y = walk.y0 + (walk.y1 - walk.y0) * k;
+  D.walker = k < 1 ? { x, y, a: Math.atan2(walk.y1 - walk.y0, walk.x1 - walk.x0), step: walk.t * 9 } : null;
+  if (k >= 1) { const w = walk; walk = null; D.walker = null; D.closeUp = false; w.done(); }
+  return true;
+}
+
+/** Arriving at the leg's destination: brake, time bonus, walk inside, next stage. */
+function arriveEnd(id: PlaceId, label: string, extra = 0, after?: () => void): void {
+  if (walk) return;   // already parked and walking in (the arrive event keeps firing while the car sits at the door)
+  startBeat(label, 0.7, () => {
     const tb = Math.max(0, Math.round(((LEG_TARGET_S[G.stage] ?? 40) - G.t) * 10));
-    if (tb > 0) { addScore(tb); say(`+${tb} time bonus`, 1.6, true); }
+    if (tb > 0) { addScore(tb); say(UI.timeBonus(tb), 1.6, true); }
     if (extra) addScore(extra);
     after?.();
-    stageDone();
+    startWalk(id, () => stageDone());
   });
 }
 
 function commonEvents(): void {
   ev.pickup = (k, x, y) => {
+    haptic(8);
     if (k === 'cash') { G.money += 20; addScore(50); floatText('+$20', x, y, C.money); sfx.cash?.(); say(pick(LINES.cash)); }
     else { addScore(50); floatText('+50', x, y); sfx.can?.(); say(pick(LINES.can)); }
   };
   ev.letter = (ch) => { if (!G.letters.includes(ch)) G.letters.push(ch); addScore(200); floatText('+200', D.p.x, D.p.y - 30, C.pink); sfx.letter?.(); say(pick(LINES.letter).replace('{L}', ch), 2.4, true); };
-  ev.crash = () => { if (crashCd > 0) return; crashCd = 0.8; G.hits++; addScore(-20); sfx.crash?.(); R.shake(0.25); say(pick(LINES.crash)); };
-  ev.near = (x, y) => { addScore(10); floatText(pick(LINES.nearMiss), x, y - 20, C.teal); };
+  ev.crash = () => { if (crashCd > 0) return; crashCd = 0.8; G.hits++; addScore(-20); sfx.crash?.(); R.shake(0.25); haptic(45); say(pick(LINES.crash)); };
+  ev.bump = (k) => { sfx.bump?.(k); haptic(Math.round(6 + 14 * k)); };
+  ev.boost = (k) => { sfx.boost?.(k); haptic(25); floatText(BOOST_TEXT, D.p.x, D.p.y - 8, C.yellow); };
+  ev.near = (x, y) => { addScore(10); floatText(pick(LINES.nearMiss), x, y - 20, C.teal); sfx.near?.(); };
+  ev.ped = (x, y) => { sfx.ped?.(); haptic(18); floatText(pick(LINES.ped), x, y - 6, '#ffffff'); };
   ev.spotted = () => {};
   ev.caught = () => {};
   ev.taunt = () => {};
 }
-function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; input.taps.length = 0; }
+/** Entry: the stick and the minimap rise from the bottom edge when a leg starts. */
+function controlsIn(draw: () => void): void { if (G.failT > 0) return; const k = easeOB(Math.min(1, Math.max(0, G.t - 0.1) / 0.3)); ctx.save(); ctx.translate(0, (1 - k) * 170); draw(); ctx.restore(); }
+// ---------- the car radio: a button above the minimap (and the R key) tunes to the next track ----------
+const RADIO_W = MINI, RADIO_H = 34;
+const radioPos = (): { x: number; y: number } => ({ x: W - 12 - RADIO_W / 2, y: view.H - view.top - MINI - 62 - 10 - RADIO_H / 2 });
+function radioTaps(): void {
+  const b = radioPos();
+  for (const p of input.taps) if (!p.key && inBtn(p, b.x, b.y, RADIO_W, RADIO_H, 8)) { nextStation(); return; }
+}
+function radioKey(e: KeyboardEvent): boolean { if (e.key !== 'r' && e.key !== 'R') return false; nextStation(); return true; }
+/** The button: a note and "RADIO"; for 2 s after a change it shows the station's name instead, and pops. */
+function renderRadio(): void {
+  const b = radioPos(), age = state.t - G.radioT, fresh = age < 2;
+  ctx.save(); ctx.translate(b.x, b.y); const s = pop(age, 0.16, 0.14); ctx.scale(s, s); ctx.translate(-b.x, -b.y);
+  if (fresh) {
+    rr(b.x - RADIO_W / 2, b.y - RADIO_H / 2, RADIO_W, RADIO_H, 8, 'rgba(14,14,16,.85)', C.yellow, 1.5);
+    ctx.globalAlpha = easeO(clamp((2 - age) / 0.3, 0, 1)) * 0.999 + 0.001; ptxt(stationName(), b.x, b.y, 1, C.yellow); ctx.globalAlpha = 1;
+  } else {
+    // a real button (Nadav, 2026-11-17): a solid pink key with a hard lower edge and a glow that blinks; it breathes
+    // until the radio has been used once, then it only glows
+    const blink = 0.5 + 0.5 * Math.sin(state.t * 6), br = G.radio ? 1 : 1 + 0.05 * Math.sin(state.t * 6);
+    ctx.translate(b.x, b.y); ctx.scale(br, br); ctx.translate(-b.x, -b.y);
+    rr(b.x - RADIO_W / 2, b.y - RADIO_H / 2 + 3, RADIO_W, RADIO_H, 9, '#7a1450');
+    ctx.save(); ctx.shadowColor = `rgba(255,63,164,${0.35 + 0.55 * blink})`; ctx.shadowBlur = 8 + 12 * blink;
+    rr(b.x - RADIO_W / 2, b.y - RADIO_H / 2, RADIO_W, RADIO_H, 9, C.pink, `rgba(255,255,255,${0.45 + 0.55 * blink})`, 2); ctx.restore();
+    rr(b.x - RADIO_W / 2 + 4, b.y - RADIO_H / 2 + 3, RADIO_W - 8, 10, 5, 'rgba(255,255,255,.25)');
+    txt('♪', b.x - 30, b.y + 1, 16, '#0e0e10', 'center', 900); ptxt(UI.radio, b.x + 8, b.y, 1, '#0e0e10');
+  }
+  ctx.restore();
+}
+function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; radioTaps(); input.taps.length = 0; }
 const hintFor = (): string => (D.usedKeys ? HINT.keys : HINT.touch);
 
 // ---------- leg 1: the commute ----------
 registerStage('commute', {
   enter() {
-    beat = null; crashCd = 0; timers = [];
+    beat = null; walk = null; crashCd = 0; timers = [];
     resetWorld('home', 'office');
     D.goal = 'office';
     const a = PLACES.home, b = PLACES.office;
     addPickups(14, 'cash', Math.min(a.x, b.x) - 30, Math.min(a.y, b.y) - 30, Math.max(a.x, b.x) + 30, Math.max(a.y, b.y) + 30);
     addLetters('WA', a, b);
     commonEvents();
-    ev.arrive = (id) => { if (id === 'office') arriveEnd('PARKING', 0, () => say(LINES.arriveOffice[0]!, 1.6, true)); };
+    ev.arrive = (id) => { if (id === 'office') arriveEnd('office', UI.beat.parking, 0, () => say(LINES.arriveOffice[0]!, 1.6, true)); };
     R.banner(BANNERS.commute[0], [...BANNERS.commute[1]]);
   },
   step(dt) {
     tick(dt);
-    if (stepBeat(dt)) { stepWorld(dt, { chasersOn: false }); return; }
+    if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: false });
     if (G.t > 6 && G.t % 11 < dt) say(pick(LINES.commute));
   },
-  render() { renderWorld(['office']); renderBeat(); hud('office'); renderStick(); demoDrag(stickPos().x, stickPos().y); hint(hintFor()); },
+  render() { renderWorld(['office']); renderBeat(); hud('office'); controlsIn(() => { renderStick(); renderMinimap(); renderRadio(); }); demoDrag(stickPos().x, stickPos().y); hint(hintFor()); },
+  key: radioKey,
 });
 
 // ---------- leg 2: launch line (forced detour) ----------
@@ -91,7 +150,7 @@ let detourDone = false;
 const detourId = (): PlaceId => (G.branch === 'quit' ? 'gas' : 'clinic');
 registerStage('launch', {
   enter() {
-    beat = null; timers = []; detourDone = false; fuelWarned = false; noteCd = 0; nagCd = 0;
+    beat = null; walk = null; timers = []; detourDone = false; fuelWarned = false; noteCd = 0; nagCd = 0;
     if (!G.branch) G.branch = 'sick';
     resetWorld('office', 'store');
     const a = PLACES.office, b = PLACES.store, dt = PLACES[detourId()];
@@ -116,19 +175,19 @@ registerStage('launch', {
       if (id === detourId() && !detourDone) {
         if (G.branch === 'sick') {
           say(LINES.doctor[0]!, 1.4, true);
-          startBeat('BRIBING', 1.8, () => {
+          startBeat(UI.beat.bribing, 1.8, () => {
             say(LINES.doctor[1]!, 2.4, true); floatText(`-$${G.money}`, D.p.x, D.p.y - 24, C.red);
             G.money = 0; G.note = true; detourDone = true; D.goal = 'store'; D.avoidHr = false;
             later(2.6, () => say(LINES.noteOk, 2.2, true));
           });
         } else {
-          startBeat('PUMPING', 1.6, () => {
+          startBeat(UI.beat.pumping, 1.6, () => {
             G.fuel = 1; detourDone = true; D.goal = 'store'; say(pick(LINES.gas), 2.2, true);
             later(0.9, () => { const sp = behind(85); addChaser('cop', sp.x, sp.y, 0.6, 0.8); G.stars = 1; say(LINES.sirens, 1.8, true); });
           });
         }
       } else if (id === 'store' && detourDone) {
-        arriveEnd('PARKING', 0, () => { const cop = D.chasers.find((c) => c.kind === 'cop'); G.copPos = cop ? { x: cop.x, y: cop.y } : null; });
+        arriveEnd('store', UI.beat.parking, 0, () => { const cop = D.chasers.find((c) => c.kind === 'cop'); G.copPos = cop ? { x: cop.x, y: cop.y } : null; });
       }
     };
     const b2 = G.branch === 'sick' ? BANNERS.launchSick : BANNERS.launchQuit;
@@ -136,12 +195,13 @@ registerStage('launch', {
   },
   step(dt) {
     tick(dt);
-    if (stepBeat(dt)) { stepWorld(dt, { chasersOn: false }); return; }
+    if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: true });
     // driving past the store before the detour stop
     if (!detourDone && nagCd <= 0 && Math.hypot(PLACES.store.x - D.p.x, PLACES.store.y - D.p.y) < 15) { nagCd = 4; say(G.branch === 'sick' ? LINES.noteFirst : LINES.gasFirst, 2, true); }
     if (G.branch === 'sick') {
-      if (!G.note && D.hr && Math.hypot(D.hr.x - D.p.x, D.hr.y - D.p.y) < 45 && nagCd <= 0) { nagCd = 5; say(pick(LINES.hrClose), 1.8, true); }
+      const hr = nearHr();
+      if (!G.note && hr && Math.hypot(hr.x - D.p.x, hr.y - D.p.y) < 45 && nagCd <= 0) { nagCd = 5; say(pick(LINES.hrClose), 1.8, true); }
       else if (G.t > 5 && G.t % 12 < dt) say(pick(LINES.hr));
     } else {
       G.fuel -= dt / 50;
@@ -152,17 +212,19 @@ registerStage('launch', {
   },
   render() {
     renderWorld(detourDone ? ['store'] : [detourId()]); renderBeat();
-    hud(D.goal, { fuel: G.branch === 'quit' }); renderStick(); hint(hintFor());
+    hud(D.goal, { fuel: G.branch === 'quit' }); controlsIn(() => { renderStick(); renderMinimap(); renderRadio(); }); hint(hintFor());
   },
+  key: radioKey,
 });
 
 // ---------- leg 3: the way home (chase) ----------
 registerStage('home', {
   enter() {
-    beat = null; timers = [];
+    beat = null; walk = null; timers = [];
     if (!G.branch) G.branch = 'sick';
     if (!G.store) G.store = 'steal';
     resetWorld('store', 'home');
+    D.dusk = 1;   // the day is gone by the time he has the game: the drive home is in the evening
     D.goal = 'home';
     const a = PLACES.store, b = PLACES.home;
     addPickups(8, 'can', Math.min(a.x, b.x) - 30, Math.min(a.y, b.y) - 30, Math.max(a.x, b.x) + 30, Math.max(a.y, b.y) + 30);
@@ -170,20 +232,21 @@ registerStage('home', {
     commonEvents();
     const kind: ChaserKind = G.store === 'loan' ? 'shark' : G.store === 'steal' ? 'cop' : 'spouse';
     G.stars = (G.store === 'steal' ? 1 : 0) + (G.branch === 'quit' ? 1 : 0);
-    const sp = behind(95); addChaser(kind, sp.x, sp.y, 0.6, 1.2);
+    const sp = behind(125); addChaser(kind, sp.x, sp.y, 0.6, 2);
     if (G.branch === 'quit') { // the gas-theft cop resumes where it froze, but never right on your bumper
-      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 75 ? cp : behind(130); addChaser('cop', c.x, c.y, 0.6, 1.2);
+      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 2);
     }
     ev.caught = (k) => fail(k);
-    ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(['TOUCH GRASS!', 'THE RING?!', 'COME BACK!']), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(['PAY UP!', 'KNEECAPS!']), x, y - 26, C.yellow); };
-    ev.arrive = (id) => { if (id === 'home') arriveEnd('HOME!', Math.max(0, 1000 - 10 * G.hits), () => { say(LINES.escape, 2, true); D.chasers = []; }); };
+    ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(TAUNTS.spouse), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(TAUNTS.shark), x, y - 26, C.yellow); };
+    ev.arrive = (id) => { if (id === 'home') arriveEnd('home', UI.beat.home, Math.max(0, 1000 - 10 * G.hits), () => { say(LINES.escape, 2, true); D.chasers = []; }); };
     const intro = G.branch === 'quit' && G.store === 'steal' ? pick(LINES.chase.cop2) : pick(LINES.chase[kind]);
-    R.banner(BANNERS.home[0], [intro, ...BANNERS.home[1]]);
+    R.banner(BANNERS.home[0], [BANNERS.home[1][0], intro, ...BANNERS.home[1].slice(1)]);   // the mission line stays first (missionCard draws it as the headline)
   },
   step(dt) {
     tick(dt);
-    if (stepBeat(dt)) { stepWorld(dt, { chasersOn: false }); return; }
+    if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: true });
   },
-  render() { renderWorld(['home']); renderBeat(); hud('home'); renderStick(); hint(hintFor()); void txt; },
+  render() { renderWorld(['home']); renderBeat(); hud('home'); controlsIn(() => { renderStick(); renderMinimap(); renderRadio(); }); hint(hintFor()); void txt; },
+  key: radioKey,
 });

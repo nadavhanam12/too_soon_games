@@ -1,13 +1,15 @@
-// Wasted for Six: entry point. Wires game.json, content, theme, the six-stage play scene and the art hooks.
-import { createGame, R, W, view, ctx, txt, type GameConfig, type RunResult } from '@tsg/index';
+// TSG: Nice City (GameId WastedForSix): entry point. Wires game.json, content, theme, the seven-stage play scene and the art hooks.
+import { createGame, R, env, type GameConfig } from '@tsg/index';
 import cfgJson from '../game.json';
 import { content, CONSOLATION, LOSE_LINES } from './content';
 import { theme } from './theme';
-import { playScene, G, STAGE_MUSIC } from './play';
+import { playScene, G, stageTrack } from './play';
 import { MUSIC } from './sfx';
-import { C, confettiPx, crashArt, guy, titleBand, tvArt } from './art';
-import { ptxt } from './pixel';
+import { comicBackdrop, loadCutArt, loadTitleArt, titleScene } from './opening';
+import { montagePicture } from './montage';
+import { loseArt, resultArt } from './endings';
 import { loadWorld } from './drive';
+import { loadPortraits } from './portraits';
 import './legs'; import './scenes';
 
 const cfg = cfgJson as GameConfig;
@@ -17,27 +19,17 @@ createGame({
   cfg,
   content,
   theme,
-  scenes: { play: playScene },
+  scenes: { play: playScene, title: titleScene },
   music: MUSIC,
   // theme opens and closes the story; inside play each stage picks its own track (play.ts STAGE_MUSIC)
-  musicFor: (s) => (s === 'play' ? STAGE_MUSIC[G.stage] : s === 'lose' ? 'off' : 'theme'),
+  musicFor: (s) => (s === 'play' ? stageTrack() : s === 'lose' ? 'off' : 'theme'),
   // no screen-change stingers: this game plays only its own sounds (sfx.ts)
   stingerFor: () => null,
   hooks: {
-    drawTitleArt(st) {
-      ptxt('WASTED', W / 2, 96, 6, C.pink, 'center', '#3a0a2a');
-      ptxt('FOR SIX', W / 2, 150, 5, C.yellow, 'center', '#3a2a00');
-      titleBand(300, st);
-    },
-    drawLoseArt(st) { crashArt(70, st); },
-    drawResultArt(st, r: RunResult) {
-      confettiPx(st, 40, -view.top, view.H);
-      // free band between the result sentence (~y 150) and the template's score panel (y 386)
-      tvArt(W / 2 - 40, 190, st, 'PLAYING');
-      guy(W - 46, 372, 3.5, { arms: 'up' });
-      txt(r.reason === 'quit' ? '(unemployed, happy)' : '(on "sick leave")', W / 2 - 40, 174, 11, '#cfc3dd', 'center', 700);
-      void ctx;
-    },
+    drawCutsceneBg(st) { comicBackdrop(st); },
+    // both end screens are drawn in endings.ts (the template adds its texts, score and buttons on top)
+    drawLoseArt(st, r) { loseArt(st, r.reason ?? ''); },
+    drawResultArt(st) { resultArt(st); },
     onSceneChange(to) {
       if (to === 'lose') {
         content.lose.line = LOSE_LINES[R.run?.reason ?? ''] ?? 'Caught.';
@@ -46,5 +38,16 @@ createGame({
     },
   },
 });
-// the 3D city (lazy/world3d.js, ~0.5 MB) starts loading right after the first frame, while the title and cutscene show
-requestAnimationFrame(() => requestAnimationFrame(loadWorld));
+// The preview card's picture: the full montage as a PNG data URL (null until its paintings are in). Read by
+// GamesTemplate/other-services/assets/make-assets.mjs, which puts it on og.png in place of the title screen.
+(window as unknown as Record<string, unknown>).__ogPic = () => { loadPortraits(); loadCutArt(); return montagePicture(['boss', 'clerk', 'fiancee'])?.toDataURL('image/png') ?? null; };
+// dev only: ?screen=community (or result / lose / board / facts) opens that screen with the full montage, for
+// checking the end screens and the share without a run. Waits for the paintings so the share picture is there.
+const screen = env.dev ? new URLSearchParams(location.search).get('screen') : null;
+if (screen) {
+  G.met = ['boss', 'clerk', 'fiancee']; loadPortraits(); loadCutArt();
+  const go = window.setInterval(() => { if (montagePicture(G.met)) { window.clearInterval(go); (window as unknown as { __go: (s: string) => void }).__go(screen); } }, 100);
+}
+loadTitleArt(); // the title painting is the first screen: requested now, drawn when it arrives
+// the cutscene panels and the 3D city (lazy/world3d.js, ~0.5 MB) start loading right after the first frame
+requestAnimationFrame(() => requestAnimationFrame(() => { loadCutArt(); loadWorld(); }));

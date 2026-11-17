@@ -10,8 +10,9 @@ export const arc = {
     { id: 'commute', beat: 'Drive from home to the office, grabbing cash and the first graffiti letters' },
     { id: 'boss', beat: 'Face the boss: agreeing is WASTED, so fake the 24-hour flu (or quit)' },
     { id: 'launch', beat: 'Drive to the game store with a forced detour: the doctor for a sick note (HR minivan roams) or the gas station (cops)' },
-    { id: 'clerk', beat: 'Broke at the counter: borrow from loan sharks, grab it and run, or trade in the wedding ring' },
-    { id: 'home', beat: 'Chase home with the game: loan sharks, cops or the spouse on your tail' },
+    { id: 'clerk', beat: 'Broke at the counter: borrow from loan sharks, grab it and run, or trade in the engagement ring' },
+    { id: 'home', beat: 'Chase home with the game: loan sharks, cops or the fiancée on your tail' },
+    { id: 'fiancee', beat: 'The fiancée on the couch wants attention: sneaking and fake listening fail, asking honestly for one hour works' },
     { id: 'pc', beat: 'Type the password on the old PC: WASTED' },
   ],
   end: 'PRESS START: the fan is home, on "sick leave" or unemployed, playing Six',
@@ -55,10 +56,13 @@ async function drive({ peek, t }, io) {
   await io.hold('ArrowDown', car.v > want + 6);
 }
 
-/** Press `keys` one by one, 0.6 s apart, starting once the buttons are live (0.35 s); the last one repeats. */
+/** Press `keys` one by one, 2.6 s apart from 3 s in: the options appear one by one from 1 s, 0.6 s apart (ready by ~2.5 s). */
 const decide = (keys) => async ({ t }, io) => {
-  if (t < 0.5) return;
-  await every(t, 0.6, () => io.press(keys[Math.min(Math.round((t - 0.5) / 0.6), keys.length - 1)]));
+  if (t < 3) return;
+  // once the last key (Continue) is due, tap faster: the montage moment and ITEM ACQUIRED each want a tap of their own,
+  // and the checker calls 5 s without a state change "frozen"
+  const i = Math.min(Math.round((t - 3) / 2.6), keys.length - 1), gap = i === keys.length - 1 ? 1.5 : 2.6;
+  await every(t, gap, () => io.press(keys[i]));
 };
 
 export const bot = {
@@ -67,7 +71,8 @@ export const bot = {
   launch: drive,
   clerk: decide(['3', '3', ' ']),     // trade something in → the ring → Continue
   home: drive,
-  async pc({ t }, io) { await every(t, 8, async () => { for (const k of 'wasted') await io.press(k); }); }, // once: the game ends 2.2 s later
+  fiancee: decide(['3', ' ']),        // ask honestly, Continue
+  async pc({ t }, io) { if (t < 3.5) return; /* the PC boots for 2.9 s and ignores input (scenes.ts BOOT_S) */ await every(t, 8, async () => { for (const k of 'wasted') await io.press(k); }); }, // once: the game ends 2.2 s later
 };
 
 /** Lose on the spot (every stage, including the decision scenes that can't be lost by play). */

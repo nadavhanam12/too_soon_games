@@ -1,14 +1,14 @@
 {
   "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
   "id": "WastedForSix",
-  "slug": "wasted-for-six",
-  "title": "Wasted for Six",
+  "slug": "nice-city",
+  "title": "TSG: Nice City",
   "tagline": "13 years of waiting. One boss, one store, one chase home. Get free for launch day.",
   "audience": "us",
   "lang": "en",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "event": {
-    "title": "GTA 6 launch day",
+    "title": "Launch day of the most-awaited game in history",
     "headline": "The most-awaited game in history launches Thursday.",
     "date": "2026-11-19",
     "sourceUrl": "https://365.military.com/feature/2025/11/07/rockstar-delays-gta-6-again-heres-what-fans-need-know.html",
@@ -36,7 +36,7 @@
     "higherIsBetter": true
   },
   "share": {
-    "text": "Wasted for Six 🎮 13 years of waiting, one boss, one store, one chase. I scored {result} points getting home for launch day. Rank: \"{rank}\". {url}"
+    "text": "Nice City 🎮 {result} points. \"{rank}\". Beat me: {url}"
   },
   "screens": {
     "cutscene": true,
@@ -47,6 +47,7 @@
   "showPlayerCountFrom": 500,
   "cover": "assets/cover.png",
   "ogImage": "assets/og.png",
-  "status": "draft",
-  "themeColor": "#ff3fa4"
+  "status": "live",
+  "themeColor": "#0b0b0f",
+  "clip": "assets/clip.webm"
 }

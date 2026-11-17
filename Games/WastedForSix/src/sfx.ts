@@ -1,4 +1,4 @@
-// The game's sound set (Nadav, 2026-11-17: only sounds made for this game in the /make-music session).
+// The game's sound set (Nadav, 2026-11-17: only sounds made for this game; bump + near approved the same day).
 // Everything else is silent here: the template's own kit (button tick/ok, stingers, win, whoosh...) is replaced by
 // no-ops in this game only, so template screens play nothing and other games keep their sounds.
 // Continuous driving sounds are in carsound.ts; music below.
@@ -68,6 +68,16 @@ const OURS = {
     burst({ d: 0.12, g: 0.07, f: 2400, q: 3, delay: 0.02 });
     for (let i = 0; i < 4; i++) voice({ f: jit(3800 + i * 900, 0.1), d: 0.09, g: 0.018, delay: 0.05 + i * 0.035 + Math.random() * 0.02 });
   },
+  /** Bump (k 0..1): touching a wall or nudging traffic, not a crash: a short dull thud. */
+  bump: (k = 1) => { voice({ f: jit(125, 0.06), to: 60, d: 0.13, g: 0.13 * k }); burst({ d: 0.08, g: 0.1 * k, f: 420, kind: 'lowpass' }); },
+  /** Running someone over: a soft body thud on the bonnet and a cartoon yelp that flies off upward. */
+  ped: () => { voice({ f: jit(150, 0.08), to: 70, d: 0.12, g: 0.16 }); burst({ d: 0.07, g: 0.09, f: 500, kind: 'lowpass' }); voice({ type: 'triangle', f: jit(620, 0.12), to: 1250, d: 0.16, g: 0.05, delay: 0.03, lp: 3000 }); },
+  /** Drift boost (k 0..1): the engine kicks: a rising whoosh over a low punch. */
+  boost: (k = 1) => { voice({ type: 'sawtooth', f: 90, to: 260, d: 0.3, g: 0.07 * (0.6 + 0.4 * k), lp: 1400 }); burst({ d: 0.3, g: 0.07, f: 700, q: 1.2, at: 0.05, sweep: 3600 }); },
+  /** Radio: a blip of static between stations, then a click as it locks. */
+  radio: () => { burst({ d: 0.12, g: 0.06, f: 2600, q: 0.8, sweep: 5200 }); voice({ f: 1400, d: 0.04, g: 0.04, delay: 0.11 }); },
+  /** Near miss: a car whips past (noise swept up and back down). */
+  near: () => { burst({ d: 0.13, g: 0.08, f: 600, q: 1.4, at: 0.07, sweep: 3200 }); burst({ d: 0.2, g: 0.06, f: 3000, q: 1.4, delay: 0.1, sweep: 450 }); },
 
   // ---- WASTED ----
   /** Fail: a heavy impact, then the F-minor chord sinking like a tape stopping. */
@@ -78,6 +88,13 @@ const OURS = {
       voice({ type: 'sawtooth', f, to: f * 0.5, d: 1.5, g: 0.035, lp: 1400, at: 0.03, delay: 0.12 });
       voice({ type: 'sawtooth', f: f * 1.006, to: f * 0.5, d: 1.5, g: 0.03, lp: 1400, at: 0.03, delay: 0.12 });
     }
+  },
+
+  /** ITEM ACQUIRED: a rising Rhodes fanfare (F – Ab – C – F), a held F-minor chord and a sparkle on top. */
+  item: () => {
+    [N.F4, N.Ab4, N.C5, N.F5].forEach((f, i) => keys(f, 0.3, 0.06, i * 0.09));
+    for (const f of [N.F3, N.C4, N.F4, N.Ab4, N.C5]) keys(f, 1.4, 0.04, 0.4);
+    [N.C6, N.F5 * 2, N.C6 * 2].forEach((f, i) => voice({ f, d: 0.35, g: 0.03, delay: 0.5 + i * 0.08 }));
   },
 
   // ---- buttons (the template's screens call tick / ok; the gray scenes call choose) ----
@@ -114,6 +131,10 @@ Object.assign(sfx, OURS);
  *  theme = title / cutscene / PRESS START / result · drive = commute + launch legs · chase = the home leg ·
  *  scheme = boss, clerk and the password. Which candidate, prompt + seed: music/chosen.json (/make-music). */
 export const MUSIC: Partial<MusicDef> = {
-  files: { theme: 'assets/audio/theme.mp3', drive: 'assets/audio/drive.mp3', chase: 'assets/audio/chase.mp3', scheme: 'assets/audio/scheme.mp3' },
-  volume: { theme: 0.34, drive: 0.36, chase: 0.38, scheme: 0.3 },
+  files: {
+    theme: 'assets/audio/theme.mp3', drive: 'assets/audio/drive.mp3', chase: 'assets/audio/chase.mp3', scheme: 'assets/audio/scheme.mp3',
+    // radio-only stations (content.ts RADIO), 40 kbps to keep all audio under 1.5 MB (music/chosen.json)
+    midnight: 'assets/audio/midnight.mp3', bounce: 'assets/audio/bounce.mp3', jazzy: 'assets/audio/jazzy.mp3', electro: 'assets/audio/electro.mp3',
+  },
+  volume: { theme: 0.34, drive: 0.36, chase: 0.38, scheme: 0.3, midnight: 0.38, bounce: 0.34, jazzy: 0.32, electro: 0.36 },
 };
