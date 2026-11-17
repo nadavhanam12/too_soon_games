@@ -7,7 +7,7 @@ import { R, W, view, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, music, e
 import type { Branch, StoreChoice, TradeItem } from './content';
 import { TIMELINE, TIMELINE_SHORT, RADIO, MISSION_PASSED, PC, UI, ITEM } from './content';
 import { grayOut } from './pixel';
-import { D, MAX_V, gpsTarget, worldReady, nearHr, heliPatrol } from './drive';
+import { D, MAX_V, gpsTarget, worldReady, nearHr, heliPatrol, arrowState } from './drive';
 import { PLACES, roadLine, nodeOf, type PlaceId } from './city';
 import { C } from './art';
 import { ptxt } from './pixel';
@@ -416,6 +416,8 @@ w.__hrHere = () => {
 w.__chaserHere = () => { const c = D.chasers[0]; if (c) { c.x = D.p.x + 7.5; c.y = D.p.y; c.grace = 0; } };
 /** Start a helicopter patrol right now. */
 w.__heli = () => heliPatrol();
+w.__look = (n: 2 | 3 | 4) => { D.look = n; };   // try a look on the leg you are in (a new leg sets its own)
+w.__arrow = () => arrowState();   // the goal arrow of looks 3 and 4: held direction, shown or not
 /** Teleport the car next to the current goal (flow testing only). */
 w.__warp = () => { if (!D.goal) return; const g = PLACES[D.goal]; D.p.x = g.x + 5; D.p.y = g.y; D.cam.x = D.p.x; D.cam.y = D.p.y; for (const c of D.chasers) { c.x = g.x + 100; c.y = g.y; c.grace = 3; } for (const hr of D.hrs) { hr.from = [-6, -6]; hr.to = [-5, -6]; hr.s = 0; hr.x = roadLine(-6); hr.y = roadLine(-6); } };
 /** Stand the nearest pedestrians in a row in front of the car (run-over test). */

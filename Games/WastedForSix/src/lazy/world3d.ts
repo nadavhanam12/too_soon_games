@@ -4,15 +4,30 @@
 // index.html. It never reads game state: drive.ts hands it the city once (create) and a snapshot every frame (render).
 // Math.random here is visual only (window textures, sparks); it never touches gameplay.
 import * as THREE from 'three';
+import { heroCar, heroWalker, animateHero } from '../models/hero';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { MatKey, Prim } from '../city';
-import type { CarKind, CityData, Frame, World3D } from '../world3d-api';
+import type { CarKind, CityData, Frame, Look, World3D } from '../world3d-api';
 
 const SIGN_FONT = '900 64px Rubik, system-ui, sans-serif';
+// ---------- the behind-the-car looks (3 and 4) ----------
+// The camera behind the car, [standing still, top speed]: it backs off, rises and widens as the speed goes up
+// (Nadav, 2026-11-17, picked from three: 14→18 / 6.5→8.5 / fov 58 was too close, 13→34 / 6.5→15 / 58→72 too far).
+const CHASE_CAM: { back: [number, number]; h: [number, number]; fov: [number, number] } = { back: [13, 25], h: [6, 10], fov: [58, 66] };
+const CHASE_PULL_BACK = 8, CHASE_PULL_H = 9;     // extra distance / height with a chaser on the bumper (Frame.cam.pull = 1)
+const CHASE_FOV = 58;
+const CHASE_TURN_LAG = 0.004;                    // the camera's heading closes this fraction of its gap to the car's per second (smaller = stiffer)
+const ARROW_TILT = 0.95;                         // the goal arrow leans back toward the camera (rad)
+const ARROW_SIZE = 0.6;                          // (Nadav: smaller)
+const ARROW_DIST = 30, ARROW_UP = 6.2;           // where it hangs in front of the camera (in the camera's own frame, so it holds its place on screen)
+const NEON = [0xff2fd0, 0x2ff3ff, 0xff8a2f, 0x9b4dff, 0x3dff8a];   // look 4: the bands around tall buildings
+/** 0..1 from a position: which buildings get a neon band and in which colour, the same on every run. */
+const hash = (a: number, b: number): number => { const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v); };
 
 function create(city: CityData): World3D {
   const canvas = document.createElement('canvas');
@@ -31,18 +46,20 @@ function create(city: CityData): World3D {
   // ---------- sky ----------
   const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { sunDir: { value: new THREE.Vector3(0.4, 0.5, -1).normalize() }, dusk: { value: 0 } },
+    uniforms: { sunDir: { value: new THREE.Vector3(0.4, 0.5, -1).normalize() }, top: { value: new THREE.Vector3() }, mid: { value: new THREE.Vector3() }, low: { value: new THREE.Vector3() }, sunK: { value: 1 } },
     vertexShader: 'varying vec3 v;void main(){v=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: `varying vec3 v;uniform vec3 sunDir;uniform float dusk;
+    fragmentShader: `varying vec3 v;uniform vec3 sunDir,top,mid,low;uniform float sunK;
       void main(){float h=v.y;
-        vec3 top=mix(vec3(.25,.5,.95),vec3(.1,.08,.3),dusk),mid=mix(vec3(.55,.75,1.),vec3(.55,.25,.5),dusk),low=mix(vec3(.98,.92,.8),vec3(1.,.55,.3),dusk);
         vec3 c=mix(low,mid,smoothstep(-.02,.18,h));c=mix(c,top,smoothstep(.15,.6,h));
         float d=dot(v,sunDir);
-        c+=vec3(1.,.85,.45)*smoothstep(.9965,.998,d)*3.;
-        c+=vec3(1.,.9,.6)*pow(max(d,0.),30.)*.5;
+        c+=vec3(1.,.85,.45)*smoothstep(.9965,.998,d)*3.*sunK;
+        c+=vec3(1.,.9,.6)*pow(max(d,0.),30.)*.5*sunK;
         gl_FragColor=vec4(c,1.);}`,
   }));
   scene.add(sky);
+  const skyU = (sky.material as THREE.ShaderMaterial).uniforms;
+  const skyTop = skyU.top!.value as THREE.Vector3, skyMid = skyU.mid!.value as THREE.Vector3, skyLow = skyU.low!.value as THREE.Vector3;
+  const fog = scene.fog as THREE.FogExp2;
   const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x8a7a60, 1.0);
   scene.add(hemi);
   const sunL = new THREE.DirectionalLight(0xfff2d8, 2.4);
@@ -53,13 +70,15 @@ function create(city: CityData): World3D {
 
   // ---------- ground, sea, lane markings ----------
   const { bmin, bmax } = city, bsize = bmax - bmin, bmid = (bmin + bmax) / 2;
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(bsize + 8, bsize + 8), new THREE.MeshStandardMaterial({ color: 0x55565c, roughness: 0.9, metalness: 0 }));
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x55565c, roughness: 0.9, metalness: 0 });
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xf2d15a });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(bsize + 8, bsize + 8), groundMat);
   ground.position.set(bmid, 0, bmid); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x2a8ac8, roughness: 0.3, metalness: 0.1 }));
   sea.rotation.x = -Math.PI / 2; sea.position.set(bmid, -0.6, bmid); scene.add(sea);
   {
     const CELL = 56, N = 6;
-    const lines = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.4, 4), new THREE.MeshBasicMaterial({ color: 0xf2d15a }), 4000);
+    const lines = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.4, 4), lineMat, 4000);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1);
     let li = 0;
     for (let k = -N; k <= N + 1; k++) {
@@ -74,18 +93,24 @@ function create(city: CityData): World3D {
 
   // ---------- the static city, merged into one mesh per material ----------
   const tex = windowTex();
+  // looks 3 and 4: the same window grid with four times the pixels and smooth filtering, and grain on the asphalt
+  const texHi = windowTexHi(renderer.capabilities.getMaxAnisotropy());
+  const asphalt = asphaltTex(renderer.capabilities.getMaxAnisotropy());
+  type Key = MatKey | 'sign';
   // the lit windows glow only in the evening (emissiveIntensity follows the frame's dusk)
   const bldgMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: tex.map, emissive: 0xffffff, emissiveMap: tex.lit, emissiveIntensity: 0, roughness: 0.85, metalness: 0 });
-  const MATS: Record<MatKey, { mat: THREE.Material; cast: boolean; recv: boolean }> = {
+  const MATS: Record<Key, { mat: THREE.Material; cast: boolean; recv: boolean }> = {
     bldg: { mat: bldgMat, cast: true, recv: true },
     plain: { mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }), cast: false, recv: true },
     tree: { mat: new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.9 }), cast: true, recv: false },
     neon: { mat: new THREE.MeshBasicMaterial({ vertexColors: true }), cast: false, recv: false },
+    sign: { mat: new THREE.MeshBasicMaterial({ vertexColors: true }), cast: false, recv: false },   // neon bands, look 4 only
   };
-  const buckets = new Map<MatKey, THREE.BufferGeometry[]>();
+  let signs: THREE.Mesh | null = null;
+  const buckets = new Map<Key, THREE.BufferGeometry[]>();
   const tmpCol = new THREE.Color();
   const M = (x: number, y: number, z: number, ry = 0, rx = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0, 'YXZ')), new THREE.Vector3(1, 1, 1));
-  function addStatic(key: MatKey, g0: THREE.BufferGeometry, matrix: THREE.Matrix4, color: number): void {
+  function addStatic(key: Key, g0: THREE.BufferGeometry, matrix: THREE.Matrix4, color: number): void {
     const g = g0.index ? g0.toNonIndexed() : g0; g.applyMatrix4(matrix);
     for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position!.count * 2), 2));
@@ -105,6 +130,7 @@ function create(city: CityData): World3D {
   for (const [key, geos] of buckets) {
     const m = new THREE.Mesh(mergeGeometries(geos), MATS[key].mat);
     m.castShadow = MATS[key].cast; m.receiveShadow = MATS[key].recv; scene.add(m);
+    if (key === 'sign') { signs = m; m.visible = false; }
   }
 
   function addPrim(p: Prim): void {
@@ -112,7 +138,12 @@ function create(city: CityData): World3D {
       case 'box': {
         const g = new THREE.BoxGeometry(p.w, p.h, p.d);
         if (p.win) winUV(g, p.w, p.d, p.h, false, p.win);
-        addStatic(p.m, g, M(p.x, p.y, p.z, p.ry ?? 0), p.col); break;
+        addStatic(p.m, g, M(p.x, p.y, p.z, p.ry ?? 0), p.col);
+        if (p.m === 'bldg' && p.h > 9) {   // most tall buildings carry a neon band (lit in look 4)
+          const r1 = hash(p.x, p.z), r2 = hash(p.z, p.x + 7);
+          if (r1 < 0.75) addStatic('sign', new THREE.BoxGeometry(p.w + 0.5, 0.6, p.d + 0.5), M(p.x, p.y - p.h / 2 + p.h * (0.3 + 0.55 * r2), p.z, p.ry ?? 0), NEON[Math.floor(r2 * 97) % NEON.length]!);
+        }
+        break;
       }
       case 'cyl': {
         const g = new THREE.CylinderGeometry(p.rt, p.rb, p.h, p.seg, 1, !!p.open);
@@ -161,13 +192,14 @@ function create(city: CityData): World3D {
   // ---------- time of day: everything that differs between daylight (0) and evening (1) ----------
   const DAY = { fog: new THREE.Color(0xf0e2c8), sky: new THREE.Color(0xcfe8ff), gnd: new THREE.Color(0x8a7a60), sun: new THREE.Color(0xfff2d8), off: new THREE.Vector3(50, 110, 35) };
   const EVE = { fog: new THREE.Color(0x4a3358), sky: new THREE.Color(0xb0b4f0), gnd: new THREE.Color(0x907080), sun: new THREE.Color(0xffb070), off: new THREE.Vector3(95, 75, 30) };
+  const SKY_EVE = [new THREE.Vector3(0.1, 0.08, 0.3), new THREE.Vector3(0.55, 0.25, 0.5), new THREE.Vector3(1, 0.55, 0.3)];   // top, middle, horizon
   const sunOff = DAY.off.clone();
   let dusk = -1;
   function setDusk(d: number): void {
     if (d === dusk) return;
     dusk = d;
     scene.fog!.color.copy(DAY.fog).lerp(EVE.fog, d); (scene.background as THREE.Color).copy(scene.fog!.color);
-    (sky.material as THREE.ShaderMaterial).uniforms.dusk!.value = d;
+skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp(SKY_EVE[1]!, d); skyLow.set(0.98, 0.92, 0.8).lerp(SKY_EVE[2]!, d);
     hemi.color.copy(DAY.sky).lerp(EVE.sky, d); hemi.groundColor.copy(DAY.gnd).lerp(EVE.gnd, d); hemi.intensity = 1 - (1 - EVE_HEMI) * d;
     sunL.color.copy(DAY.sun).lerp(EVE.sun, d); sunL.intensity = 2.4 - (2.4 - EVE_SUN) * d;
     sunOff.copy(DAY.off).lerp(EVE.off, d);   // a low sun: long shadows
@@ -177,6 +209,44 @@ function create(city: CityData): World3D {
     bloom.strength = 0.2 + 0.25 * d;
     renderer.toneMappingExposure = 1 + (EVE_EXPOSURE - 1) * d;   // the dark asphalt sinks to black under the dim light without it
   }
+
+  // ---------- the look: the top view (2), or one of the two behind-the-car looks laid over the time of day ----------
+  let look: Look = 2, snapCam = true, camA = 0, camSp = 0;   // camA: the heading the behind-the-car camera looks along (it trails the car's)
+  function setLook(l: Look): void {
+    look = l; snapCam = true;
+    const d = dusk; dusk = -1; setDusk(d);
+    const hi = l > 2;
+    for (const r of [composer.renderTarget1, composer.renderTarget2]) { r.samples = hi ? 4 : 0; r.dispose(); }   // smooth edges
+    bldgMat.map = hi ? texHi.map : tex.map; bldgMat.emissiveMap = hi ? texHi.lit : tex.lit; bldgMat.needsUpdate = true;
+    groundMat.map = hi ? asphalt : null; groundMat.roughness = l === 4 ? 0.45 : 0.9; groundMat.needsUpdate = true;
+    const r = hi ? 70 : 130; sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.updateProjectionMatrix();   // sharper shadows near the car
+    camera.fov = hi ? CHASE_FOV : 40; camera.updateProjectionMatrix();
+    if (signs) signs.visible = l === 4;
+    grade.enabled = hi;
+    fog.density = 0.0018; skyU.sunK!.value = 1; (skyU.sunDir!.value as THREE.Vector3).set(0.4, 0.5, -1).normalize();
+    let paint = 1;   // the road paint is unlit: it has to be dimmed by hand where the light is low
+    if (l === 3) {   // early 3D: an overcast day, soft cool haze
+      fog.color.setHex(0xa9b4b0); fog.density = 0.0055;
+      skyTop.set(0.5, 0.6, 0.7); skyMid.set(0.68, 0.74, 0.78); skyLow.set(0.8, 0.83, 0.82); skyU.sunK!.value = 0;
+      hemi.color.setHex(0xc8d2c8); hemi.groundColor.setHex(0x6a7068); hemi.intensity = 1.25;
+      sunL.color.setHex(0xf4f0e0); sunL.intensity = 1.9; sunOff.set(60, 90, 40);
+      grade.uniforms.sat!.value = 0.82; (grade.uniforms.tint!.value as THREE.Vector3).set(0.97, 1, 0.98);
+      paint = 0.85;
+    } else if (l === 4) {   // sunset: pink sky, a low orange sun, neon, lit windows; glow and exposure held back so nothing burns out
+      fog.color.setHex(0xf08aa8); fog.density = 0.0042;
+      skyTop.set(0.2, 0.12, 0.48); skyMid.set(0.96, 0.36, 0.56); skyLow.set(1, 0.72, 0.38);
+      sunOff.set(-95, 30, -55); (skyU.sunDir!.value as THREE.Vector3).copy(sunOff).normalize();
+      hemi.color.setHex(0xff9ad0); hemi.groundColor.setHex(0x40306a); hemi.intensity = 0.95;
+      sunL.color.setHex(0xff9050); sunL.intensity = 2.6;
+      bloom.strength = 0.16; renderer.toneMappingExposure = 0.93; bldgMat.emissiveIntensity = 1.7;
+      HEAD_MAT.opacity = Math.min(HEAD_MAT.opacity, 0.3); TAIL_MAT.opacity = Math.min(TAIL_MAT.opacity, 0.3);
+      grade.uniforms.sat!.value = 1.15; (grade.uniforms.tint!.value as THREE.Vector3).set(1.03, 0.98, 1.04);
+      paint = 0.5;
+    }
+    (scene.background as THREE.Color).copy(fog.color);
+    (MATS.neon.mat as THREE.MeshBasicMaterial).color.setScalar(paint); lineMat.color.setHex(0xf2d15a).multiplyScalar(paint);
+  }
+
 
   // ---------- dynamic things ----------
   const cars = new Map<number, CarGroup>();
@@ -219,7 +289,8 @@ function create(city: CityData): World3D {
     }
     skids.instanceColor!.needsUpdate = true;
   }
-  const walker = makeWalker(); walker.visible = false; scene.add(walker);
+  const walker = heroWalker(); walker.visible = false; scene.add(walker);
+  const goalArrow = makeGoalArrow(); goalArrow.visible = false; scene.add(goalArrow);
   // pedestrians: the walker's blocky build in the city's colours, drawn instanced (one draw call per body part)
   const peds = makePeds(); for (const m of peds.all) scene.add(m);
   const pedM = new THREE.Matrix4(), pedL = new THREE.Matrix4(), pedT = new THREE.Matrix4(), pedQ = new THREE.Quaternion(), pedE = new THREE.Euler(0, 0, 0, 'YXZ'), pedP = new THREE.Vector3(), pedS = new THREE.Vector3(), pedC = new THREE.Color();
@@ -265,13 +336,20 @@ function create(city: CityData): World3D {
   }
 
   // ---------- post ----------
-  const composer = new EffectComposer(renderer);
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }));
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(360, 640), 0.2, 0.3, 0.92);
   composer.addPass(bloom); composer.addPass(new OutputPass());
+  // colour grade of the behind-the-car looks (off in the top view): saturation and a tint
+  const grade = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, sat: { value: 1 }, tint: { value: new THREE.Vector3(1, 1, 1) } },
+    vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: 'uniform sampler2D tDiffuse;uniform float sat;uniform vec3 tint;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);float l=dot(c.rgb,vec3(.299,.587,.114));gl_FragColor=vec4(mix(vec3(l),c.rgb,sat)*tint,1.);}',
+  });
+  grade.enabled = false; composer.addPass(grade);
 
   let size = { w: 0, h: 0 }, lastT = 0;
-  const v3 = new THREE.Vector3();
+  const v3 = new THREE.Vector3(), camGoal = new THREE.Vector3();
 
   function render(f: Frame): void {
     if (f.w !== size.w || f.h !== size.h) {
@@ -279,8 +357,10 @@ function create(city: CityData): World3D {
       renderer.setSize(f.w, f.h, false); composer.setSize(f.w, f.h); bloom.resolution.set(f.w, f.h);
       camera.aspect = f.w / f.h; camera.updateProjectionMatrix();
     }
-    if (f.t < lastT) clearSkids();   // a new leg restarted the clock
+    if (f.t < lastT) { clearSkids(); snapCam = true; }   // a new leg restarted the clock
+    const duskNew = f.dusk !== dusk;
     setDusk(f.dusk);
+    if (f.look !== look || (duskNew && look > 2)) setLook(f.look);
     const dt = Math.max(0, Math.min(0.05, f.t - lastT)); lastT = f.t;
     // cars
     const seen = new Set<number>();
@@ -314,7 +394,7 @@ function create(city: CityData): World3D {
       const fl = Math.floor(f.t * 8) % 2;
       g.red.color.setHex(fl ? 0xff0020 : 0x220004); g.blue.color.setHex(fl ? 0x000820 : 0x0030ff);
       g.strobe.color.setHex(f.t % 1.2 < 0.1 ? 0xffffff : 0x303038);
-      g.beam.visible = g.spot.visible = !!c.light;
+      g.spot.visible = !!c.light; g.beam.visible = !!c.light && look === 2;   // behind the car the camera would sit inside the beam and the whole picture would wash out
       if (c.light) {
         heliLamp.set(0, -1.1, -1.6).applyMatrix4(g.matrixWorld.compose(g.position, g.quaternion, g.scale));   // the lamp under the nose
         heliDir.set(c.light.x, 0.2, c.light.y).sub(heliLamp);
@@ -329,12 +409,12 @@ function create(city: CityData): World3D {
     walker.visible = !!f.walker;
     if (f.walker) {
       walker.position.set(f.walker.x, Math.abs(Math.sin(f.walker.step)) * 0.12, f.walker.y); walker.rotation.y = -f.walker.a - Math.PI / 2;
-      const sw = Math.sin(f.walker.step) * 0.35; walker.legs[0]!.position.z = sw; walker.legs[1]!.position.z = -sw;
+      animateHero(walker, f.walker.step);
     }
     // pedestrians: upright and walking, tumbling through the air (rx), or lying flat
     const pn = Math.min(PED_MAX, f.peds.length);
     for (let i = 0; i < pn; i++) {
-      const q = f.peds[i]!, up = Math.abs(Math.cos(q.rx)), flat = Math.abs(Math.sin(q.rx)), sc = PED_SCALE * q.s;
+      const q = f.peds[i]!, up = Math.abs(Math.cos(q.rx)), flat = Math.abs(Math.sin(q.rx)), sc = (look > 2 ? PED_SCALE_3D : PED_SCALE) * q.s;
       const bob = q.rx || q.h ? 0 : Math.abs(Math.sin(q.step)) * 0.12;
       pedE.set(q.rx, -q.a - Math.PI / 2, 0); pedQ.setFromEuler(pedE);
       pedM.compose(pedP.set(q.x, q.h + bob + (PED_MID * up + 0.3 * flat) * sc, q.y), pedQ, pedS.setScalar(sc));
@@ -408,16 +488,43 @@ function create(city: CityData): World3D {
     }
     // the scene's camera: fixed top-down at the given height (95 → 130 with speed), fov 40, a slight tilt
     const z = f.cam.zoom;
-    camera.position.set(f.cam.x, z, f.cam.y + z * 0.08);
-    camera.lookAt(f.cam.x, 0, f.cam.y);
-    sunL.position.set(f.cam.x + sunOff.x, sunOff.y, f.cam.y + sunOff.z); sunL.target.position.set(f.cam.x, 0, f.cam.y);
+    let cx = f.cam.x, cy = f.cam.y;
+    if (look > 2) {
+      // behind the car: distance and height follow the top view's zoom (118 at rest, more with speed, 60 in a close-up)
+      // the camera turns after the car, not with it: the car swings on screen first, so steering reads calmer
+      let da = f.cam.a - camA; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+      camA = snapCam ? f.cam.a : camA + da * (1 - Math.pow(CHASE_TURN_LAG, dt));
+      const o = CHASE_CAM, mix = (r: [number, number]): number => r[0] + (r[1] - r[0]) * camSp;
+      camSp = snapCam ? f.cam.sp : camSp + (f.cam.sp - camSp) * (1 - Math.pow(0.05, dt));   // eased: it backs off and comes in softly
+      const k = f.cam.k, back = mix(o.back) * k + CHASE_PULL_BACK * f.cam.pull, fx = Math.cos(camA), fz = Math.sin(camA);
+      const fov = mix(o.fov); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
+      cx = f.cam.px; cy = f.cam.py;
+      camGoal.set(cx - fx * back, mix(o.h) * k + CHASE_PULL_H * f.cam.pull, cy - fz * back);
+      if (snapCam || camera.position.distanceTo(camGoal) > 60) camera.position.copy(camGoal); else camera.position.lerp(camGoal, 1 - Math.pow(1e-5, dt));
+      camera.lookAt(cx + fx * 6, 1.5, cy + fz * 6);
+    } else {
+      camera.position.set(cx, z, cy + z * 0.08);
+      camera.lookAt(cx, 0, cy);
+    }
+    snapCam = false;
+    goalArrow.visible = look > 2 && !!f.arrow;
+    if (goalArrow.visible && f.arrow) {
+      // held in front of the camera, sized against its field of view: the same place and size on screen at any speed
+      const sz = Math.tan((camera.fov * Math.PI) / 360) / Math.tan((CHASE_FOV * Math.PI) / 360);
+      camera.updateMatrixWorld();
+      camera.localToWorld(goalArrow.position.set(0, ARROW_UP * sz, -ARROW_DIST));
+      goalArrow.scale.setScalar(sz * ARROW_SIZE);
+      goalArrow.rotation.set(ARROW_TILT, -camA - Math.PI / 2, 0);   // its far edge lifted, so the camera sees its top face
+      goalArrow.tip.rotation.y = -f.arrow.rel;
+    }
+    sunL.position.set(cx + sunOff.x, sunOff.y, cy + sunOff.z); sunL.target.position.set(cx, 0, cy);
     sky.position.copy(camera.position);
     composer.render();
   }
 
-  function project(x: number, y: number, h = 0): { x: number; y: number } {
+  function project(x: number, y: number, h = 0): { x: number; y: number; behind: boolean } {
     v3.set(x, h, y).project(camera);
-    return { x: (v3.x + 1) / 2, y: (1 - v3.y) / 2 };
+    return { x: (v3.x + 1) / 2, y: (1 - v3.y) / 2, behind: v3.z > 1 };
   }
 
   return { canvas, render, project };
@@ -458,7 +565,7 @@ function makeCar(kind: CarKind, color: string | undefined, glowTex: THREE.Textur
   g.rotation.order = 'YXZ';   // yaw first, then pitch and roll in the car's own frame
   addLights(g, kind === 'player' ? -2.55 : -2.3, kind === 'player' ? 2.55 : 2.3);
   if (kind === 'player') {
-    makeConvertible(g);
+    heroCar(g);
     // brake light: a red glow on the road behind the tail (the lamps themselves face backward, the camera looks down)
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.6), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xff1030, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
     glow.rotation.x = -Math.PI / 2; glow.position.set(0, 0.12, 3.3); glow.visible = false; g.add(glow); g.glow = glow;
@@ -494,70 +601,6 @@ function makeCar(kind: CarKind, color: string | undefined, glowTex: THREE.Textur
   }
   if (kind === 'shark') add(new THREE.BoxGeometry(0.25, 0.06, 4.0), new THREE.MeshBasicMaterial({ color: 0xffd23f }), 0, 1.13, -0.2);   // gold pinstripe
   if (kind === 'hr') add(new THREE.BoxGeometry(1.2, 0.12, 1.2), new THREE.MeshBasicMaterial({ color: 0xc8102e }), 0, 2.2, 0.4);         // red roof badge
-  g.scale.setScalar(1.4);
-  return g;
-}
-
-/** The player's car: a low, wide open-top roadster. Cherry red with white racing stripes, tan seats, a chrome
- *  windshield frame, a rear wing and the fan at the wheel (hidden while he is on foot). Nose along -z, like the rest. */
-function makeConvertible<T extends THREE.Group & { wheels?: THREE.Mesh[]; driver?: THREE.Object3D }>(g: T): T {
-  const paint = new THREE.MeshPhysicalMaterial({ color: 0xe1122f, metalness: 0.65, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.04 });
-  const white = new THREE.MeshStandardMaterial({ color: 0xf6f4ee, roughness: 0.4 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x0c0c10, roughness: 0.5 });
-  const tan = new THREE.MeshStandardMaterial({ color: 0xc89a62, roughness: 0.8 });
-  const chrome = new THREE.MeshStandardMaterial({ color: 0xe8ecf2, metalness: 0.9, roughness: 0.2 });
-  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, shadow = false, to: THREE.Object3D = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = shadow; to.add(m); return m; };
-  // body: long hood, wide hips, short tail
-  add(new THREE.BoxGeometry(2.3, 0.6, 5.0), paint, 0, 0.72, 0, true);
-  add(new THREE.BoxGeometry(2.0, 0.28, 1.9), paint, 0, 1.12, -1.45, true);     // hood bulge
-  add(new THREE.BoxGeometry(1.7, 0.2, 0.5), paint, 0, 0.98, -2.55);            // nose
-  add(new THREE.BoxGeometry(2.1, 0.3, 1.0), paint, 0, 1.12, 1.95, true);       // rear deck
-  for (const x of [-1.2, 1.2]) add(new THREE.BoxGeometry(0.22, 0.5, 1.5), paint, x, 0.86, 1.35);   // rear fenders
-  // racing stripes: nose, hood and rear deck
-  for (const x of [-0.3, 0.3]) {
-    add(new THREE.BoxGeometry(0.3, 0.03, 1.9), white, x, 1.275, -1.45);
-    add(new THREE.BoxGeometry(0.3, 0.03, 1.0), white, x, 1.285, 1.95);
-    add(new THREE.BoxGeometry(0.3, 0.03, 0.5), white, x, 1.095, -2.55);
-  }
-  // open cockpit: dark tub, tan seats, dash, steering wheel
-  add(new THREE.BoxGeometry(1.9, 0.08, 2.0), dark, 0, 1.03, 0.45);
-  for (const x of [-0.5, 0.5]) { add(new THREE.BoxGeometry(0.72, 0.22, 0.8), tan, x, 1.16, 0.6); add(new THREE.BoxGeometry(0.72, 0.62, 0.2), tan, x, 1.38, 1.08); }
-  add(new THREE.BoxGeometry(1.9, 0.3, 0.25), dark, 0, 1.2, -0.42);
-  const wheel = add(new THREE.TorusGeometry(0.2, 0.05, 6, 12), dark, -0.5, 1.4, -0.2); wheel.rotation.x = -1.1;
-  // windshield: chrome frame with a strip of glass, raked back; no roof
-  const glass = new THREE.MeshStandardMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.45, roughness: 0.1, metalness: 0.2 });
-  const ws = add(new THREE.BoxGeometry(1.9, 0.55, 0.06), glass, 0, 1.52, -0.6); ws.rotation.x = 0.5;
-  const wf = add(new THREE.BoxGeometry(2.02, 0.08, 0.1), chrome, 0, 1.78, -0.47); wf.rotation.x = 0.5;
-  for (const x of [-0.98, 0.98]) {
-    const p = add(new THREE.BoxGeometry(0.08, 0.6, 0.08), chrome, x, 1.52, -0.6); p.rotation.x = 0.5;
-    add(new THREE.BoxGeometry(0.3, 0.14, 0.2), paint, x * 1.22, 1.32, -0.5);   // mirrors
-  }
-  // roll hoops behind the seats, rear wing
-  for (const x of [-0.5, 0.5]) add(new THREE.BoxGeometry(0.6, 0.34, 0.14), chrome, x, 1.55, 1.3);
-  add(new THREE.BoxGeometry(2.3, 0.08, 0.5), dark, 0, 1.62, 2.3, true);
-  for (const x of [-0.9, 0.9]) add(new THREE.BoxGeometry(0.1, 0.34, 0.3), dark, x, 1.43, 2.3);
-  // wheels (fat, with chrome hubs)
-  const wg = new THREE.CylinderGeometry(0.5, 0.5, 0.45, 16); wg.rotateZ(Math.PI / 2);
-  const hub = new THREE.CylinderGeometry(0.22, 0.22, 0.47, 10); hub.rotateZ(Math.PI / 2);
-  const wm = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-  g.wheels = [];
-  for (const [x, z] of [[-1.14, -1.65], [1.14, -1.65], [-1.16, 1.6], [1.16, 1.6]] as const) { const w = add(wg, wm, x, 0.5, z); w.add(new THREE.Mesh(hub, chrome)); g.wheels.push(w); }
-  // lights, exhausts, ground shadow
-  const hl = new THREE.MeshBasicMaterial({ color: 0xfff6d8 });
-  for (const x of [-0.78, 0.78]) add(new THREE.BoxGeometry(0.5, 0.2, 0.06), hl, x, 0.9, -2.52);
-  add(new THREE.BoxGeometry(2.1, 0.14, 0.05), new THREE.MeshBasicMaterial({ color: 0xff1a3a }), 0, 0.92, 2.52);
-  const ex = new THREE.CylinderGeometry(0.1, 0.1, 0.3, 8); ex.rotateX(Math.PI / 2);
-  for (const x of [-0.55, 0.55]) add(ex, chrome, x, 0.5, 2.6);
-  const ug = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 5.6), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
-  ug.rotation.x = -Math.PI / 2; ug.position.y = 0.05; g.add(ug);
-  // the fan at the wheel: blue shirt, brown hair, one arm on the door
-  const d = new THREE.Group();
-  const shirt = new THREE.MeshStandardMaterial({ color: 0x4f7fd6, roughness: 0.8 });
-  add(new THREE.BoxGeometry(0.62, 0.55, 0.42), shirt, -0.5, 1.5, 0.72, false, d);
-  add(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshStandardMaterial({ color: 0xf0b98d, roughness: 0.8 }), -0.5, 1.98, 0.68, false, d);
-  add(new THREE.BoxGeometry(0.44, 0.14, 0.44), new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.9 }), -0.5, 2.22, 0.7, false, d);
-  add(new THREE.BoxGeometry(0.5, 0.16, 0.2), shirt, -0.95, 1.45, 0.5, false, d);
-  g.add(d); g.driver = d;
   g.scale.setScalar(1.4);
   return g;
 }
@@ -617,21 +660,8 @@ function makeHeli(glowTex: THREE.Texture): HeliGroup {
   return g;
 }
 
-/** The fan on foot: a blocky little guy seen from above (blue shirt, brown hair, dark trousers), legs swinging. */
-function makeWalker(): THREE.Group & { legs: THREE.Mesh[] } {
-  const g = new THREE.Group() as THREE.Group & { legs: THREE.Mesh[] };
-  const m = (c: number) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 });
-  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; };
-  g.legs = [add(new THREE.BoxGeometry(0.34, 0.9, 0.4), m(0x2b2f45), -0.22, 0.45, 0), add(new THREE.BoxGeometry(0.34, 0.9, 0.4), m(0x2b2f45), 0.22, 0.45, 0)];
-  add(new THREE.BoxGeometry(0.95, 0.9, 0.55), m(0x4f7fd6), 0, 1.35, 0);
-  for (const x of [-0.6, 0.6]) add(new THREE.BoxGeometry(0.24, 0.8, 0.3), m(0x4f7fd6), x, 1.35, 0);
-  add(new THREE.BoxGeometry(0.55, 0.55, 0.55), m(0xf0b98d), 0, 2.1, 0);
-  add(new THREE.BoxGeometry(0.6, 0.2, 0.6), m(0x5a3a22), 0, 2.45, 0.02);
-  g.scale.setScalar(1.5);
-  return g;
-}
-
 // ---------- pedestrians ----------
+const PED_SCALE_3D = 1.1;   // behind the car they stand next to it, so they are closer to its size (from above they need 2.3 to be read)
 const PED_MAX = 160, PED_SCALE = 2.3, PED_MID = 1.2;   // PED_MID: the body's middle (it tumbles around it), before scaling
 // the city's own colours: the neon pink / teal / yellow of the signs and the launch-day line, plus a few plain ones
 const PED_SHIRT = [0xff3fa4, 0x2fd1c8, 0xffd23f, 0x9b7fd1, 0xf2a65a, 0xe8e8e8, 0x5ce67a, 0x4f7fd6, 0xd02a2a, 0xff7a20];
@@ -717,6 +747,63 @@ function letterTex(ch: string): THREE.CanvasTexture {
   g.font = '900 104px Rubik, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.lineWidth = 10; g.strokeStyle = '#3a0a2a'; g.strokeText(ch, 64, 70); g.fillStyle = '#ff3fa4'; g.fillText(ch, 64, 70);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+/** The arrow toward the next stop (looks 3 and 4): a thick yellow chevron on a dark plate, lit like the rest of the
+ *  city. It lies flat pointing along -z (a car's nose); `tip` turns inside the tilted group. Drawn over everything, so
+ *  a building never hides it. */
+function makeGoalArrow(): THREE.Group & { tip: THREE.Group } {
+  const g = new THREE.Group() as THREE.Group & { tip: THREE.Group };
+  g.rotation.order = 'YXZ';
+  const prism = (pts: Array<[number, number]>, depth: number): THREE.ExtrudeGeometry => {
+    const sh = new THREE.Shape(); pts.forEach((p, i) => (i ? sh.lineTo(p[0], p[1]) : sh.moveTo(p[0], p[1])));
+    const e = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelSize: 0.1, bevelThickness: 0.1, bevelSegments: 2 }); e.rotateX(-Math.PI / 2); return e;
+  };
+  const tip = new THREE.Group();
+  const plate = new THREE.Mesh(prism([[0, 2.5], [1.95, -1.25], [0, -0.45], [-1.95, -1.25]], 0.2), new THREE.MeshBasicMaterial({ color: 0x14100a, fog: false, depthTest: false, toneMapped: false }));
+  plate.position.y = -0.3; plate.renderOrder = 10;
+  const body = new THREE.Mesh(prism([[0, 2], [1.5, -0.9], [0, -0.25], [-1.5, -0.9]], 0.55), new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0xffa800, emissiveIntensity: 0.45, roughness: 0.45, fog: false, depthTest: false }));
+  body.renderOrder = 11;
+  tip.add(plate, body); g.add(tip); g.tip = tip;
+  return g;
+}
+
+/** The facades of looks 3 and 4: windowTex's grid (9 x 21 windows per tile) at four times the pixels, with frames,
+ *  a reflection in the glass and floor lines; `lit` = the windows with the light on, on black. Smooth filtering. */
+function windowTexHi(aniso: number): { map: THREE.CanvasTexture; lit: THREE.CanvasTexture } {
+  const mk = (lit: boolean): THREE.CanvasTexture => {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 1024; const g = c.getContext('2d')!;
+    g.fillStyle = lit ? '#000' : '#e6dfd4'; g.fillRect(0, 0, 512, 1024);
+    for (let r = 0; r < 21; r++) {
+      const y = 24 + r * 48;
+      if (!lit) { g.fillStyle = 'rgba(0,0,0,.07)'; g.fillRect(0, y + 30, 512, 4); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(0, y - 8, 512, 2); }
+      for (let k = 0; k < 9; k++) {
+        const x = 24 + k * 56, on = hash(r + 1, k + 1);
+        const gr = g.createLinearGradient(0, y, 0, y + 24);
+        if (lit) {
+          if (on <= 0.55) continue;
+          const col = on > 0.93 ? '255,140,210' : on > 0.84 ? '140,235,255' : '255,214,150';
+          gr.addColorStop(0, 'rgb(' + col + ')'); gr.addColorStop(1, 'rgba(' + col + ',.5)');
+          g.fillStyle = gr; g.fillRect(x, y, 32, 24); g.fillStyle = '#000'; g.fillRect(x + 15, y, 2, 24);
+        } else {
+          g.fillStyle = '#cfc7ba'; g.fillRect(x - 3, y - 3, 38, 30);
+          gr.addColorStop(0, '#7fa6c8'); gr.addColorStop(0.5, '#3f6485'); gr.addColorStop(1, '#2a445e');
+          g.fillStyle = gr; g.fillRect(x, y, 32, 24);
+          g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x, y + 24); g.lineTo(x + 14, y); g.lineTo(x + 22, y); g.lineTo(x + 8, y + 24); g.fill();
+          g.fillStyle = '#b9b1a4'; g.fillRect(x + 15, y, 2, 24); g.fillStyle = '#a79f92'; g.fillRect(x - 3, y + 25, 38, 3);
+        }
+      }
+    }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; return t;
+  };
+  return { map: mk(false), lit: mk(true) };
+}
+/** Fine grain for the asphalt of looks 3 and 4 (multiplies the ground colour). */
+function asphaltTex(aniso: number): THREE.CanvasTexture {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d')!, d = g.createImageData(256, 256);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 195 + Math.floor(Math.random() * 60); d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(70, 70); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; return t;
 }
 
 window.__w6world3d = { create };

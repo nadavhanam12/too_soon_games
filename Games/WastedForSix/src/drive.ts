@@ -8,7 +8,7 @@ import {
   PLACES, BMIN, BMAX, CELL, roadLine, collide, costField, downhill, roadNear, los, neighbors, edgeOpen, nodeOf, offroad, cellOf,
   prims, grounds, lamps, solids, blocks, paths, BLOCK, BSIZE, N, inSuper, solidAt, type Node2, type PlaceId,
 } from './city';
-import type { CarKind, Frame, Fx, HeliView, World3D } from './world3d-api';
+import type { CarKind, Frame, Fx, HeliView, Look, World3D } from './world3d-api';
 import { C } from './art';
 import { UI } from './content';
 import { carSound, copSiren, heliSound, wallGraze } from './carsound';
@@ -102,6 +102,7 @@ export const D = {
   boost: 0, boostK: 0,              // seconds of boost left and its strength (0..1)
   hrSee: 0,                         // seconds the HR minivan has had you in its circle (counts at HR_SPOT_S)
   dusk: 0,                          // 0 = daylight, 1 = evening; a leg sets it after resetWorld (the drive home)
+  look: 2 as Look,                  // the picture's look (world3d-api Frame.look); a leg sets it after resetWorld
   closeUp: false,                  // the camera comes down on the fan while he walks into a building
   alarm: -9, alarmCop: false,       // D.t when the last chaser appeared, and whether it was a cop (red / blue flash)
   alarmKind: 'cop' as ChaserKind,   // who that chaser was (the announcement names it)
@@ -165,7 +166,7 @@ export function resetWorld(startId: PlaceId, toward: PlaceId): void {
   D.body = { kick: { x: 0, v: 0 }, pitch: { x: 0, v: 0 }, sq: { x: 0, v: 0 } }; D.drv = { gas: false, brake: false };
   skidL = skidR = null; puffT = sparkT = bumpCd = curbCd = flameT = 0; onWall = false; streakT = 0;
   onCurb = offroad[cellOf(D.p.x, D.p.y)] === 1;
-  D.stick.drift = false; D.drift = 0; D.boost = 0; D.hrSee = 0; D.closeUp = false; D.dusk = 0; D.alarm = -9; D.flies = [];
+  D.stick.drift = false; D.drift = 0; D.boost = 0; D.hrSee = 0; D.closeUp = false; D.dusk = 0; D.look = 2; D.alarm = -9; D.flies = [];
   for (let k = 0; k < NPC_N; k++) {
     for (let tries = 0; tries < 30; tries++) {
       const i = Math.floor(rand() * 13) - 6, j = Math.floor(rand() * 13) - 6, nb = neighbors(i, j); if (!nb.length) continue;
@@ -422,6 +423,16 @@ function heliView(h: Heli): HeliView {
 }
 
 /** The scene's handling: throttle / brake / coast, speed-scaled steering, grip that lets go under the handbrake. */
+// The stick in looks 3 and 4 (camera behind the car), as fractions of its radius. Reading its angle (the first try,
+// 2026-11-17) made a finger a hair off centre a full-lock turn; Nadav: very hard to drive on a phone.
+// Second pass the same day (Nadav: still too sensitive): curved response, a slower wheel, less turn at speed, and the
+// camera turns after the car (lazy/world3d.ts CHASE_TURN_LAG).
+const CHASE_DEAD = 0.14, CHASE_FULL = 0.95;      // sideways: nothing under DEAD, full lock only at FULL
+const CHASE_CURVE = 1.7;                         // response curve: half the stick = 31% of the wheel
+const CHASE_STEER_IN = 4.5;                      // the wheel reaches full lock in ~0.22 s (the top view / keys: 9 per s)
+const CHASE_YAW = 2.5, CHASE_YAW_FADE = 0.3;     // rad/s at full lock (keys: 2.7), minus this share at top speed
+const CHASE_BRAKE = 0.5;                         // pulled down this far: brake, then reverse
+const CHASE_LIFT = 0.92, CHASE_LIFT_V = 30;      // wheel past this: no gas above LIFT_V. It never brakes by itself (the car that slowed itself in every turn felt slow, Nadav)
 function stepPlayer(dt: number): void {
   const p = D.p, s = D.stick;
   // fixed stick, bottom-left: a touch that starts anywhere in that corner drives; a touch elsewhere does not, and the
@@ -440,7 +451,19 @@ function stepPlayer(dt: number): void {
   let up = keyHeld('ArrowUp', 'w'), dn = keyHeld('ArrowDown', 's'), hb = keyHeld(' ');
   let steer = (keyRight() ? 1 : 0) - (keyLeft() ? 1 : 0);
   let soft = false;   // the stick's own drift: a gentler slide than the Space handbrake
+  let wheel = false;  // steering with the stick as a wheel (looks 3 and 4): slower lock, less turn, least at speed
   if (up || dn || steer || hb) { D.usedKeys = true; s.drift = false; }
+  else if (s.on && D.look > 2) {
+    // looks 3 and 4 (camera behind the car): the stick is a steering wheel and a pedal. How far it is pushed left or
+    // right is how far the wheel turns (a little is a little); a finger on it is gas; pulled down is brake, then reverse.
+    const sx = s.dx / STICK_R, sy = s.dy / STICK_R;
+    const push = clamp((Math.abs(sx) - CHASE_DEAD) / (CHASE_FULL - CHASE_DEAD), 0, 1);
+    steer = Math.sign(sx) * Math.pow(push, CHASE_CURVE);   // curved: the first half of the stick is fine corrections
+    wheel = true;
+    s.rev = sy > CHASE_BRAKE; s.drift = false;
+    if (s.rev) dn = true;
+    else up = !(Math.abs(steer) > CHASE_LIFT && p.v > CHASE_LIFT_V);   // only the stick held right at the edge lifts off the gas
+  }
   else if (s.on && Math.hypot(s.dx, s.dy) > 8) {
     // stick: point where you want to go; it steers toward that heading and eases off in a sharp turn
     const diff = wrapA(Math.atan2(s.dy, s.dx) - p.a);
@@ -468,9 +491,10 @@ function stepPlayer(dt: number): void {
   p.v = clamp(p.v, -14, MAX_V + BOOST_V * D.boostK * Math.min(1, D.boost / 0.3));
   D.drv.gas = up; D.drv.brake = (dn && v0 > 1) || (hb && Math.abs(v0) > 3) || (!D.control && Math.abs(v0) > 1);
   // the wheel turns at STEER_IN per second instead of jumping to full lock
-  p.steer += clamp(steer - p.steer, -STEER_IN * dt, STEER_IN * dt);
+  const lock = wheel ? CHASE_STEER_IN : STEER_IN;
+  p.steer += clamp(steer - p.steer, -lock * dt, lock * dt);
   const sf = Math.min(1, Math.abs(p.v) / 10) * Math.sign(p.v);
-  const yaw = p.steer * sf * (hb ? (soft ? 3.0 : 3.4) : 2.7);
+  const yaw = p.steer * sf * (hb ? (soft ? 3.0 : 3.4) : wheel ? CHASE_YAW * (1 - CHASE_YAW_FADE * clamp(Math.abs(p.v) / MAX_V, 0, 1)) : 2.7);
   p.a = wrapA(p.a + yaw * dt);
   const fx = Math.cos(p.a), fy = Math.sin(p.a), grip = hb ? (soft ? 3 : 1.4) : 7;
   p.vx += (fx * p.v - p.vx) * Math.min(1, grip * dt);
@@ -653,14 +677,30 @@ const SHOW_GPS_ARROW = false;      // trial 2026-11-17: no arrow; the minimap an
 const RESIDENTS: Array<{ who: Who; place: PlaceId; h: number }> = [
   { who: 'boss', place: 'office', h: 52 }, { who: 'clerk', place: 'store', h: 15 }, { who: 'fiancee', place: 'home', h: 12 },
 ];
-const PIX = 4;                  // the scene's PIX: the 3D frame is rendered at 1/4 of the screen's CSS pixels
+// The 3D frame's size: 1 / PIX of the screen's CSS pixels. Look 2 keeps the scene's chunky 4; look 3 halves the pixel,
+// look 4 draws every CSS pixel (16 x the pixels of look 2: not measured on a phone yet).
+const PIX: Record<Look, number> = { 2: 4, 3: 2, 4: 1 };
+const PULL_D = 13, PULL_RANGE = 5;     // a chaser closer than this lifts the behind-the-car camera (full at PULL_D - PULL_RANGE)
+// Looks 3 and 4: the arrow toward the next stop shows a general direction: one of eight, left only when the route
+// is clearly in another one, turning there calmly (Nadav: it danced and reacted too much).
+const ARROW_STEP = Math.PI / 4, ARROW_SWITCH = 0.62, ARROW_EASE = 0.03;   // step between directions, how far off before it changes, the share of the turn left after 1 s
+const ARROW_HOLD_S = 0.8;              // a direction is kept at least this long
+const ARROW_OFF_D = 34, ARROW_ON_D = 42;   // the arrow leaves this close to the stop and returns this far from it
+const ARROW_LABEL_F = 0.366;           // the distance under it, as a fraction of the 3D frame's height (lazy/world3d.ts ARROW_UP / ARROW_DIST)
 /** Draw the world (3D) and its 2D overlays: GPS arrow, HR tag, floating text. `pending` = places whose marker pulses. */
 export function renderWorld(pending: PlaceId[], showPlayer = true): void {
   const top = -view.top;
   if (!world) { loadingCard(); return; }
+  const chase = D.look > 2, who = D.closeUp ? (D.walker ?? D.p) : D.p;
+  let near = 1e9; for (const c of D.chasers) near = Math.min(near, dist(c, D.p));
+  // behind the car the camera sees far down the street: pedestrians around the car, the nearest first
+  const pedR = chase ? 150 : 0;
+  const arrow = chase && showPlayer && !D.closeUp && D.goal ? goalArrow(D.goal) : null;
   const f: Frame = {
-    w: Math.max(1, Math.round((view.fullW * view.scale) / PIX)), h: Math.max(1, Math.round((view.H * view.scale) / PIX)), t: D.t, dusk: D.dusk,
-    cam: { x: D.cam.x, y: D.cam.y, zoom: D.zoom },
+    ...(arrow ? { arrow } : {}),
+    w: Math.max(1, Math.round((view.fullW * view.scale) / PIX[D.look])), h: Math.max(1, Math.round((view.H * view.scale) / PIX[D.look])), t: D.t, dusk: D.dusk,
+    look: D.look,
+    cam: { x: D.cam.x, y: D.cam.y, zoom: D.zoom, px: who.x, py: who.y, a: D.p.a, pull: D.closeUp ? 0 : clamp((PULL_D - near) / PULL_RANGE, 0, 1), k: D.zoom / (118 + Math.min(35, Math.abs(D.p.v) * 0.9)), sp: clamp(Math.abs(D.p.v) / MAX_V, 0, 1) },
     cars: [
       ...D.npcs.map((n) => ({ id: n.id, kind: 'npc' as CarKind, x: n.x, y: n.y, a: n.a, color: n.color })),
       ...D.hrs.map((n) => ({ id: n.id, kind: 'hr' as CarKind, x: n.x, y: n.y, a: n.a })),
@@ -672,7 +712,7 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
     picks: D.picks.filter((k) => !k.taken),
     letters: D.letters,
     // only the ones the camera can see (the renderer draws them instanced, PED_MAX at most)
-    peds: D.peds.filter((q) => Math.abs(q.x - D.cam.x) < Math.max(75, view.fullW * 0.1) && Math.abs(q.y - D.cam.y) < 100).map((q) => ({ x: q.x, y: q.y, a: q.a, step: q.step, look: q.look, h: q.h, rx: q.rx, s: q.st === 'down' ? clamp((PED_DOWN_S - q.t) / 0.4, 0, 1) : 1 })),
+    peds: (chase ? D.peds.filter((q) => Math.abs(q.x - who.x) < pedR && Math.abs(q.y - who.y) < pedR).sort((a, b) => dist(a, who) - dist(b, who)) : D.peds.filter((q) => Math.abs(q.x - D.cam.x) < Math.max(75, view.fullW * 0.1) && Math.abs(q.y - D.cam.y) < 100)).map((q) => ({ x: q.x, y: q.y, a: q.a, step: q.step, look: q.look, h: q.h, rx: q.rx, s: q.st === 'down' ? clamp((PED_DOWN_S - q.t) / 0.4, 0, 1) : 1 })),
     walker: showPlayer ? D.walker : null,
     pending,
     fx: D.fx.splice(0),
@@ -681,20 +721,25 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(world.canvas, view.x0, top, view.fullW, view.H);
   ctx.restore();
-  const scr = (x: number, y: number, h = 0) => { const q = world!.project(x, y, h); return { x: view.x0 + q.x * view.fullW, y: top + q.y * view.H }; };
-  if (showPlayer) { speedLines(scr(D.p.x, D.p.y), top); for (const c of D.chasers) edgeArrow(scr(c.x, c.y, 2), top); }
+  const scr = (x: number, y: number, h = 0) => { const q = world!.project(x, y, h); return { x: view.x0 + q.x * view.fullW, y: top + q.y * view.H, behind: q.behind }; };
+  if (showPlayer) {
+    speedLines(scr(D.p.x, D.p.y), top);
+    // a chaser behind the camera: its arrow sits on the bottom edge, on the side it is coming from
+    for (const c of D.chasers) { const s = scr(c.x, c.y, 2); edgeArrow(s.behind ? { x: W - s.x, y: top + view.H + 400 } : s, top); }
+  }
   if (showPlayer) { chaseAlarm(top); chaseCall(); }
   // who is inside: the character's face floats over their building (yellow ring and bigger when it is the goal)
   for (const w of RESIDENTS) {
     const pl = PLACES[w.place], goal = pending.includes(w.place), s = scr(pl.i * CELL, pl.j * CELL, w.h);
-    if (s.x < view.x0 - 50 || s.x > view.x0 + view.fullW + 50 || s.y < top - 30 || s.y > top + view.H + 110) continue;
+    if (s.behind || s.x < view.x0 - 50 || s.x > view.x0 + view.fullW + 50 || s.y < top - 30 || s.y > top + view.H + 110) continue;
     const r = goal ? 38 : 30, y = s.y - r - 20 + Math.sin(D.t * 2.6 + pl.i) * 4;
     if (!drawFace(w.who, s.x, y, r, goal ? C.yellow : '#ffffff')) continue;   // portrait still downloading: no badge yet
     ctx.fillStyle = '#0b0b0f'; ctx.beginPath(); ctx.moveTo(s.x - 11, y + r + 3); ctx.lineTo(s.x + 11, y + r + 3); ctx.lineTo(s.x, y + r + 20); ctx.closePath(); ctx.fill();
     ctx.fillStyle = goal ? C.yellow : '#ffffff'; ctx.beginPath(); ctx.moveTo(s.x - 8, y + r + 2); ctx.lineTo(s.x + 8, y + r + 2); ctx.lineTo(s.x, y + r + 16); ctx.closePath(); ctx.fill();
   }
   for (const n of D.hrs) {
-    const s = scr(n.x, n.y, 5); rr(s.x - 12, s.y - 30, 24, 14, 3, '#c8102e'); ptxt(UI.hrTag,s.x, s.y - 23, 1, '#fff');
+    const s = scr(n.x, n.y, 5); if (s.behind) continue;
+    rr(s.x - 12, s.y - 30, 24, 14, 3, '#c8102e'); ptxt(UI.hrTag,s.x, s.y - 23, 1, '#fff');
     // "!" grows over the minivan that has you in its circle; full size = it has seen you
     if (D.hrSee > 0 && dist(n, D.p) < HR_R + 4) { const k = easeOB(clamp(D.hrSee / HR_SPOT_S, 0, 1)); ptxt('!', s.x, s.y - 44 - 6 * k, 1 + Math.round(2 * k), C.yellow, 'center', '#000'); }
   }
@@ -710,19 +755,41 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
   // GPS arrow toward the goal, just past the car's nose
   if (SHOW_GPS_ARROW && showPlayer && D.goal && dist(PLACES[D.goal], D.p) > 15) {
     const tgt = gpsTarget(D.goal), a = Math.atan2(tgt.y - D.p.y, tgt.x - D.p.x), s = scr(D.p.x + Math.cos(a) * 7, D.p.y + Math.sin(a) * 7, 1.5);
-    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(a);
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(chase ? a - D.p.a - Math.PI / 2 : a);   // behind the car: against its heading (up = straight on)
     ctx.fillStyle = C.yellow; ctx.strokeStyle = '#3a2a00'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-7, -9); ctx.lineTo(-2, 0); ctx.lineTo(-7, 9); ctx.closePath(); ctx.stroke(); ctx.fill();
     ctx.restore();
   }
+  if (arrow && D.goal) ptxt(String(Math.round(dist(PLACES[D.goal], D.p))), W / 2, top + view.H * ARROW_LABEL_F, 1, '#ffffff', 'center', '#000');   // the distance, under the arrow
   // floating text: pops in with an overshoot, rises fast then slows, fades at the end
   for (const fl of D.floats) {
     const s = scr(fl.x, fl.y, 3), k = easeOB(clamp(fl.t / 0.16, 0, 1));
+    if (s.behind) continue;
     ctx.save(); ctx.globalAlpha = easeO(clamp((1.2 - fl.t) / 0.3, 0, 1));
     ctx.translate(s.x, s.y - 36 * easeO(fl.t / 1.2)); ctx.scale(k, k);
     ptxt(fl.s, 0, 0, 2, fl.col, 'center', '#000');
     ctx.restore();
   }
+}
+
+/** Looks 3 and 4: where the arrow toward the next stop points, against the car's heading. The renderer draws it as a
+ *  solid shape that keeps its place on screen (Nadav, 2026-11-17: 3D like the scene; a mirror sat there first and hid
+ *  the road). */
+let arrowA = 0, arrowDir = 0, arrowT = 0, arrowAt = -9, arrowOn = true;
+/** Debug (play.ts __arrow): the direction the arrow holds and whether it is shown. */
+export const arrowState = (): { dir: number; on: boolean; d: number } => ({ dir: arrowDir, on: arrowOn, d: D.goal ? Math.round(dist(PLACES[D.goal], D.p)) : -1 });
+function goalArrow(goal: PlaceId): { rel: number } | null {
+  if (D.t < arrowT) { arrowAt = -9; arrowOn = true; }   // a new leg restarted the clock
+  // Close to the stop the route point jumps around the car and the arrow shook (Nadav: it must never shake). There
+  // the beam and the ring at the door show the way, so the arrow leaves, and comes back only well away from it.
+  const dg = dist(PLACES[goal], D.p);
+  if (dg < ARROW_OFF_D) arrowOn = false; else if (dg > ARROW_ON_D) arrowOn = true;
+  const tgt = gpsTarget(goal), want = wrapA(Math.atan2(tgt.y - D.p.y, tgt.x - D.p.x) - D.p.a);
+  // and anywhere: once it has a direction it keeps it for ARROW_HOLD_S, whatever the route point does
+  if (D.t - arrowAt > ARROW_HOLD_S && Math.abs(wrapA(want - arrowDir)) > ARROW_SWITCH) { arrowDir = Math.round(want / ARROW_STEP) * ARROW_STEP; arrowAt = D.t; }
+  const dt = clamp(D.t - arrowT, 0, 0.05); arrowT = D.t;   // game time: it rests with the banner
+  arrowA = wrapA(arrowA + wrapA(arrowDir - arrowA) * (1 - Math.pow(ARROW_EASE, dt)));
+  return arrowOn ? { rel: arrowA } : null;
 }
 
 /** A chaser just appeared: the screen edge flashes for ALARM_S (red / blue for the police, red for the others). */
@@ -761,7 +828,7 @@ function speedLines(car: { x: number; y: number }, top: number): void {
   const dt = clamp(D.t - streakT, 0, 0.05); streakT = D.t;   // game time: they freeze with the banner
   const sp = Math.hypot(D.p.vx, D.p.vy), k = clamp((sp - SPEED_LINES_V) / (MAX_V - SPEED_LINES_V), 0, 1);
   if (k <= 0) { streaks.length = 0; return; }
-  const ux = -D.p.vx / sp, uy = -D.p.vy / sp;
+  const ux = D.look > 2 ? 0 : -D.p.vx / sp, uy = D.look > 2 ? 1 : -D.p.vy / sp;   // behind the car the road runs down the screen
   while (streaks.length < 12) {
     const x = view.x0 + Math.random() * view.fullW, y = top + Math.random() * view.H;
     if (Math.hypot(x - car.x, y - car.y) < 90) continue;   // keep the car itself clean

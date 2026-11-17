@@ -33,6 +33,20 @@
       "port": 5190
     },
     {
+      "name": "wastedforsix-scene",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5195",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "C:/Users/PC/Desktop/Projects/too_soon_games/Games/WastedForSix/Scene"
+      ],
+      "port": 5195
+    },
+    {
       "name": "halfmarathon-dev",
       "runtimeExecutable": "node",
       "runtimeArgs": [
@@ -92,6 +106,20 @@
       },
       "port": 5186,
       "url": "http://127.0.0.1:5186"
+    },
+    {
+      "name": "press-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5197",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "C:/Users/PC/Desktop/Projects/too_soon_games/GamesTemplate/.local-site"
+      ],
+      "port": 5197
     }
   ]
 }

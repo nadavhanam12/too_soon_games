@@ -120,7 +120,7 @@ function renderRadio(): void {
   ctx.restore();
 }
 function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; radioTaps(); input.taps.length = 0; }
-const hintFor = (): string => (D.usedKeys || !input.touch ? HINT.keys : HINT.touch);
+const hintFor = (): string => (D.usedKeys || !input.touch ? HINT.keys : D.look > 2 ? HINT.touchBehind : HINT.touch);
 
 // ---------- leg 1: the commute ----------
 registerStage('commute', {
@@ -153,6 +153,7 @@ registerStage('launch', {
     beat = null; walk = null; timers = []; detourDone = false; fuelWarned = false; noteCd = 0; nagCd = 0;
     if (!G.branch) G.branch = 'sick';
     resetWorld('office', 'store');
+    D.look = 3;   // the day off is his: the picture steps up, the camera drops behind the car (Nadav, 2026-11-17)
     const a = PLACES.office, b = PLACES.store, dt = PLACES[detourId()];
     D.goal = detourId();
     addPickups(10, 'can', Math.min(a.x, b.x, dt.x) - 30, Math.min(a.y, b.y, dt.y) - 30, Math.max(a.x, b.x, dt.x) + 30, Math.max(a.y, b.y, dt.y) + 30);
@@ -225,6 +226,7 @@ registerStage('home', {
     if (!G.store) G.store = 'steal';
     resetWorld('store', 'home');
     D.dusk = 1;   // the day is gone by the time he has the game: the drive home is in the evening
+    D.look = 4;   // he has the game: the last step up, sunset and neon
     D.goal = 'home';
     const a = PLACES.store, b = PLACES.home;
     addPickups(8, 'can', Math.min(a.x, b.x) - 30, Math.min(a.y, b.y) - 30, Math.max(a.x, b.x) + 30, Math.max(a.y, b.y) + 30);

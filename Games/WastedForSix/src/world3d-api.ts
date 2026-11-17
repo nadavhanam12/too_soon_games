@@ -26,11 +26,24 @@ export interface PedView { x: number; y: number; a: number; step: number; look: 
  *  banked into a turn toward growing `a`; `light` = the ground point its searchlight is on (none = lamp off). */
 export interface HeliView { id: number; x: number; y: number; h: number; a: number; pitch?: number; roll?: number; light?: { x: number; y: number } }
 
+export type Look = 2 | 3 | 4;
+
 export interface Frame {
   w: number; h: number;                 // backing size in px (logical canvas size × quality)
   t: number;
   dusk: number;                         // 0 = daylight, 1 = evening (low orange sun, lit windows, lamps and headlights)
-  cam: { x: number; y: number; zoom: number };
+  /** The picture's look (legs.ts sets D.look per driving leg): 2 = from above, chunky pixels (the commute) · 3 = the
+   *  camera behind the car, finer picture, cool haze (after the boss) · 4 = behind the car at sunset: neon, lit
+   *  windows, full resolution (after the store). */
+  look: Look;
+  /** (x, y, zoom) = the top view's centre and height. Looks 3 and 4 put the camera behind (px, py) looking along the
+   *  heading `a`. `k` scales its distance and height (1 at rest, more while it swoops in at a leg's start, about 0.5
+   *  in a close-up), `sp` = speed 0..1 (the camera backs off with it), `pull` 0..1 lifts it and backs it off more (a
+   *  chaser on your bumper). */
+  cam: { x: number; y: number; zoom: number; px: number; py: number; a: number; pull: number; k: number; sp: number };
+  /** Looks 3 and 4: the arrow toward the next stop, a solid shape that stays at one place on screen; `rel` = where it
+   *  points against the camera's heading (0 = straight on, positive = to the right); none = no arrow. */
+  arrow?: { rel: number };
   cars: CarView[];                      // player, traffic, HR minivan, chasers
   helis: HeliView[];
   hrs: Array<{ x: number; y: number; r: number }>;   // HR sight circles
@@ -46,7 +59,8 @@ export interface World3D {
   canvas: HTMLCanvasElement;
   render(f: Frame): void;
   /** World point (x, y on the ground, h above it) → canvas fraction (0..1, 0..1) for the last rendered frame. */
-  project(x: number, y: number, h?: number): { x: number; y: number };
+  /** `behind` = the point is behind the camera (looks 3 and 4): x and y are then mirrored and not for drawing. */
+  project(x: number, y: number, h?: number): { x: number; y: number; behind: boolean };
 }
 
 export interface World3DModule { create(city: CityData): World3D }

@@ -38,7 +38,8 @@ export const TIMELINE_SHORT = ['WOKE', 'WORK', 'DAY OFF', 'STORE', 'GAME', 'HOME
 /** Replaces the commute banner's stick line when the player has a mouse and keys (no stick on screen). */
 export const HOW_KEYS = 'Arrows / WASD to drive. Space to drift.';
 
-export const HINT = { touch: 'Drag the stick to steer · sharp turn = drift', keys: 'Arrows / WASD drive · Space drift · R radio' };
+// touchBehind: looks 3 and 4, where the stick is a steering wheel and a pedal (drive.ts CHASE_*)
+export const HINT = { touch: 'Drag the stick to steer · sharp turn = drift', touchBehind: 'Stick: left / right steers · pull down brakes', keys: 'Arrows / WASD drive · Space drift · R radio' };
 
 /** The car radio's stations, in the order the button steps through them; `track` is a name in sfx.ts MUSIC.files. */
 export const RADIO = [
@@ -60,6 +61,7 @@ export const MISSION_PASSED = { boss: 'MISSION PASSED · EMPLOYMENT −' } as co
 export const UI = {
   beat: { parking: 'PARKING', bribing: 'BRIBING', pumping: 'PUMPING', home: 'HOME!' },
   timeBonus: (n: number) => `+${n} time bonus`,
+  upgrade: ['GRAPHICS', 'UPGRADED'],                           // the sticker on a mission card when the picture steps up (legs 2 and 3)
   yourDay: 'YOUR DAY',                                        // heading over the timeline in its big moments
   gotAsFar: (stop: string) => `YOU GOT AS FAR AS: ${stop}`,   // lose screen, over the timeline
   radio: 'RADIO',

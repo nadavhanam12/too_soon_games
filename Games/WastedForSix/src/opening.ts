@@ -4,6 +4,7 @@
 import { W, view, ctx, fullBleed, rr, txt, wrap, textWidth, clamp, takeTap, easeO, easeOB, R, state, fmtInt, startFromTitle, env, type Scene } from '@tsg/index';
 import { C, launchSticker, palmSil, sunset } from './art';
 import { ptxt } from './pixel';
+import { UI as UI_TEXT } from './content';
 
 // ---------- the paintings ----------
 export type SceneImg = 'title' | 'logo' | 'cut-bedroom' | 'cut-phone' | 'cut-driveway' | 'item-six';
@@ -345,4 +346,17 @@ export function missionCard(title: string, lines: string[], t: number): void {
   });
   ctx.globalAlpha = 1;
   if (t > 0.5 && Math.sin(state.t * 5) > -0.2) txt(R.strs.tapToContinue, W / 2, y0 + h + 28, 13, R.theme.colors.muted, 'center', 700);
+}
+
+/** The picture just stepped up (a leg in look 3 or 4): the card opens with a white flash, then a tilted teal sticker
+ *  stamps in over the band's right end. `t` = seconds since the card appeared. */
+export function upgradeSticker(t: number): void {
+  if (t < 0.35) { ctx.save(); ctx.globalAlpha = 0.85 * (1 - t / 0.35); ctx.fillStyle = '#fff'; ctx.fillRect(view.x0, -view.top, view.fullW, view.H); ctx.restore(); }
+  const k = clamp((t - 0.45) / 0.25, 0, 1);
+  if (k <= 0) return;
+  const s = 2.2 - 1.2 * easeOB(k);   // slams down from big
+  ctx.save(); ctx.translate(W - 82, 204); ctx.rotate(0.12); ctx.scale(s, s); ctx.globalAlpha = Math.min(1, k * 3);
+  rr(-62, -24, 124, 48, 6, C.teal, '#0e0e10', 3);
+  ptxt(UI_TEXT.upgrade[0]!, 0, -10, 2, '#0e0e10', 'center'); ptxt(UI_TEXT.upgrade[1]!, 0, 10, 2, '#0e0e10', 'center');
+  ctx.restore();
 }
