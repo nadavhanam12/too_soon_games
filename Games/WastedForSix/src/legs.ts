@@ -5,8 +5,8 @@
 // Leg 3: the store choice picks the chaser (loan sharks / cops / spouse); the quit branch's gas-theft cop resumes from
 // where it froze when you walked into the store. Caught = WASTED.
 import { R, W, view, ctx, state, input, keyName, pick, rr, txt, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
-import { G, registerStage, stageDone, fail, addScore, say, hud, hint, demoDrag, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
-import { D, ev, resetWorld, stepWorld, renderWorld, renderStick, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, stickPos, renderMinimap, MINI, type ChaserKind } from './drive';
+import { G, registerStage, stageDone, fail, addScore, say, hud, hint, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
+import { D, ev, resetWorld, stepWorld, renderWorld, renderControls, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, renderMinimap, MINI, radioY, type ChaserKind } from './drive';
 import { PLACES, CELL, type PlaceId } from './city';
 import { BANNERS, HOW_KEYS, HINT, LINES, PLACE_NAME, BOOST_TEXT, UI, TAUNTS } from './content';
 import { C } from './art';
@@ -41,23 +41,38 @@ function renderBeat(): void {
 }
 
 /** After parking, the fan gets out of the car and walks into the building; then `done` runs. */
-interface Walk { t: number; dur: number; x0: number; y0: number; x1: number; y1: number; done: () => void }
+interface Walk { t: number; dur: number; x0: number; y0: number; seatX: number; seatY: number; x1: number; y1: number; done: () => void }
 let walk: Walk | null = null;
 const WALK_S = 2.4;   // 1.6 → 2.4 on 2026-11-17 (Nadav): the timeline moment during the walk needs the time to be read
+const EXIT_S = 0.65;  // door open → weight transfer → first step, before the walking timeline
+const smoothStep = (n: number): number => { n = clamp(n, 0, 1); return n * n * (3 - 2 * n); };
 function startWalk(id: PlaceId, done: () => void): void {
   const pl = PLACES[id], cx = pl.i * CELL, cy = pl.j * CELL;
   // out of the driver's door, then toward the middle of the building's block (the door side faces the road)
-  const side = { x: D.p.x - Math.sin(D.p.a) * -2.2, y: D.p.y + Math.cos(D.p.a) * -2.2 };
+  const side = { x: D.p.x + Math.sin(D.p.a) * 3.7, y: D.p.y - Math.cos(D.p.a) * 3.7 };
+  const seatX = D.p.x + Math.sin(D.p.a) * 0.672 - Math.cos(D.p.a) * 0.672;
+  const seatY = D.p.y - Math.cos(D.p.a) * 0.672 - Math.sin(D.p.a) * 0.672;
   const dx = cx - pl.x, dy = cy - pl.y, L = Math.hypot(dx, dy) || 1;
-  walk = { t: 0, dur: WALK_S, x0: side.x, y0: side.y, x1: pl.x + (dx / L) * 17, y1: pl.y + (dy / L) * 17, done };
+  walk = { t: 0, dur: WALK_S + EXIT_S, x0: side.x, y0: side.y, seatX, seatY, x1: pl.x + (dx / L) * 17, y1: pl.y + (dy / L) * 17, done };
+  D.exit = 0;
   D.control = false; D.closeUp = true;   // the camera comes down on him: one thing to look at (staging)
 }
 function stepWalk(dt: number): boolean {
   if (!walk) return false;
   walk.t += dt; G.arrive = walk.t;   // play.ts hud: the timeline comes down and the pin rides to the next stop
-  const k =clamp(walk.t / walk.dur, 0, 1), x = walk.x0 + (walk.x1 - walk.x0) * k, y = walk.y0 + (walk.y1 - walk.y0) * k;
-  D.walker = k < 1 ? { x, y, a: Math.atan2(walk.y1 - walk.y0, walk.x1 - walk.x0), step: walk.t * 9 } : null;
-  if (k >= 1) { const w = walk; walk = null; D.walker = null; D.closeUp = false; w.done(); }
+  const u = clamp(walk.t / EXIT_S, 0, 1), k = smoothStep((walk.t - EXIT_S) / WALK_S);
+  const a = Math.atan2(walk.y1 - walk.y0, walk.x1 - walk.x0);
+  D.exit = u;
+  if (u < 0.32) D.walker = null; // same seated driver until the weight transfer begins
+  else if (u < 1) {
+    const rise = smoothStep((u - 0.32) / 0.68), exitA = Math.atan2(walk.y0 - walk.seatY, walk.x0 - walk.seatX);
+    let da = a - exitA; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+    D.walker = { x: walk.seatX + (walk.x0 - walk.seatX) * rise, y: walk.seatY + (walk.y0 - walk.seatY) * rise, a: exitA + da * rise, step: 0, entry: 1 - rise };
+  } else {
+    const x = walk.x0 + (walk.x1 - walk.x0) * k, y = walk.y0 + (walk.y1 - walk.y0) * k;
+    D.walker = { x, y, a, step: Math.hypot(x - walk.x0, y - walk.y0) * 1.8, entry: 0 };
+  }
+  if (walk.t >= walk.dur) { const w = walk; walk = null; D.walker = null; D.exit = 1; D.closeUp = false; w.done(); }
   return true;
 }
 
@@ -89,11 +104,11 @@ function commonEvents(): void {
   ev.caught = () => {};
   ev.taunt = () => {};
 }
-/** Entry: the stick and the minimap rise from the bottom edge when a leg starts. */
+/** Entry: the touch controls and the minimap rise from the bottom edge when a leg starts. */
 function controlsIn(draw: () => void): void { if (G.failT > 0) return; const k = easeOB(Math.min(1, Math.max(0, G.t - 0.1) / 0.3)); ctx.save(); ctx.translate(0, (1 - k) * 170); draw(); ctx.restore(); }
 // ---------- the car radio: a button above the minimap (and the R key) tunes to the next track ----------
 const RADIO_W = MINI, RADIO_H = 34;
-const radioPos = (): { x: number; y: number } => ({ x: view.x0 + view.fullW - 12 - RADIO_W / 2, y: view.H - view.top - MINI - 62 - 10 - RADIO_H / 2 });
+const radioPos = (): { x: number; y: number } => ({ x: view.x0 + view.fullW - 12 - RADIO_W / 2, y: radioY(RADIO_H) });
 function radioTaps(): void {
   const b = radioPos();
   for (const p of input.taps) if (!p.key && inBtn(p, b.x, b.y, RADIO_W, RADIO_H, 8)) { nextStation(); return; }
@@ -109,7 +124,7 @@ function renderRadio(): void {
   } else {
     // a real button (Nadav, 2026-11-17): a solid pink key with a hard lower edge and a glow that blinks; it breathes
     // until the radio has been used once, then it only glows
-    const blink = 0.5 + 0.5 * Math.sin(state.t * 6), br = G.radio ? 1 : 1 + 0.05 * Math.sin(state.t * 6);
+    const blink = 0.5 + 0.5 * Math.sin(state.t * 6), br = G.radioUsed ? 1 : 1 + 0.05 * Math.sin(state.t * 6);
     ctx.translate(b.x, b.y); ctx.scale(br, br); ctx.translate(-b.x, -b.y);
     rr(b.x - RADIO_W / 2, b.y - RADIO_H / 2 + 3, RADIO_W, RADIO_H, 9, '#7a1450');
     ctx.save(); ctx.shadowColor = `rgba(255,63,164,${0.35 + 0.55 * blink})`; ctx.shadowBlur = 8 + 12 * blink;
@@ -120,7 +135,7 @@ function renderRadio(): void {
   ctx.restore();
 }
 function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; radioTaps(); input.taps.length = 0; }
-const hintFor = (): string => (D.usedKeys || !input.touch ? HINT.keys : D.look > 2 ? HINT.touchBehind : HINT.touch);
+const hintFor = (): string => (D.usedKeys || !input.touch ? HINT.keys : HINT.touch);
 
 // ---------- leg 1: the commute ----------
 registerStage('commute', {
@@ -133,7 +148,7 @@ registerStage('commute', {
     addLetters('WA', a, b);
     commonEvents();
     ev.arrive = (id) => { if (id === 'office') arriveEnd('office', UI.beat.parking, 0, () => say(LINES.arriveOffice[0]!, 1.6, true)); };
-    R.banner(BANNERS.commute[0], input.touch ? [...BANNERS.commute[1]] : [BANNERS.commute[1][0], HOW_KEYS, ...BANNERS.commute[1].slice(2)]);   // no stick with a mouse: the how-to line names the keys
+    R.banner(BANNERS.commute[0], input.touch ? [...BANNERS.commute[1]] : [BANNERS.commute[1][0], HOW_KEYS, ...BANNERS.commute[1].slice(2)]);   // no touch controls with a mouse: the how-to line names the keys
   },
   step(dt) {
     tick(dt);
@@ -141,7 +156,7 @@ registerStage('commute', {
     stepWorld(dt, { chasersOn: false });
     if (G.t > 6 && G.t % 11 < dt) say(pick(LINES.commute));
   },
-  render() { renderWorld(['office']); renderBeat(); hud('office'); controlsIn(() => { renderStick(); renderMinimap(); renderRadio(); }); demoDrag(stickPos().x, stickPos().y); hint(hintFor()); },
+  render() { renderWorld(['office']); renderBeat(); hud('office'); controlsIn(() => { renderControls(); renderMinimap(); renderRadio(); }); hint(hintFor()); },
   key: radioKey,
 });
 
@@ -213,7 +228,7 @@ registerStage('launch', {
   },
   render() {
     renderWorld(detourDone ? ['store'] : [detourId()]); renderBeat();
-    hud(D.goal, { fuel: G.branch === 'quit' }); controlsIn(() => { renderStick(); renderMinimap(); renderRadio(); }); hint(hintFor());
+    hud(D.goal, { fuel: G.branch === 'quit' }); controlsIn(() => { renderControls(); renderMinimap(); renderRadio(); }); hint(hintFor());
   },
   key: radioKey,
 });
@@ -234,9 +249,9 @@ registerStage('home', {
     commonEvents();
     const kind: ChaserKind = G.store === 'loan' ? 'shark' : G.store === 'steal' ? 'cop' : 'spouse';
     G.stars = (G.store === 'steal' ? 1 : 0) + (G.branch === 'quit' ? 1 : 0);
-    const sp = behind(125); addChaser(kind, sp.x, sp.y, 0.6, 3);
+    const sp = behind(90); addChaser(kind, sp.x, sp.y, 0.6, 2);   // was 125 u back and 3 s still: gone before the chase began
     if (G.branch === 'quit') { // the gas-theft cop resumes where it froze, but never right on your bumper
-      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 3, 1);   // one car, not a second pack: three chasers at most
+      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 2, 1);   // one car, not a second pack: three chasers at most
     }
     ev.caught = (k) => fail(k);
     ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(TAUNTS.spouse), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(TAUNTS.shark), x, y - 26, C.yellow); };
@@ -249,6 +264,6 @@ registerStage('home', {
     if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: true });
   },
-  render() { renderWorld(['home']); renderBeat(); hud('home'); controlsIn(() => { renderStick(); renderMinimap(); renderRadio(); }); hint(hintFor()); void txt; },
+  render() { renderWorld(['home']); renderBeat(); hud('home'); controlsIn(() => { renderControls(); renderMinimap(); renderRadio(); }); hint(hintFor()); void txt; },
   key: radioKey,
 });

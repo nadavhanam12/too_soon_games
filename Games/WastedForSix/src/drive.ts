@@ -1,9 +1,9 @@
 // The driving world shared by the three legs, in the Sun City scene (city.ts, rendered in 3D by lazy/world3d.ts):
-// player car with the scene's handling (grip + handbrake drift) on keys or a virtual stick, grid traffic, the HR
+// player car with the scene's handling (grip + handbrake drift) on keys or two touch controls (a pedal and a wheel), grid traffic, the HR
 // minivan, chasers that route through the city on a cost field, pickups, graffiti letters, place markers and the
 // road-following GPS arrow. play.ts / legs.ts own the story and listen to the events in `ev`.
 // Units are the scene's (a car ~6 long, a road 16 wide); 4 old pixels ≈ 1 unit.
-import { W, view, ctx, state, input, keyHeld, keyLeft, keyRight, clamp, rr, txt, rand, loadLazy, easeO, easeOB, pop } from '@tsg/index';
+import { W, view, ctx, state, input, keyHeld, keyLeft, keyRight, clamp, rr, txt, rand, loadLazy, assetUrl, easeO, easeOB, pop } from '@tsg/index';
 import {
   PLACES, BMIN, BMAX, CELL, roadLine, collide, costField, downhill, roadNear, los, neighbors, edgeOpen, nodeOf, offroad, cellOf,
   prims, grounds, lamps, solids, blocks, paths, BLOCK, BSIZE, N, inSuper, solidAt, type Node2, type PlaceId,
@@ -16,16 +16,15 @@ import { ptxt } from './pixel';
 import { drawFace, type Who } from './portraits';
 
 export const MAX_V = 43;           // player top speed (the scene's 46; eased 2026-11-17)
-const STICK_R = 46;
-const STICK_GRAB = 100;            // a touch within this distance of the stick's centre grabs it
-/** The fixed stick's centre: bottom-left of the real screen (below the safe zone on tall phones, left of it on a wide one). */
-export const stickPos = (): { x: number; y: number } => ({ x: view.x0 + 76, y: view.H - view.top - 108 });
 const CAR_R = 1.15;                // collision radius vs buildings (the scene's is 1.6; smaller = more forgiving)
 const CRASH_V = 30, CRASH_DOT = 0.8;   // a crash needs this speed and a near head-on angle; anything else slides
 const CATCH_D = 3;
 // Around the home (the last leg's goal) the chasers hang back: they slow down inside SAFE_R and cannot catch you
 // there (Nadav, 2026-11-17: they always caught him at the door). The arrive radius is 10.
 const SAFE_R = 34, SAFE_V = 0.55;
+// A chaser that fell behind catches up: its own top speed within RUBBER_NEAR of you, rising to RUBBER_V (above your
+// 43) from RUBBER_FAR on. So the chase stays on your tail instead of ending at the first corner.
+const RUBBER_NEAR = 30, RUBBER_FAR = 80, RUBBER_V = 54;
 export const HR_R = 9;             // HR minivan's "sees you" radius (~a third of the screen width at the scene's camera)
 const LANE = 4;                    // right-hand lane offset from a grid road's centre line
 const NPC_N = 28;
@@ -36,11 +35,8 @@ const REAR = 2.25, TRACK = 1.55;   // rear axle behind the car's centre and half
 const SKID_STEP = 1.1;             // one tire-mark segment per this many units travelled
 const SPEED_LINES_V = 31;          // speed lines fade in from here to top speed
 // forgiveness (RULES 13יא)
-const STICK_ZONE_W = 190, STICK_ZONE_H = 290;   // a touch anywhere in the bottom-left corner this big grabs the stick
 export const HR_SPOT_S = 0.7;      // the HR minivan needs this long with you in its circle before it counts ("!" fills up)
-// drift + boost. Keys: Space is the handbrake. Stick: a sharp turn at speed lets the tail go by itself.
-const DRIFT_IN = 1.0, DRIFT_OUT = 0.4;   // stick: heading error (rad) where a drift starts / ends
-const DRIFT_V = 24;                // stick: only above this speed (below it the car just turns)
+// drift + boost: Space is the handbrake (keys only: the touch controls have no drift since the stick went, 2026-11-18).
 const DRIFT_MIN_S = 0.35, DRIFT_FULL_S = 1.2;   // a drift this long earns a boost; this long earns the full one
 const BOOST_V = 9, BOOST_S = 0.9;  // the full boost: top speed +9 u/s for 0.9 s
 const FLY_S = 0.45;                // a pickup's flight to its HUD counter
@@ -85,9 +81,10 @@ export const D = {
   letters: [] as Letter[],
   floats: [] as Float[],
   fx: [] as Fx[],
-  walker: null as { x: number; y: number; a: number; step: number } | null,   // the fan on foot after parking
-  // grabT / missT: state.t (real clock) of the last grab and of the last touch that missed the stick (feedback, 13ד)
-  stick: { on: false, miss: false, ax: 0, ay: 0, dx: 0, dy: 0, rev: false, drift: false, grabT: -9, missT: -9 },
+  walker: null as { x: number; y: number; a: number; step: number; entry?: number } | null,
+  exit: null as number | null,      // 0..1: open door, transfer weight, close door
+  // the touch controls (stepPlayer): a finger is on one of them, and each one's position, -1..1 (wheel: left..right, pedal: gas..brake)
+  touch: { on: false, wheel: 0, pedal: 0 },
   goal: null as PlaceId | null,     // where the GPS arrow points (detour first)
   avoidHr: false,                   // the GPS routes around the HR minivan (sick branch, before the doctor's note)
   heat: 0,
@@ -143,7 +140,11 @@ export function loadWorld(): void {
   loadLazy('world3d').then(() => {
     const mod = window.__w6world3d;
     if (!mod) throw new Error('world3d.js ran but did not register');
-    world = mod.create({ prims, grounds, lamps, places: PLACES, bmin: BMIN, bmax: BMAX });
+    world = mod.create({ prims, grounds, lamps, places: PLACES, bmin: BMIN, bmax: BMAX }, {
+      facade: assetUrl('assets/environment/facade-atlas.webp'),
+      asphalt: assetUrl('assets/environment/asphalt.webp'),
+      pavement: assetUrl('assets/environment/pavement.webp'),
+    });
     worldState = 'ready';
   }).catch((e: unknown) => {
     // expected on a flaky connection: the leg waits on a "tap to retry" card instead of failing silently
@@ -151,6 +152,7 @@ export function loadWorld(): void {
   });
 }
 export const worldReady = (): boolean => worldState === 'ready';
+export const graphicsStats = () => world?.stats() ?? null;
 
 // ---------- setup ----------
 export function resetWorld(startId: PlaceId, toward: PlaceId): void {
@@ -160,13 +162,13 @@ export function resetWorld(startId: PlaceId, toward: PlaceId): void {
   // start in the right-hand lane of the road outside the building
   D.p = { x: st.x - Math.sin(a) * LANE, y: st.y + Math.cos(a) * LANE, a, v: 0, vx: 0, vy: 0, steer: 0 };
   D.cam = { x: D.p.x, y: D.p.y }; D.zoom = 190;   // leg entry: the camera swoops down from high above
-  D.npcs = []; D.chasers = []; D.hrs = []; D.picks = []; D.letters = []; D.floats = []; D.fx = []; D.walker = null;
-  D.stick.on = false; D.heat = 0; D.t = 0; D.control = true; D.avoidHr = false;
+  D.npcs = []; D.chasers = []; D.hrs = []; D.picks = []; D.letters = []; D.floats = []; D.fx = []; D.walker = null; D.exit = null;
+  D.touch.on = false; D.heat = 0; D.t = 0; D.control = true; D.avoidHr = false;
   D.heli = null; heliT = HELI_FIRST_S;
   D.body = { kick: { x: 0, v: 0 }, pitch: { x: 0, v: 0 }, sq: { x: 0, v: 0 } }; D.drv = { gas: false, brake: false };
   skidL = skidR = null; puffT = sparkT = bumpCd = curbCd = flameT = 0; onWall = false; streakT = 0;
   onCurb = offroad[cellOf(D.p.x, D.p.y)] === 1;
-  D.stick.drift = false; D.drift = 0; D.boost = 0; D.hrSee = 0; D.closeUp = false; D.dusk = 0; D.look = 2; D.alarm = -9; D.flies = [];
+  D.drift = 0; D.boost = 0; D.hrSee = 0; D.closeUp = false; D.dusk = 0; D.look = 2; D.alarm = -9; D.flies = [];
   for (let k = 0; k < NPC_N; k++) {
     for (let tries = 0; tries < 30; tries++) {
       const i = Math.floor(rand() * 13) - 6, j = Math.floor(rand() * 13) - 6, nb = neighbors(i, j); if (!nb.length) continue;
@@ -304,7 +306,10 @@ export function nearHr(): Npc | null {
 
 /** `wait` = seconds the chaser sits still before the chase starts (reaction time after the banner). */
 export function addChaser(kind: ChaserKind, x: number, y: number, grace = 1.2, wait = 0, n = PACK): void {
-  const max = kind === 'shark' ? 31 : kind === 'cop' ? 29 : 28;   // player 43: they are 65–72% of it (were 74–84%)
+  // player 43. On the bumper they do 79–86% of it; further back they speed up to catch up (RUBBER_*). They were
+  // 31 / 29 / 28 with no catching up: on a phone, with the two-thumb controls, the player lost them in seconds and
+  // never saw them again (Nadav, 2026-11-18: far too easy, it did not feel like a chase).
+  const max = kind === 'shark' ? 37 : kind === 'cop' ? 35 : 34;
   // a pack of PACK: the others start on nearby roads, a little slower, and set off a beat later each, so they come strung out
   for (let k = 0; k < n; k++) {
     const off = k === 0 ? 0 : k % 2 ? 26 : -26, w = wait + k * 0.45;
@@ -410,10 +415,12 @@ function stepHeli(dt: number, chase: boolean): void {
   h.a = wrapA(h.a + turn * dt); h.v += (vT - h.v) * Math.min(1, dt * 2);
   h.x += Math.cos(h.a) * h.v * dt; h.y += Math.sin(h.a) * h.v * dt;
   h.roll += (turn * 0.12 - h.roll) * Math.min(1, dt * 5);
-  // searchlight: on you in a chase (a little late), sweeping the road ahead of it on a patrol
+  // Chase: a slow searching sweep across the car's path, with a lag rather than a hard lock.
   const sw = Math.sin(D.t * 1.4) * 10;
-  const gx = h.mode === 'chase' ? D.p.x : h.x + Math.cos(h.a) * 8 - Math.sin(h.a) * sw, gy = h.mode === 'chase' ? D.p.y : h.y + Math.sin(h.a) * 8 + Math.cos(h.a) * sw;
-  const k = Math.min(1, dt * 6);
+  const search = Math.sin(D.t * 0.65) * 5.5, drift = Math.sin(D.t * 0.39 + 1.2) * 2.5;
+  const gx = h.mode === 'chase' ? D.p.x - Math.sin(D.p.a) * search + Math.cos(D.p.a) * drift : h.x + Math.cos(h.a) * 8 - Math.sin(h.a) * sw;
+  const gy = h.mode === 'chase' ? D.p.y + Math.cos(D.p.a) * search + Math.sin(D.p.a) * drift : h.y + Math.sin(h.a) * 8 + Math.cos(h.a) * sw;
+  const k = 1 - Math.exp(-dt * (h.mode === 'chase' ? 1.8 : 6));
   h.lx += (gx - h.lx) * k; h.ly += (gy - h.ly) * k;
 }
 /** What the renderer gets. The height follows the camera down in a close-up, so the helicopter keeps its size on
@@ -423,80 +430,76 @@ function heliView(h: Heli): HeliView {
 }
 
 /** The scene's handling: throttle / brake / coast, speed-scaled steering, grip that lets go under the handbrake. */
-// The stick in looks 3 and 4 (camera behind the car), as fractions of its radius. Reading its angle (the first try,
-// 2026-11-17) made a finger a hair off centre a full-lock turn; Nadav: very hard to drive on a phone.
-// Second pass the same day (Nadav: still too sensitive): curved response, a slower wheel, less turn at speed, and the
-// camera turns after the car (lazy/world3d.ts CHASE_TURN_LAG).
-const CHASE_DEAD = 0.14, CHASE_FULL = 0.95;      // sideways: nothing under DEAD, full lock only at FULL
-const CHASE_CURVE = 1.7;                         // response curve: half the stick = 31% of the wheel
-const CHASE_STEER_IN = 4.5;                      // the wheel reaches full lock in ~0.22 s (the top view / keys: 9 per s)
+// Touch: two fixed controls for two thumbs, the same in every look (Nadav, 2026-11-18). A pedal that only goes up /
+// down (bottom-left: up = gas, down = brake, then reverse, let go = coast) and a wheel that only goes left / right
+// (bottom-right, under the minimap). History: one round stick did everything until then. In the top view it pointed
+// where to go; behind the car it was a wheel and a pedal in one, first read by its angle (a finger a hair off centre
+// was full lock), then by how far it was pushed, with a curved response, a slower wheel and less turn at speed. It
+// was still hard to turn with, so the wheel and the pedal were split; first only behind the car, then also in the
+// top view, for one way of driving through the whole game. The stick and its own drift are gone.
+const CHASE_DEAD = 0.14, CHASE_FULL = 0.95;      // the wheel: nothing under DEAD of its travel, full lock only at FULL
+const CHASE_CURVE = 1.7;                         // response curve: half the travel = 31% of the wheel
+const CHASE_STEER_IN = 4.5;                      // the wheel reaches full lock in ~0.22 s (keys: 9 per s)
+const CHASE_STEER_OUT = 14;                      // ...and straightens 3x faster (0.07 s), so a turn ends when the finger says so
 const CHASE_YAW = 2.5, CHASE_YAW_FADE = 0.3;     // rad/s at full lock (keys: 2.7), minus this share at top speed
-const CHASE_BRAKE = 0.5;                         // pulled down this far: brake, then reverse
-const CHASE_LIFT = 0.92, CHASE_LIFT_V = 30;      // wheel past this: no gas above LIFT_V. It never brakes by itself (the car that slowed itself in every turn felt slow, Nadav)
-function stepPlayer(dt: number): void {
-  const p = D.p, s = D.stick;
-  // fixed stick, bottom-left: a touch that starts anywhere in that corner drives; a touch elsewhere does not, and the
-  // stick's ring flashes so you see where it is
-  const c = stickPos(); s.ax = c.x; s.ay = c.y;
-  if (!input.down || !input.touch) { s.on = false; s.miss = false; }   // the stick is for fingers: a mouse drives with the keys
-  else if (!s.on && !s.miss) {
-    const inZone = input.px < view.x0 + STICK_ZONE_W && input.py > view.H - view.top - STICK_ZONE_H;
-    if (inZone || Math.hypot(input.px - c.x, input.py - c.y) < STICK_GRAB) { s.on = true; s.grabT = state.t; } else { s.miss = true; if (D.control && input.px < view.x0 + view.fullW * 0.6) s.missT = state.t; }   // the right side has its own buttons
+const WHEEL_L = 76, PEDAL_L = 60;                // half the travel of each
+const PEDAL_DEAD = 0.2;                          // the pedal's middle: neither gas nor brake
+const PEDAL_ZONE_H = 290;                        // a touch this far up the bottom-left corner grabs the pedal
+const WHEEL_ZONE_H = 250;                        // a touch this far up the bottom-right corner grabs the wheel
+const MINI_LIFT = 58;                            // the minimap and the radio sit this much higher, above the wheel
+const pedalPos = (): { x: number; y: number } => ({ x: view.x0 + 64, y: view.H - view.top - 122 });
+const wheelPos = (): { x: number; y: number } => ({ x: view.x0 + view.fullW - 110, y: view.H - view.top - 84 });
+let wheelPid: number | null = null, pedalPid: number | null = null;   // the finger on each control (input.pointers ids)
+/** Each control belongs to the first finger that went down on its side of the screen, until that finger lifts.
+ *  With a mouse there are no touch controls: the keys drive. */
+function touchControls(): void {
+  const s = D.touch, ps = input.pointers;
+  if (!input.touch) { wheelPid = pedalPid = null; s.on = false; s.wheel = 0; s.pedal = 0; return; }
+  if (wheelPid !== null && !ps.has(wheelPid)) wheelPid = null;
+  if (pedalPid !== null && !ps.has(pedalPid)) pedalPid = null;
+  for (const [id, q] of ps) {
+    if (id === wheelPid || id === pedalPid) continue;
+    const left = q.x0 < view.x0 + view.fullW / 2, up = view.H - view.top - q.y0;
+    if (left && pedalPid === null && up < PEDAL_ZONE_H) pedalPid = id;
+    else if (!left && wheelPid === null && up < WHEEL_ZONE_H) wheelPid = id;
   }
-  if (s.on && D.control) {
-    s.dx = input.px - c.x; s.dy = input.py - c.y;
-    const L = Math.hypot(s.dx, s.dy);
-    if (L > STICK_R) { s.dx *= STICK_R / L; s.dy *= STICK_R / L; }
-  } else { s.dx = 0; s.dy = 0; }
+  s.on = wheelPid !== null || pedalPid !== null;
+  const w = wheelPid !== null && D.control ? ps.get(wheelPid) : undefined, g = pedalPid !== null && D.control ? ps.get(pedalPid) : undefined;
+  s.wheel = w ? clamp((w.x - wheelPos().x) / WHEEL_L, -1, 1) : 0;
+  s.pedal = g ? clamp((g.y - pedalPos().y) / PEDAL_L, -1, 1) : 0;
+}
+function stepPlayer(dt: number): void {
+  const p = D.p, s = D.touch;
+  touchControls();
   let up = keyHeld('ArrowUp', 'w'), dn = keyHeld('ArrowDown', 's'), hb = keyHeld(' ');
   let steer = (keyRight() ? 1 : 0) - (keyLeft() ? 1 : 0);
-  let soft = false;   // the stick's own drift: a gentler slide than the Space handbrake
-  let wheel = false;  // steering with the stick as a wheel (looks 3 and 4): slower lock, less turn, least at speed
-  if (up || dn || steer || hb) { D.usedKeys = true; s.drift = false; }
-  else if (s.on && D.look > 2) {
-    // looks 3 and 4 (camera behind the car): the stick is a steering wheel and a pedal. How far it is pushed left or
-    // right is how far the wheel turns (a little is a little); a finger on it is gas; pulled down is brake, then reverse.
-    const sx = s.dx / STICK_R, sy = s.dy / STICK_R;
-    const push = clamp((Math.abs(sx) - CHASE_DEAD) / (CHASE_FULL - CHASE_DEAD), 0, 1);
-    steer = Math.sign(sx) * Math.pow(push, CHASE_CURVE);   // curved: the first half of the stick is fine corrections
+  let wheel = false;  // steering with the touch wheel: slower lock, less turn, least at speed
+  if (up || dn || steer || hb) D.usedKeys = true;
+  else if (s.on) {
+    // how far the wheel is pushed left or right is how far it turns (a little is a little); the pedal up is gas, down
+    // is brake, then reverse; a pedal let go coasts
+    const push = clamp((Math.abs(s.wheel) - CHASE_DEAD) / (CHASE_FULL - CHASE_DEAD), 0, 1);
+    steer = Math.sign(s.wheel) * Math.pow(push, CHASE_CURVE);   // curved: the first half of the travel is fine corrections
     wheel = true;
-    s.rev = sy > CHASE_BRAKE; s.drift = false;
-    if (s.rev) dn = true;
-    else up = !(Math.abs(steer) > CHASE_LIFT && p.v > CHASE_LIFT_V);   // only the stick held right at the edge lifts off the gas
+    if (s.pedal > PEDAL_DEAD) dn = true; else up = s.pedal < -PEDAL_DEAD;
   }
-  else if (s.on && Math.hypot(s.dx, s.dy) > 8) {
-    // stick: point where you want to go; it steers toward that heading and eases off in a sharp turn
-    const diff = wrapA(Math.atan2(s.dy, s.dx) - p.a);
-    // pulling the stick behind the car reverses (the scene's S / ↓), until the stick comes back in front of it
-    if (Math.abs(diff) > 2.2) s.rev = true; else if (Math.abs(diff) < 1.2) s.rev = false;
-    if (s.rev) {
-      dn = true; s.drift = false;
-      steer = clamp(wrapA(diff - Math.PI) * 2.5, -1, 1) * (p.v < 0 ? -1 : 1);   // aim the tail at the stick
-    } else {
-      steer = clamp(diff * 2.5, -1, 1);
-      // a sharp turn at speed is a drift: off the gas, the tail lets go until the nose is nearly where the stick points
-      if (!s.drift && Math.abs(diff) > DRIFT_IN && p.v > DRIFT_V) s.drift = true;
-      else if (s.drift && (Math.abs(diff) < DRIFT_OUT || p.v < 12)) s.drift = false;
-      if (s.drift) { hb = true; soft = true; }
-      else { up = Math.abs(diff) < 1.2 || p.v < 14; dn = !up && p.v > 22; }
-    }
-  } else { s.rev = false; s.drift = false; }
   const v0 = p.v, b = D.body;
-  if (!D.control) { up = false; dn = false; hb = false; steer = 0; s.drift = false; p.v -= Math.sign(p.v) * Math.min(Math.abs(p.v), 60 * dt); }
+  if (!D.control) { up = false; dn = false; hb = false; steer = 0; p.v -= Math.sign(p.v) * Math.min(Math.abs(p.v), 60 * dt); }
   else if (up) p.v += 38 * dt;
   else if (dn) p.v -= (p.v > 0 ? 60 : 20) * dt;
-  else if (!soft) p.v *= 1 - 0.8 * dt;   // (the stick's drift keeps its speed: only the handbrake drag below slows it)
+  else p.v *= 1 - 0.8 * dt;
   // boost: the top speed is lifted while it lasts and eases back down over its last 0.3 s
   D.boost = Math.max(0, D.boost - dt);
   p.v = clamp(p.v, -14, MAX_V + BOOST_V * D.boostK * Math.min(1, D.boost / 0.3));
   D.drv.gas = up; D.drv.brake = (dn && v0 > 1) || (hb && Math.abs(v0) > 3) || (!D.control && Math.abs(v0) > 1);
   // the wheel turns at STEER_IN per second instead of jumping to full lock
-  const lock = wheel ? CHASE_STEER_IN : STEER_IN;
+  const easing = Math.abs(steer) < Math.abs(p.steer) && steer * p.steer >= 0;   // the wheel is coming back toward straight
+  const lock = wheel ? (easing ? CHASE_STEER_OUT : CHASE_STEER_IN) : STEER_IN;
   p.steer += clamp(steer - p.steer, -lock * dt, lock * dt);
   const sf = Math.min(1, Math.abs(p.v) / 10) * Math.sign(p.v);
-  const yaw = p.steer * sf * (hb ? (soft ? 3.0 : 3.4) : wheel ? CHASE_YAW * (1 - CHASE_YAW_FADE * clamp(Math.abs(p.v) / MAX_V, 0, 1)) : 2.7);
+  const yaw = p.steer * sf * (hb ? 3.4 : wheel ? CHASE_YAW * (1 - CHASE_YAW_FADE * clamp(Math.abs(p.v) / MAX_V, 0, 1)) : 2.7);
   p.a = wrapA(p.a + yaw * dt);
-  const fx = Math.cos(p.a), fy = Math.sin(p.a), grip = hb ? (soft ? 3 : 1.4) : 7;
+  const fx = Math.cos(p.a), fy = Math.sin(p.a), grip = hb ? 1.4 : 7;
   p.vx += (fx * p.v - p.vx) * Math.min(1, grip * dt);
   p.vy += (fy * p.v - p.vy) * Math.min(1, grip * dt);
   if (hb) p.v *= 1 - 0.6 * dt;
@@ -635,7 +638,9 @@ function stepChaser(c: Chaser, dt: number, field: Int32Array): void {
     turn = clamp(diff, -2.8 * dt, 2.8 * dt) / dt;
     c.a = wrapA(c.a + clamp(diff, -2.8 * dt, 2.8 * dt));
     const safe = D.goal === 'home' && dist(c, PLACES.home) < SAFE_R;
-    const tv = c.max * (0.3 + 0.7 * Math.max(0, Math.cos(diff))) * (safe ? SAFE_V : 1);
+    // left behind, it drives faster than you until it is back on your tail; there it is slower than you again
+    const top = c.max + (RUBBER_V - c.max) * clamp((d - RUBBER_NEAR) / (RUBBER_FAR - RUBBER_NEAR), 0, 1);
+    const tv = top * (0.3 + 0.7 * Math.max(0, Math.cos(diff))) * (safe ? SAFE_V : 1);
     c.v += clamp(tv - c.v, -100 * dt, 30 * dt);
   }
   c.x += Math.cos(c.a) * c.v * dt; c.y += Math.sin(c.a) * c.v * dt;
@@ -705,7 +710,7 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
       ...D.npcs.map((n) => ({ id: n.id, kind: 'npc' as CarKind, x: n.x, y: n.y, a: n.a, color: n.color })),
       ...D.hrs.map((n) => ({ id: n.id, kind: 'hr' as CarKind, x: n.x, y: n.y, a: n.a })),
       ...D.chasers.map((c) => ({ id: c.id, kind: c.kind as CarKind, x: c.x, y: c.y, a: c.a, kick: c.kick.x, roll: c.kick.x * 0.5 })),
-      ...(showPlayer ? [{ id: 0, kind: 'player' as CarKind, x: D.p.x, y: D.p.y, a: D.p.a, empty: !!D.walker, kick: D.body.kick.x, roll: D.body.kick.x * 0.5, pitch: D.body.pitch.x, sq: D.body.sq.x, brake: D.drv.brake }] : []),
+      ...(showPlayer ? [{ id: 0, kind: 'player' as CarKind, x: D.p.x, y: D.p.y, a: D.p.a, empty: !!D.walker || (D.exit !== null && D.exit >= 0.32), kick: D.body.kick.x, roll: D.body.kick.x * 0.5, pitch: D.body.pitch.x, sq: D.body.sq.x, brake: D.drv.brake, gas: D.drv.gas, steer: D.p.steer, speed: D.p.v, ...(D.exit !== null ? { exit: D.exit } : {}) }] : []),
     ],
     helis: D.heli ? [heliView(D.heli)] : [],
     hrs: D.hrs.map((n) => ({ x: n.x, y: n.y, r: HR_R })),
@@ -874,21 +879,42 @@ function loadingCard(): void {
   rr(W / 2 - 60, 322, 120, 6, 3, 'rgba(255,255,255,.15)'); rr(W / 2 - 60 + 90 * k, 322, 30, 6, 3, C.pink);
 }
 
-/** The on-screen stick where the finger went down. Not drawn for a mouse (desktop): there the keys drive. */
-export function renderStick(): void {
+// The touch controls' look: "glass" (Nadav picked it from four on 2026-11-18): thin white outlines, a faint white fill
+// and a small white knob, so they hide as little of the road as possible. A control being held is a little brighter.
+const GLASS_KNOB = 14, BRAKE_RED = '#ff6b6b';
+const glassFill = (held: boolean): string => (held ? 'rgba(255,255,255,.17)' : 'rgba(255,255,255,.09)');
+const glassLine = (held: boolean): string => (held ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.5)');
+function glassKnob(x: number, y: number, col: string, held: boolean): void {
+  ctx.globalAlpha = held ? 0.95 : 0.7; ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(x, y, GLASS_KNOB, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+}
+/** An open arrowhead at (x, y) pointing along (dx, dy). */
+function glassChevron(x: number, y: number, dx: number, dy: number, held: boolean): void {
+  ctx.strokeStyle = glassLine(held); ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x - dx * 3 - dy * 6, y - dy * 3 + dx * 6); ctx.lineTo(x + dx * 3, y + dy * 3); ctx.lineTo(x - dx * 3 + dy * 6, y - dy * 3 - dx * 6); ctx.stroke();
+}
+/** The touch controls: the pedal (an up / down track, bottom-left) and the wheel (a left / right track, bottom-right).
+ *  Each has a mark at its middle, open arrowheads at its ends and a knob; the knob is red while the pedal brakes.
+ *  Not drawn for a mouse (desktop): there the keys drive. */
+export function renderControls(): void {
   if (!input.touch) return;
-  const s = D.stick, c = stickPos(); s.ax = c.x; s.ay = c.y;
-  // a touch that missed the stick: the ring swells and turns pink for 0.3 s ("it's here"); a grab pops the knob
-  const miss = state.t - s.missT, missed = miss >= 0 && miss < 0.3;
-  ctx.globalAlpha = missed ? 0.95 : s.on ? 0.6 : 0.32;
-  ctx.strokeStyle = missed ? C.pink : '#fff'; ctx.lineWidth = missed ? 5 : 3;
-  ctx.beginPath(); ctx.arc(s.ax, s.ay, STICK_R * pop(miss, 0.3, 0.2), 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = s.drift ? '#ffffff' : C.pink;   // white knob = drifting
-  ctx.beginPath(); ctx.arc(s.ax + s.dx, s.ay + s.dy, 18 * pop(state.t - s.grabT, 0.14, 0.3), 0, Math.PI * 2); ctx.fill();
-  ctx.globalAlpha = 1;
+  const s = D.touch, w = wheelPos(), g = pedalPos(), T = 18, wh = wheelPid !== null, ph = pedalPid !== null;
+  rr(w.x - WHEEL_L - T, w.y - T, (WHEEL_L + T) * 2, T * 2, T, glassFill(wh), glassLine(wh), 1.5);
+  ctx.fillStyle = glassLine(wh); ctx.fillRect(w.x - 0.75, w.y - 9, 1.5, 18);
+  glassChevron(w.x - WHEEL_L - 4, w.y, -1, 0, wh); glassChevron(w.x + WHEEL_L + 4, w.y, 1, 0, wh);
+  glassKnob(w.x + s.wheel * WHEEL_L, w.y, '#fff', wh);
+  rr(g.x - T, g.y - PEDAL_L - T, T * 2, (PEDAL_L + T) * 2, T, glassFill(ph), glassLine(ph), 1.5);
+  ctx.fillStyle = glassLine(ph); ctx.fillRect(g.x - 9, g.y - 0.75, 18, 1.5);
+  glassChevron(g.x, g.y - PEDAL_L - 4, 0, -1, ph); glassChevron(g.x, g.y + PEDAL_L + 4, 0, 1, ph);
+  glassKnob(g.x, g.y + s.pedal * PEDAL_L, s.pedal > PEDAL_DEAD ? BRAKE_RED : '#fff', ph);
 }
 
-// ---------- minimap (bottom-right, opposite the stick) ----------
+/** The minimap's top edge: on a touch screen it sits a little higher, just above the wheel. (It was tried in the
+ *  top-right corner on 2026-11-18; Nadav had it put back: up there it hid the road ahead.) */
+export const miniY = (): number => view.H - view.top - MINI - 62 - (input.touch ? MINI_LIFT : 0);
+/** The radio button's middle (h = its height): above the minimap. */
+export const radioY = (h: number): number => miniY() - 10 - h / 2;
+// ---------- minimap (bottom-right) ----------
 export const MINI = 132;   // was 92: too small to read on a phone (Nadav, 2026-11-17)
 const MPAD = 4, MK = (MINI - MPAD * 2) / BSIZE;
 const mmx = (x: number): number => MPAD + (x - BMIN) * MK;
@@ -915,7 +941,7 @@ function miniMap(): HTMLCanvasElement {
 }
 /** Minimap with you (white arrow), the goal (pulsing yellow), chasers and the HR minivan (blinking red). */
 export function renderMinimap(): void {
-  const x0 = view.x0 + view.fullW - MINI - 12, y0 = view.H - view.top - MINI - 62;
+  const x0 = view.x0 + view.fullW - MINI - 12, y0 = miniY();
   rr(x0 - 3, y0 - 3, MINI + 6, MINI + 6, 6, '#0b0b0f', 'rgba(255,255,255,.35)', 1.5);
   ctx.drawImage(miniMap(), x0, y0, MINI, MINI);
   const dot = (x: number, y: number, r: number, col: string): void => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + mmx(x), y0 + mmx(y), r, 0, Math.PI * 2); ctx.fill(); };

@@ -10,6 +10,9 @@ export const input = {
   px: 0, py: 0,         // held pointer position
   keys: {} as Record<string, boolean>,
   movePid: null as number | null,
+  // every finger now on the screen, by pointer id: where it is and where it went down. For controls that need two
+  // thumbs at once (down / px / py above follow only the last finger that touched).
+  pointers: new Map<number, { x: number; y: number; x0: number; y0: number }>(),
   // the player is on a touch screen: starts from the device's main pointer, then follows the last pointer used
   // (a game shows its on-screen controls only when this is true)
   touch: false,
@@ -37,13 +40,17 @@ export function initInput(): void {
     try { cv.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     if (intercept && intercept(p, e)) return;
     input.movePid = e.pointerId; input.down = true; input.px = p.x; input.py = p.y;
+    input.pointers.set(e.pointerId, { x: p.x, y: p.y, x0: p.x, y0: p.y });
     input.taps.push(p);
   });
   cv.addEventListener('pointermove', (e) => {
-    if (e.pointerId !== input.movePid) return;
-    const p = toSafe(e.clientX, e.clientY); input.px = p.x; input.py = p.y;
+    const held = input.pointers.get(e.pointerId);
+    if (!held && e.pointerId !== input.movePid) return;
+    const p = toSafe(e.clientX, e.clientY);
+    if (held) { held.x = p.x; held.y = p.y; }
+    if (e.pointerId === input.movePid) { input.px = p.x; input.py = p.y; }
   });
-  const end = (e: PointerEvent) => { if (e.pointerId === input.movePid) { input.down = false; input.movePid = null; } };
+  const end = (e: PointerEvent) => { input.pointers.delete(e.pointerId); if (e.pointerId === input.movePid) { input.down = false; input.movePid = null; } };
   cv.addEventListener('pointerup', end);
   cv.addEventListener('pointercancel', end);
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -56,7 +63,7 @@ export function initInput(): void {
     if ([' ', 'Enter', 'ArrowUp', 'w'].includes(k)) input.taps.push({ x: W / 2, y: 320, key: true });
   });
   window.addEventListener('keyup', (e) => { input.keys[keyName(e)] = false; });
-  window.addEventListener('blur', () => { input.keys = {}; input.down = false; input.movePid = null; });
+  window.addEventListener('blur', () => { input.keys = {}; input.down = false; input.movePid = null; input.pointers.clear(); });
 }
 
 /** Take the first pending tap and drop the rest (one tap per frame is enough for UI). */

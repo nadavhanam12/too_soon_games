@@ -14,7 +14,7 @@ export interface CityData {
 export type CarKind = 'player' | 'cop' | 'shark' | 'hr' | 'spouse' | 'npc';
 /** `kick` / `roll` / `pitch` (rad) and `sq` (squash > 0, stretch < 0) are the player's body spring (drive.ts D.body);
  *  `brake` lights the red glow behind the car. All visual only. */
-export interface CarView { id: number; kind: CarKind; x: number; y: number; a: number; color?: string; empty?: boolean; kick?: number; roll?: number; pitch?: number; sq?: number; brake?: boolean }
+export interface CarView { id: number; kind: CarKind; x: number; y: number; a: number; color?: string; empty?: boolean; kick?: number; roll?: number; pitch?: number; sq?: number; brake?: boolean; steer?: number; gas?: boolean; exit?: number; speed?: number }
 /** burst: `n` sparks (default 16) at speed `spd` (default 12) · smoke: one puff · skid: a tire-mark segment to (x2, y2). */
 export interface Fx { k: 'burst' | 'smoke' | 'skid'; x: number; y: number; col: number; n?: number; spd?: number; x2?: number; y2?: number }
 
@@ -50,7 +50,7 @@ export interface Frame {
   picks: Array<{ id: number; x: number; y: number; kind: 'cash' | 'can' }>;
   letters: Array<{ id: number; x: number; y: number; ch: string; taken: boolean }>;
   peds: PedView[];                      // pedestrians near the camera
-  walker: { x: number; y: number; a: number; step: number } | null;   // the fan on foot (car → building)
+  walker: { x: number; y: number; a: number; step: number; entry?: number } | null;   // entry: crouched exit → upright
   pending: PlaceId[];                   // places with a pulsing marker
   fx: Fx[];                             // effects to spawn this frame
 }
@@ -61,8 +61,10 @@ export interface World3D {
   /** World point (x, y on the ground, h above it) → canvas fraction (0..1, 0..1) for the last rendered frame. */
   /** `behind` = the point is behind the camera (looks 3 and 4): x and y are then mirrored and not for drawing. */
   project(x: number, y: number, h?: number): { x: number; y: number; behind: boolean };
+  stats(): { look: Look; calls: number; triangles: number; textures: number; geometries: number; renderMs: number; walker: boolean; driver: boolean; assets: Record<string, string> };
 }
 
-export interface World3DModule { create(city: CityData): World3D }
+export interface EnvironmentAssets { facade: string; asphalt: string; pavement: string }
+export interface World3DModule { create(city: CityData, assets?: EnvironmentAssets): World3D }
 
 declare global { interface Window { __w6world3d?: World3DModule } }

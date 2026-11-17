@@ -7,7 +7,7 @@ import { R, W, view, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, music, e
 import type { Branch, StoreChoice, TradeItem } from './content';
 import { TIMELINE, TIMELINE_SHORT, RADIO, MISSION_PASSED, PC, UI, ITEM } from './content';
 import { grayOut } from './pixel';
-import { D, MAX_V, gpsTarget, worldReady, nearHr, heliPatrol, arrowState } from './drive';
+import { D, MAX_V, gpsTarget, worldReady, nearHr, heliPatrol, arrowState, graphicsStats } from './drive';
 import { PLACES, roadLine, nodeOf, type PlaceId } from './city';
 import { C } from './art';
 import { ptxt } from './pixel';
@@ -24,17 +24,25 @@ export interface Stage {
   key?(e: KeyboardEvent): boolean;
 }
 const ORDER: StageName[] = ['commute', 'boss', 'launch', 'clerk', 'home', 'fiancee', 'pc'];
-/** Which looped track each stage plays (sfx.ts MUSIC.files); the template crossfades on change. */
-export const STAGE_MUSIC: Record<StageName, string> = { commute: 'drive', boss: 'scheme', launch: 'drive', clerk: 'scheme', home: 'chase', fiancee: 'scheme', pc: 'scheme' };   // only the driving legs' entries are played (stageTrack); 'scheme' is a radio station
+/** The song each driving leg asks for first (sfx.ts MUSIC.files); the template crossfades on change. Only the drives
+ *  start a song: a conversation and the PC carry on with the music of the drive before them (Nadav, 2026-11-18: he
+ *  preferred it as it was on 2026-11-17; for a few hours every stage had a song of its own). The title's 'theme'
+ *  comes back for the launch leg (its own song, 'bounce', was deleted the same day). */
+export const STAGE_MUSIC: Partial<Record<StageName, string>> = { commute: 'drive', launch: 'theme', home: 'chase' };
+const SONGS: string[] = RADIO.map((s) => s.track);
 const setMusic = (track: string): void => { if (R.cfg.music !== false) music.set(track); };
-/** The track for the current stage. A driving leg plays your radio station, else its own track. A conversation (and the
- *  PC) plays nothing of its own: the music of the drive before it carries on (Nadav, 2026-11-17). */
-export function stageTrack(name: StageName = G.stage): string {
-  if (G.radio) return G.radio;
-  let i = ORDER.indexOf(name);
-  while (i > 0 && !DRIVING[ORDER[i]!]) i--;
-  return STAGE_MUSIC[ORDER[i]!];
+/** The next song. No song is played a second time before every song was heard once (Nadav, 2026-11-18: one run should
+ *  let the player hear many of them; before, a run had three near-identical ones). `want` is taken when it was not
+ *  heard yet in this round, else the first one in the radio's order that was not. When all were heard a new round
+ *  starts. `G.heard` lasts for the whole visit: a retry of a stage and a second run get songs not heard yet. */
+function nextSong(want?: string): string {
+  if (SONGS.every((s) => G.heard.includes(s))) G.heard = [G.track];
+  const t = want && !G.heard.includes(want) ? want : SONGS.find((s) => !G.heard.includes(s))!;
+  G.heard.push(t); G.track = t;
+  return t;
 }
+/** The song of the stage being played (main.ts musicFor, when the play screen comes up). */
+export const stageTrack = (): string => G.track;
 export const LEG_TARGET_S: Partial<Record<StageName, number>> = { commute: 36, launch: 64, home: 62 };   // the old slack over the longer routes (places moved to the corners, 2026-11-17)
 export const OUTRO_S = 1.5;      // "PRESS START" end beat (rule 13ג)
 export const START_MONEY = 60;   // wallet at 8:30 a.m. (the sick branch always has something for the doctor)
@@ -64,7 +72,9 @@ export const G = {
   ended: false,
   outro: 0,
   failT: 0,                       // seconds left of the fail moment (the lose screen comes when it runs out)
-  radio: null as string | null,   // the station you tuned the car radio to (null = each leg's own track)
+  track: 'drive',                 // the song playing in the current stage (nextSong)
+  heard: [] as string[],          // songs heard in this round inside a run (the title's 'theme' is not counted: the launch leg plays it); not reset by a new run or a retry
+  radioUsed: false,               // the radio button was pressed once (it stops breathing)
   radioT: -9,                     // state.t of the last station change (the button shows the name and pops)
   sayT: -9,
   entry: null as Snapshot | null,
@@ -84,19 +94,19 @@ export function registerStage(name: StageName, s: Stage): void { stages[name] = 
 export function setStage(name: StageName): void {
   G.stage = name; G.t = 0; G.hits = 0; G.arrive = -1; G.entry = snap();
   R.stageStart(name);
-  setMusic(stageTrack(name));
+  const song = STAGE_MUSIC[name];
+  if (song) setMusic(nextSong(song));   // a stage with no song of its own keeps what is playing
   stages[name]!.enter();
 }
 
-/** The car radio: tune to the next track (driving legs). Returns the station's name. The choice stays for later legs. */
+/** The car radio (driving legs): skip to the next song not heard yet. Returns the station's name. It lasts until the
+ *  next drive starts: through the conversation after this one too. */
 export function nextStation(): string {
-  const cur = G.radio ?? STAGE_MUSIC[G.stage], i = RADIO.findIndex((s) => s.track === cur);
-  const next = RADIO[(i + 1) % RADIO.length]!;
-  G.radio = next.track; G.radioT = state.t; setMusic(next.track);
+  G.radioUsed = true; G.radioT = state.t; setMusic(nextSong());
   sfx.radio?.(); haptic(10);
-  return next.name;
+  return stationName();
 }
-export const stationName = (): string => RADIO.find((s) => s.track === (G.radio ?? STAGE_MUSIC[G.stage]))?.name ?? '';
+export const stationName = (): string => RADIO.find((s) => s.track === G.track)?.name ?? '';
 
 export function stageDone(): void {
   if (G.ended) return;
@@ -333,18 +343,8 @@ function star(x: number, y: number, col: string): void {
 export function hint(s: string, until = 3.5): void {
   if (G.t > until || G.ended) return;
   const a = easeO(Math.min(1, (until - G.t) * 2));
-  const y = view.H - view.top - 292 + (1 - easeOB(Math.min(1, G.t / 0.3))) * 24;   // just above the stick, the minimap and the radio button; it rises into place
+  const y = view.H - view.top - 292 + (1 - easeOB(Math.min(1, G.t / 0.3))) * 24;   // just above the touch controls, the minimap and the radio button; it rises into place
   ctx.globalAlpha = a * Math.min(1, G.t / 0.15); rr(16, y, W - 32, 32, 12, 'rgba(14,14,16,.85)'); txt(s, W / 2, y + 16, 13, '#fff', 'center', 900); ctx.globalAlpha = 1;
-}
-
-/** A finger that shows the drag gesture at the start of the first leg. */
-export function demoDrag(x: number, y: number): void {
-  if (G.t > 3 || G.ended || D.stick.on || D.usedKeys || !input.touch) return;
-  const k = (G.t * 0.8) % 1, a = Math.min(1, (3 - G.t) * 2);
-  ctx.globalAlpha = a * 0.8;
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 46, 0, Math.PI * 2); ctx.stroke();
-  txt('☝', x + Math.cos(-1) * 40 * k, y + 12 + Math.sin(-1) * 40 * k, 40, '#fff', 'center', 400);
-  ctx.globalAlpha = 1;
 }
 
 /** End beat: the TV says PRESS START, every tap is swallowed (rule 13ג). */
@@ -398,9 +398,10 @@ export const playScene: Scene = {
 // debug hooks specific to this game (docs/CONTRACTS.md lists the template's)
 const w = window as unknown as Record<string, unknown>;
 w.__stage = (name: StageName, branch?: Branch, store?: StoreChoice) => { if (branch) G.branch = branch; if (store) G.store = store; if (stages[name]) setStage(name); };
-w.__world = () => ({ stage: G.stage, ui: G.ui, branch: G.branch, store: G.store, met: G.met.join(','), score: Math.round(G.score), money: G.money, letters: G.letters.join(''), note: G.note, fuel: +G.fuel.toFixed(2), stars: G.stars, heat: +D.heat.toFixed(2), car: { x: Math.round(D.p.x), y: Math.round(D.p.y), v: Math.round(D.p.v) }, goal: D.goal, chasers: D.chasers.map((c) => ({ k: c.kind, d: Math.round(Math.hypot(c.x - D.p.x, c.y - D.p.y)) })), hr: nearHr() ? Math.round(Math.hypot(nearHr()!.x - D.p.x, nearHr()!.y - D.p.y)) : null, npcs: D.npcs.length, peds: D.peds.length, pedsDown: D.peds.filter((q) => q.st !== 'walk').length, maxV: MAX_V });
+w.__world = () => ({ stage: G.stage, ui: G.ui, exit: D.exit, walker: D.walker && { entry: D.walker.entry ?? 0, phase: D.walker.step }, branch: G.branch, store: G.store, met: G.met.join(','), score: Math.round(G.score), money: G.money, letters: G.letters.join(''), note: G.note, fuel: +G.fuel.toFixed(2), stars: G.stars, heat: +D.heat.toFixed(2), car: { x: Math.round(D.p.x), y: Math.round(D.p.y), v: Math.round(D.p.v) }, goal: D.goal, chasers: D.chasers.map((c) => ({ k: c.kind, d: Math.round(Math.hypot(c.x - D.p.x, c.y - D.p.y)) })), hr: nearHr() ? Math.round(Math.hypot(nearHr()!.x - D.p.x, nearHr()!.y - D.p.y)) : null, npcs: D.npcs.length, peds: D.peds.length, pedsDown: D.peds.filter((q) => q.st !== 'walk').length, maxV: MAX_V });
 w.__met = (...who: Who[]) => { G.met = who; };   // debug: who is in the montage (the end screens, the share picture)
 w.__stages = (): StageName[] => ORDER; // the story arc's stages in order (bugcheck playthrough)
+w.__graphics = graphicsStats;
 /** Read-only view for the playthrough bot: the car and the point the GPS arrow aims at. */
 w.__peek = () => ({ car: { x: D.p.x, y: D.p.y, a: D.p.a, v: D.p.v }, gps: D.goal ? gpsTarget(D.goal) : null, control: D.control && worldReady() });
 /** Lose right now (the playthrough's forceLose: tests "retry from the stage" in every stage, even the ones you can't lose). */
@@ -416,6 +417,13 @@ w.__hrHere = () => {
 w.__chaserHere = () => { const c = D.chasers[0]; if (c) { c.x = D.p.x + 7.5; c.y = D.p.y; c.grace = 0; } };
 /** Start a helicopter patrol right now. */
 w.__heli = () => heliPatrol();
+/** Stage a close helicopter for renderer QA; regular gameplay still uses its normal flight path. */
+w.__heliPreview = () => {
+  heliPatrol();
+  const h = D.heli!; h.x = D.p.x + Math.cos(D.p.a) * 24 - Math.sin(D.p.a) * 15;
+  h.y = D.p.y + Math.sin(D.p.a) * 24 + Math.cos(D.p.a) * 15;
+  h.lx = D.p.x; h.ly = D.p.y;
+};
 w.__look = (n: 2 | 3 | 4) => { D.look = n; };   // try a look on the leg you are in (a new leg sets its own)
 w.__arrow = () => arrowState();   // the goal arrow of looks 3 and 4: held direction, shown or not
 /** Teleport the car next to the current goal (flow testing only). */

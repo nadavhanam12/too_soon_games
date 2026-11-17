@@ -17,11 +17,15 @@ const require = createRequire(resolve(HERE, '../../GamesTemplate/other-services/
 const { chromium } = require('playwright');
 const url = process.argv[2] || 'http://127.0.0.1:5177/nice-city/';
 const LOOK_S = [1.6, 2.2, 2.4];          // seconds in look 2, 3 and 4
-const W = 270, H = 480;                   // the template clip's size
+// 16:10, the shape of the home page's media frame (site.css `.media .frame`) on desktop and on phones alike, so the
+// clip fills it. The game is recorded the way a desktop player sees it (wide screen, RULES 8א). The template's
+// portrait 270x480 clip sat in that frame as a narrow strip (Nadav, 2026-11-17).
+const VW = 1024, VH = 640;                // the page while recording
+const W = 560, H = 350;                   // the clip
 const tmp = join(HERE, '.clip-tmp'); rmSync(tmp, { recursive: true, force: true }); mkdirSync(tmp, { recursive: true });
 
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu'] });
-const ctx = await browser.newContext({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 1, recordVideo: { dir: tmp, size: { width: W, height: H } } });
+const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1, recordVideo: { dir: tmp, size: { width: W, height: H } } });
 const page = await ctx.newPage();
 const t0 = Date.now();                    // the recording starts with the page
 await page.goto(url, { waitUntil: 'load' });
@@ -30,7 +34,7 @@ await page.evaluate(() => { window.__go('play'); window.__stage('launch', 'quit'
 await page.waitForFunction(() => !!window.__w6world3d, null, { timeout: 30000 });
 await page.waitForTimeout(1200);
 await page.keyboard.press('Space'); await page.waitForTimeout(500);
-if (await page.evaluate(() => window.__state().banner)) { await page.mouse.click(180, 480); await page.waitForTimeout(500); }
+if (await page.evaluate(() => window.__state().banner)) { await page.mouse.click(VW / 2, VH * 0.75); await page.waitForTimeout(500); }
 await page.evaluate(() => window.__look(2));
 await page.waitForTimeout(1500);          // the leg's opening swoop ends
 // drive along the route with the keys, the way the bug-check bot does, and step the look up on the clock

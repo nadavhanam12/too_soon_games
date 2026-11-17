@@ -115,6 +115,9 @@ export interface MusicDef {
 }
 const TRACK_VOL: Record<string, number> = { calm: 0.32, play: 0.38, win: 0.4 };
 const NAMED_TRACK_VOL = 0.36;
+// Crossfade between looped files. It was ~0.3 s in four audible steps (volume moved 0.12 every 100 ms), which
+// sounded like a cut (Nadav, 2026-11-18: the change between songs must be smoother). Now 1.6 s in 32 steps.
+const MUSIC_FADE_S = 1.6;
 
 const DEFAULT_MUSIC: MusicDef = { bpm: 126, prog: [[57, [57, 60, 64, 67]], [53, [53, 57, 60, 65]], [48, [48, 52, 55, 60]], [55, [55, 59, 62, 67]]] };
 
@@ -125,7 +128,7 @@ export const music = {
   configure(def: Partial<MusicDef>) {
     this.def = { ...DEFAULT_MUSIC, ...def };
     if (!def.files) return;
-    // looped files: created now (preload), played after the first gesture, crossfaded by a 100 ms ticker
+    // looped files: created now (preload), played after the first gesture, crossfaded by a 50 ms ticker
     for (const k of Object.keys(def.files) as TrackName[]) {
       const src = def.files[k]; if (!src) continue;
       const a = new Audio(assetUrl(src)); a.loop = true; a.preload = 'auto'; a.volume = 0;
@@ -134,7 +137,7 @@ export const music = {
     }
     const unlock = () => { this.unlocked = true; };
     window.addEventListener('pointerdown', unlock, { once: true }); window.addEventListener('keydown', unlock, { once: true });
-    if (!this.ttimer) this.ttimer = window.setInterval(() => this.trackTick(0.1), 100);
+    if (!this.ttimer) this.ttimer = window.setInterval(() => this.trackTick(0.05), 50);
   },
   hasFiles(): boolean { return Object.keys(this.tracks).length > 0; },
   set(mode: MusicMode) {
@@ -152,7 +155,9 @@ export const music = {
       const a = this.tracks[k]!; if (a.dataset.missing) continue;
       const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) : 0;
       if (target > 0 && a.paused) { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { /* blocked: retried next tick */ }); }
-      const v = a.volume + Math.max(-dt * 1.2, Math.min(dt * 1.2, target - a.volume));
+      // a full fade (silence to the track's own loudness, or back) takes MUSIC_FADE_S, in small steps
+      const rate = ((this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) / MUSIC_FADE_S) * dt;
+      const v = a.volume + Math.max(-rate, Math.min(rate, target - a.volume));
       a.volume = Math.max(0, Math.min(1, v));
       if (target === 0 && a.volume < 0.005 && !a.paused) a.pause();
     }

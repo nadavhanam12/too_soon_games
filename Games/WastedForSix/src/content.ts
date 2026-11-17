@@ -22,7 +22,7 @@ export type TradeItem = 'console' | 'couch' | 'ring';
 // In every banner the FIRST line is the mission (the main thing to do): missionCard draws it big and yellow, alone
 // above a divider. The lines after it are the how-to. Keep that order when adding a banner.
 export const BANNERS = {
-  commute: ['1 · THE COMMUTE', ['Mission: show up to work. Yes, this is the tutorial.', 'Drag the stick (bottom left) to steer.', 'Grab cash. Collect the graffiti letters.']],
+  commute: ['1 · THE COMMUTE', ['Mission: show up to work. Yes, this is the tutorial.', 'Left thumb: gas and brake. Right thumb: steer.', 'Grab cash. Collect the graffiti letters.']],
   launchSick: ['2 · LAUNCH LINE', ['Mission: the line is 400 people long. You are not in it.', 'First: a doctor\'s note. HR is out looking for you.', 'Don\'t let the HR minivan see you before you have it.']],
   launchQuit: ['2 · LAUNCH LINE', ['Mission: the line is 400 people long. You are not in it.', 'No job, no money, and the tank is draining.', 'Stop at the gas station first.']],
   home: ['3 · THE WAY HOME', ['Final mission: lose the tail. Protect the disc.', 'Remember the letters.']],
@@ -35,11 +35,10 @@ export const TIMELINE = ['WOKE UP', 'GOT TO WORK', 'GOT THE DAY OFF', 'REACHED T
 /** Short names (max 8 letters) that stay under each reached dot, so the row reads as the story of your day. */
 export const TIMELINE_SHORT = ['WOKE', 'WORK', 'DAY OFF', 'STORE', 'GAME', 'HOME', 'FIANCEE', 'PLAY'];
 
-/** Replaces the commute banner's stick line when the player has a mouse and keys (no stick on screen). */
+/** Replaces the commute banner's how-to line when the player has a mouse and keys (no touch controls on screen). */
 export const HOW_KEYS = 'Arrows / WASD to drive. Space to drift.';
 
-// touchBehind: looks 3 and 4, where the stick is a steering wheel and a pedal (drive.ts CHASE_*)
-export const HINT = { touch: 'Drag the stick to steer · sharp turn = drift', touchBehind: 'Stick: left / right steers · pull down brakes', keys: 'Arrows / WASD drive · Space drift · R radio' };
+export const HINT = { touch: 'Left thumb: up gas, down brake · right thumb steers', keys: 'Arrows / WASD drive · Space drift · R radio' };
 
 /** The car radio's stations, in the order the button steps through them; `track` is a name in sfx.ts MUSIC.files. */
 export const RADIO = [
@@ -47,7 +46,6 @@ export const RADIO = [
   { track: 'chase', name: 'HEAT 101' },
   { track: 'theme', name: 'LOWRIDER AM' },
   { track: 'scheme', name: 'DELAY FM' },
-  { track: 'bounce', name: 'BOUNCE 100' },
   { track: 'midnight', name: 'NIGHT SHIFT FM' },
   { track: 'electro', name: 'NEON 108' },
   { track: 'jazzy', name: 'SMOOTH-ISH JAZZ' },

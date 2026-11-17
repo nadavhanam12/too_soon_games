@@ -4,7 +4,7 @@
 // index.html. It never reads game state: drive.ts hands it the city once (create) and a snapshot every frame (render).
 // Math.random here is visual only (window textures, sparks); it never touches gameplay.
 import * as THREE from 'three';
-import { heroCar, heroWalker, animateHero } from '../models/hero';
+import { heroCar, heroWalker, animateHero, animateHeroCar, setHeroLook } from '../models/hero';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -12,16 +12,25 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { MatKey, Prim } from '../city';
-import type { CarKind, CityData, Frame, Look, World3D } from '../world3d-api';
+import type { CarKind, CityData, EnvironmentAssets, Frame, Look, World3D } from '../world3d-api';
 
 const SIGN_FONT = '900 64px Rubik, system-ui, sans-serif';
 // ---------- the behind-the-car looks (3 and 4) ----------
 // The camera behind the car, [standing still, top speed]: it backs off, rises and widens as the speed goes up
 // (Nadav, 2026-11-17, picked from three: 14→18 / 6.5→8.5 / fov 58 was too close, 13→34 / 6.5→15 / 58→72 too far).
 const CHASE_CAM: { back: [number, number]; h: [number, number]; fov: [number, number] } = { back: [13, 25], h: [6, 10], fov: [58, 66] };
+// The same camera on a screen taller than it is wide (a phone held upright). There the low camera above shows a
+// strip about 30° wide: the road ahead and nothing beside or behind the car, and Nadav could not tell what was going
+// on around him (2026-11-18). This one is higher and looks down at ~40°: the streets to both sides, the junction
+// ahead and about 15 u of road behind the car (a chaser on your tail) are in the picture.
+const CHASE_CAM_TALL: typeof CHASE_CAM = { back: [22, 30], h: [24, 32], fov: [62, 68] };
+const CHASE_AHEAD_TALL = 8;                      // it aims this far in front of the car (the wide one: 6)
 const CHASE_PULL_BACK = 8, CHASE_PULL_H = 9;     // extra distance / height with a chaser on the bumper (Frame.cam.pull = 1)
 const CHASE_FOV = 58;
-const CHASE_TURN_LAG = 0.004;                    // the camera's heading closes this fraction of its gap to the car's per second (smaller = stiffer)
+// the camera's heading closes all but this fraction of its gap to the car's per second (smaller = stiffer).
+// 0.004 (2026-11-17) left it ~25° behind in a full-lock turn: the picture showed 90° when the car was at 115°, and
+// turns overshot (Nadav, 2026-11-18). Now ~9° behind.
+const CHASE_TURN_LAG = 0.000001;
 const ARROW_TILT = 0.95;                         // the goal arrow leans back toward the camera (rad)
 const ARROW_SIZE = 0.6;                          // (Nadav: smaller)
 const ARROW_DIST = 30, ARROW_UP = 6.2;           // where it hangs in front of the camera (in the camera's own frame, so it holds its place on screen)
@@ -29,7 +38,7 @@ const NEON = [0xff2fd0, 0x2ff3ff, 0xff8a2f, 0x9b4dff, 0x3dff8a];   // look 4: th
 /** 0..1 from a position: which buildings get a neon band and in which colour, the same on every run. */
 const hash = (a: number, b: number): number => { const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v); };
 
-function create(city: CityData): World3D {
+function create(city: CityData, assets?: EnvironmentAssets): World3D {
   const canvas = document.createElement('canvas');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   renderer.setPixelRatio(1);
@@ -37,6 +46,9 @@ function create(city: CityData): World3D {
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // Pointer capability is a conservative default, not a phone performance benchmark.
+  // The same geometry/materials are kept; avoid costly MSAA and large shadow maps on touch-first devices.
+  const touchFirst = window.matchMedia('(pointer: coarse)').matches;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xf0e2c8, 0.0018);
@@ -64,7 +76,7 @@ function create(city: CityData): World3D {
   scene.add(hemi);
   const sunL = new THREE.DirectionalLight(0xfff2d8, 2.4);
   sunL.castShadow = true;
-  sunL.shadow.mapSize.set(2048, 2048);
+  sunL.shadow.mapSize.setScalar(touchFirst ? 1024 : 2048);
   const sc = sunL.shadow.camera; sc.left = -130; sc.right = 130; sc.top = 130; sc.bottom = -130; sc.far = 400;
   scene.add(sunL, sunL.target);
 
@@ -94,9 +106,43 @@ function create(city: CityData): World3D {
   // ---------- the static city, merged into one mesh per material ----------
   const tex = windowTex();
   // looks 3 and 4: the same window grid with four times the pixels and smooth filtering, and grain on the asphalt
-  const texHi = windowTexHi(renderer.capabilities.getMaxAnisotropy());
-  const asphalt = asphaltTex(renderer.capabilities.getMaxAnisotropy());
-  type Key = MatKey | 'sign';
+  const anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  let texHi = windowTexHi(anisotropy);
+  let asphalt: THREE.Texture = asphaltTex(anisotropy);
+  const facadeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  const pavementMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 });
+  let atlasTexture: THREE.Texture | null = null, pavementTexture: THREE.Texture | null = null;
+  const assetState: Record<string, string> = {};
+  let texturesStarted = false;
+  function loadEnvironment(): void {
+    if (texturesStarted || !assets) return;
+    texturesStarted = true;
+    const loader = new THREE.TextureLoader();
+    for (const name of ['facade', 'asphalt', 'pavement'] as const) {
+      assetState[name] = 'loading';
+      loader.load(assets[name], (t) => {
+        t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = anisotropy;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        if (name === 'facade') {
+          const old = texHi; texHi = windowTexHi(anisotropy, t.image as HTMLImageElement);
+          atlasTexture = t; facadeMat.map = look > 2 ? t : null; facadeMat.needsUpdate = true;
+          if (look > 2) { bldgMat.map = texHi.map; bldgMat.emissiveMap = texHi.lit; bldgMat.needsUpdate = true; }
+          old.map.dispose(); old.lit.dispose();
+        } else if (name === 'asphalt') {
+          // Lighten the colour map in a small canvas; multiply the existing asphalt tint.
+          const c = document.createElement('canvas'); c.width = c.height = 512;
+          const g = c.getContext('2d')!; g.drawImage(t.image, 0, 0);
+          g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, 0, 512, 512);
+          const next = new THREE.CanvasTexture(c); next.colorSpace = THREE.SRGBColorSpace;
+          next.wrapS = next.wrapT = THREE.RepeatWrapping; next.repeat.set(bsize / 12, bsize / 12); next.anisotropy = anisotropy;
+          asphalt.dispose(); asphalt = next; t.dispose();
+          if (look > 2) { groundMat.map = asphalt; groundMat.needsUpdate = true; }
+        } else { pavementTexture = t; pavementMat.map = look > 2 ? t : null; pavementMat.needsUpdate = true; }
+        assetState[name] = 'ready';
+      }, undefined, () => { assetState[name] = 'fallback'; console.warn('Environment texture unavailable:', name); });
+    }
+  }
+  type Key = MatKey | 'sign' | 'facade' | 'pavement' | 'detail' | 'leafLow' | 'leafHi';
   // the lit windows glow only in the evening (emissiveIntensity follows the frame's dusk)
   const bldgMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: tex.map, emissive: 0xffffff, emissiveMap: tex.lit, emissiveIntensity: 0, roughness: 0.85, metalness: 0 });
   const MATS: Record<Key, { mat: THREE.Material; cast: boolean; recv: boolean }> = {
@@ -105,7 +151,14 @@ function create(city: CityData): World3D {
     tree: { mat: new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.9 }), cast: true, recv: false },
     neon: { mat: new THREE.MeshBasicMaterial({ vertexColors: true }), cast: false, recv: false },
     sign: { mat: new THREE.MeshBasicMaterial({ vertexColors: true }), cast: false, recv: false },   // neon bands, look 4 only
+    facade: { mat: facadeMat, cast: true, recv: true },
+    pavement: { mat: pavementMat, cast: false, recv: true },
+    detail: { mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }), cast: false, recv: true },
+    leafLow: { mat: new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.9 }), cast: true, recv: false },
+    leafHi: { mat: new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.9 }), cast: true, recv: false },
   };
+  const lowLeaves: THREE.Mesh[] = [], highLeaves: THREE.Mesh[] = [];
+  const details: THREE.Mesh[] = [];
   let signs: THREE.Mesh | null = null;
   const buckets = new Map<Key, THREE.BufferGeometry[]>();
   const tmpCol = new THREE.Color();
@@ -128,9 +181,27 @@ function create(city: CityData): World3D {
   })();
   for (const p of city.prims) addPrim(p);
   for (const [key, geos] of buckets) {
+    if (key === 'detail' || key === 'leafHi' || key === 'leafLow') {
+      // Spatially merged batches allow cheap distance/frustum culling instead of drawing the whole city.
+      const chunks = new Map<string, THREE.BufferGeometry[]>();
+      for (const geo of geos) {
+        geo.computeBoundingSphere(); const p = geo.boundingSphere!.center;
+        const id = `${Math.floor(p.x / 112)},${Math.floor(p.z / 112)}`;
+        if (!chunks.has(id)) chunks.set(id, []); chunks.get(id)!.push(geo);
+      }
+      for (const group of chunks.values()) {
+        const mesh = new THREE.Mesh(mergeGeometries(group), MATS[key].mat);
+        mesh.geometry.computeBoundingSphere(); mesh.castShadow = MATS[key].cast; mesh.receiveShadow = MATS[key].recv;
+        mesh.visible = key === 'leafLow'; scene.add(mesh);
+        (key === 'detail' ? details : key === 'leafHi' ? highLeaves : lowLeaves).push(mesh);
+        group.forEach((geo) => geo.dispose());
+      }
+      continue;
+    }
     const m = new THREE.Mesh(mergeGeometries(geos), MATS[key].mat);
     m.castShadow = MATS[key].cast; m.receiveShadow = MATS[key].recv; scene.add(m);
     if (key === 'sign') { signs = m; m.visible = false; }
+    geos.forEach((geo) => geo.dispose());
   }
 
   function addPrim(p: Prim): void {
@@ -138,7 +209,24 @@ function create(city: CityData): World3D {
       case 'box': {
         const g = new THREE.BoxGeometry(p.w, p.h, p.d);
         if (p.win) winUV(g, p.w, p.d, p.h, false, p.win);
-        addStatic(p.m, g, M(p.x, p.y, p.z, p.ry ?? 0), p.col);
+        const wall = p.m === 'plain' && p.h > 3 && p.w > 4 && p.d > 4;
+        if (wall) atlasUV(g, Math.floor(hash(p.x, p.z) * 4));
+        const base = M(p.x, p.y, p.z, p.ry ?? 0);
+        addStatic(wall ? 'facade' : p.m, g, base, p.col);
+        if (p.m === 'bldg' && p.h > 12 && p.w > 8 && p.d > 8 && hash(p.x + 7, p.z) < 0.5) {
+          // One shallow balcony/ledge per floor; no separate windows, materials or live lights.
+          const box = (w: number, h: number, d: number, y: number, z: number, col: number) => addStatic('detail', new THREE.BoxGeometry(w, h, d), base.clone().multiply(M(0, y, z)), col);
+          box(p.w + 0.4, 0.22, p.d + 0.4, p.h / 2, 0, 0xc3c5b9);
+          for (let y = -p.h / 2 + 4; y < Math.min(p.h / 2 - 1, 15); y += 4) {
+            box(p.w * 0.62, 0.14, 0.85, y, p.d / 2 + 0.3, 0xb7b8b1);
+            box(p.w * 0.62, 0.07, 0.07, y + 0.65, p.d / 2 + 0.69, 0x394653);
+          }
+          if (hash(p.z, p.x + 23) < 0.3) {
+            // Small bench beside the facade, within the existing lot; visual only.
+            box(2, 0.16, 0.65, -p.h / 2 + 0.65, p.d / 2 + 1, 0x8a6a52);
+            box(2, 0.65, 0.12, -p.h / 2 + 1.05, p.d / 2 + 1.25, 0x8a6a52);
+          }
+        }
         if (p.m === 'bldg' && p.h > 9) {   // most tall buildings carry a neon band (lit in look 4)
           const r1 = hash(p.x, p.z), r2 = hash(p.z, p.x + 7);
           if (r1 < 0.75) addStatic('sign', new THREE.BoxGeometry(p.w + 0.5, 0.6, p.d + 0.5), M(p.x, p.y - p.h / 2 + p.h * (0.3 + 0.55 * r2), p.z, p.ry ?? 0), NEON[Math.floor(r2 * 97) % NEON.length]!);
@@ -160,11 +248,20 @@ function create(city: CityData): World3D {
         const base = M(p.x, 0.4, p.z, p.ry);
         const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.6, p.h * 0.5, 0), new THREE.Vector3(1.4, p.h, 0)]);
         addStatic('tree', new THREE.TubeGeometry(curve, 6, 0.28, 5), base, 0x8a6a44);
-        for (let k = 0; k < 7; k++) { const g = new THREE.PlaneGeometry(1.3, 5.5); g.translate(0, 2.75, 0); addStatic('tree', g, base.clone().multiply(M(1.4, p.h, 0, (k / 7) * Math.PI * 2, 1.15)), 0x4a8a2e); }
+        for (let k = 0; k < 7; k++) {
+          const a = k / 7 * Math.PI * 2;
+          const g = new THREE.PlaneGeometry(1.3, 5.5); g.translate(0, 2.75, 0);
+          addStatic('leafLow', g, base.clone().multiply(M(1.4, p.h, 0, a, 1.15)), 0x4a8a2e);
+          addStatic('leafHi', palmFrond(), base.clone().multiply(M(1.4, p.h, 0, a)), k % 2 ? 0x477f56 : 0x366e51);
+        }
         break;
       }
       case 'ribbon': addStatic('plain', ribbon(p.pts, p.w, p.y), new THREE.Matrix4(), p.col); break;
-      case 'sidewalk': addStatic('plain', sidewalk.clone(), M(p.x, 0, p.z), p.col); break;
+      case 'sidewalk': {
+        const g = sidewalk.clone(), pos = g.attributes.position!, uv = g.attributes.uv!;
+        for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / 3, pos.getZ(i) / 3);
+        addStatic('pavement', g, M(p.x, 0, p.z), p.col); break;
+      }
       case 'sign': {
         const m = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), new THREE.MeshBasicMaterial({ map: signTex(p.text, p.bg, p.fg, p.w / p.h), toneMapped: false }));
         m.position.set(p.x, p.y, p.z); m.rotation.set(p.rx ?? -Math.PI / 2, 0, 0); m.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), p.ry);
@@ -216,7 +313,11 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
     look = l; snapCam = true;
     const d = dusk; dusk = -1; setDusk(d);
     const hi = l > 2;
-    for (const r of [composer.renderTarget1, composer.renderTarget2]) { r.samples = hi ? 4 : 0; r.dispose(); }   // smooth edges
+    setHeroLook(l);
+    if (hi) loadEnvironment();
+    facadeMat.map = hi ? atlasTexture : null; facadeMat.needsUpdate = true;
+    pavementMat.map = hi ? pavementTexture : null; pavementMat.needsUpdate = true;
+    for (const r of [composer.renderTarget1, composer.renderTarget2]) { r.samples = hi && !touchFirst ? 4 : 0; r.dispose(); }
     bldgMat.map = hi ? texHi.map : tex.map; bldgMat.emissiveMap = hi ? texHi.lit : tex.lit; bldgMat.needsUpdate = true;
     groundMat.map = hi ? asphalt : null; groundMat.roughness = l === 4 ? 0.45 : 0.9; groundMat.needsUpdate = true;
     const r = hi ? 70 : 130; sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.updateProjectionMatrix();   // sharper shadows near the car
@@ -348,10 +449,12 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
   });
   grade.enabled = false; composer.addPass(grade);
 
-  let size = { w: 0, h: 0 }, lastT = 0;
+  let size = { w: 0, h: 0 }, lastT = 0, renderMs = 0;
+  let lastWalker = false, lastDriver = true;
   const v3 = new THREE.Vector3(), camGoal = new THREE.Vector3();
 
   function render(f: Frame): void {
+    const renderStart = performance.now();
     if (f.w !== size.w || f.h !== size.h) {
       size = { w: f.w, h: f.h };
       renderer.setSize(f.w, f.h, false); composer.setSize(f.w, f.h); bloom.resolution.set(f.w, f.h);
@@ -362,12 +465,16 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
     setDusk(f.dusk);
     if (f.look !== look || (duskNew && look > 2)) setLook(f.look);
     const dt = Math.max(0, Math.min(0.05, f.t - lastT)); lastT = f.t;
+    for (const m of lowLeaves) m.visible = look === 2;
+    for (const m of highLeaves) m.visible = look > 2 && Math.hypot(m.geometry.boundingSphere!.center.x - f.cam.px, m.geometry.boundingSphere!.center.z - f.cam.py) < 200;
+    for (const m of details) m.visible = look === 4 && Math.hypot(m.geometry.boundingSphere!.center.x - f.cam.px, m.geometry.boundingSphere!.center.z - f.cam.py) < 125;
+    lastWalker = !!f.walker; lastDriver = f.cars.some((c) => c.kind === 'player' && !c.empty);
     // cars
     const seen = new Set<number>();
     for (const c of f.cars) {
       seen.add(c.id);
       let g = cars.get(c.id);
-      if (!g || g.kind !== c.kind) { if (g) scene.remove(g); g = makeCar(c.kind, c.color, glowTex); cars.set(c.id, g); scene.add(g); }
+      if (!g || g.kind !== c.kind) { if (g) { scene.remove(g); disposeVehicle(g); } g = makeCar(c.kind, c.color, glowTex); cars.set(c.id, g); scene.add(g); }
       const prevX = g.position.x, prevZ = g.position.z;
       // the body spring (player only): tail-out yaw, roll, squat / dive, squash / stretch along the car
       const pitch = c.pitch ?? 0, roll = c.roll ?? 0, sq = c.sq ?? 0;
@@ -377,11 +484,12 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
       g.scale.set(1.4 * (1 + sq * 0.6), 1.4, 1.4 * (1 - sq));
       if (g.glow) { const m = g.glow.material as THREE.MeshBasicMaterial; m.opacity += ((c.brake ? 0.9 : 0) - m.opacity) * Math.min(1, dt * 18); g.glow.visible = m.opacity > 0.02; }
       const moved = Math.hypot(c.x - prevX, c.y - prevZ);
-      if (g.wheels && moved < 20) for (const w of g.wheels) w.rotation.x -= moved / 0.42;
+      if (g.wheels && moved < 20) for (const w of g.wheels) w.rotation.x -= c.kind === 'player' ? moved * Math.sign(c.speed ?? 1) / 0.7 : moved / 0.42;
       if (g.driver) g.driver.visible = !c.empty;
+      if (c.kind === 'player') animateHeroCar(g, f.t, c.steer, c.gas, c.brake, c.exit);
       if (g.red && g.blue) { const fl = Math.floor(f.t * 8) % 2; g.red.color.setHex(fl ? 0xff0020 : 0x220004); g.blue.color.setHex(fl ? 0x000820 : 0x0030ff); }
     }
-    for (const [id, g] of cars) if (!seen.has(id)) { scene.remove(g); cars.delete(id); }
+    for (const [id, g] of cars) if (!seen.has(id)) { scene.remove(g); disposeVehicle(g); cars.delete(id); }
     // police helicopters: the body, and in world space the searchlight's beam and its spot on the road
     const seenH = new Set<number>();
     for (const c of f.helis) {
@@ -394,7 +502,12 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
       const fl = Math.floor(f.t * 8) % 2;
       g.red.color.setHex(fl ? 0xff0020 : 0x220004); g.blue.color.setHex(fl ? 0x000820 : 0x0030ff);
       g.strobe.color.setHex(f.t % 1.2 < 0.1 ? 0xffffff : 0x303038);
-      g.spot.visible = !!c.light; g.beam.visible = !!c.light && look === 2;   // behind the car the camera would sit inside the beam and the whole picture would wash out
+      g.spot.visible = !!c.light;
+      g.beam.visible = !!c.light && look !== 3;
+      // Slow, shallow variation rather than a solid floodlight or a flickering strobe.
+      const lightLevel = 0.75 + Math.sin(f.t * 0.7 + c.id) * 0.16 + Math.sin(f.t * 0.31) * 0.07;
+      (g.beam.material as THREE.ShaderMaterial).uniforms.strength!.value = lightLevel;
+      (g.spot.material as THREE.MeshBasicMaterial).opacity = 0.18 * lightLevel;
       if (c.light) {
         heliLamp.set(0, -1.1, -1.6).applyMatrix4(g.matrixWorld.compose(g.position, g.quaternion, g.scale));   // the lamp under the nose
         heliDir.set(c.light.x, 0.2, c.light.y).sub(heliLamp);
@@ -404,12 +517,12 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
         g.spot.position.set(c.light.x, 0.25, c.light.y);
       }
     }
-    for (const [id, g] of helis) if (!seenH.has(id)) { scene.remove(g, g.beam, g.spot); helis.delete(id); }
+    for (const [id, g] of helis) if (!seenH.has(id)) { scene.remove(g, g.beam, g.spot); disposeVehicle(g); disposeVehicle(g.beam); disposeVehicle(g.spot); helis.delete(id); }
     // the fan on foot
     walker.visible = !!f.walker;
     if (f.walker) {
-      walker.position.set(f.walker.x, Math.abs(Math.sin(f.walker.step)) * 0.12, f.walker.y); walker.rotation.y = -f.walker.a - Math.PI / 2;
-      animateHero(walker, f.walker.step);
+      walker.position.set(f.walker.x, 0, f.walker.y); walker.rotation.y = -f.walker.a - Math.PI / 2;
+      animateHero(walker, f.walker.step, f.walker.entry);
     }
     // pedestrians: upright and walking, tumbling through the air (rx), or lying flat
     const pn = Math.min(PED_MAX, f.peds.length);
@@ -494,14 +607,15 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
       // the camera turns after the car, not with it: the car swings on screen first, so steering reads calmer
       let da = f.cam.a - camA; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
       camA = snapCam ? f.cam.a : camA + da * (1 - Math.pow(CHASE_TURN_LAG, dt));
-      const o = CHASE_CAM, mix = (r: [number, number]): number => r[0] + (r[1] - r[0]) * camSp;
+      const tall = f.w < f.h, o = tall ? CHASE_CAM_TALL : CHASE_CAM, mix = (r: [number, number]): number => r[0] + (r[1] - r[0]) * camSp;
       camSp = snapCam ? f.cam.sp : camSp + (f.cam.sp - camSp) * (1 - Math.pow(0.05, dt));   // eased: it backs off and comes in softly
       const k = f.cam.k, back = mix(o.back) * k + CHASE_PULL_BACK * f.cam.pull, fx = Math.cos(camA), fz = Math.sin(camA);
       const fov = mix(o.fov); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
       cx = f.cam.px; cy = f.cam.py;
       camGoal.set(cx - fx * back, mix(o.h) * k + CHASE_PULL_H * f.cam.pull, cy - fz * back);
       if (snapCam || camera.position.distanceTo(camGoal) > 60) camera.position.copy(camGoal); else camera.position.lerp(camGoal, 1 - Math.pow(1e-5, dt));
-      camera.lookAt(cx + fx * 6, 1.5, cy + fz * 6);
+      const ahead = tall ? CHASE_AHEAD_TALL : 6;
+      camera.lookAt(cx + fx * ahead, 1.5, cy + fz * ahead);
     } else {
       camera.position.set(cx, z, cy + z * 0.08);
       camera.lookAt(cx, 0, cy);
@@ -519,7 +633,9 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
     }
     sunL.position.set(cx + sunOff.x, sunOff.y, cy + sunOff.z); sunL.target.position.set(cx, 0, cy);
     sky.position.copy(camera.position);
+    renderer.info.autoReset = false; renderer.info.reset();
     composer.render();
+    renderMs = performance.now() - renderStart;
   }
 
   function project(x: number, y: number, h = 0): { x: number; y: number; behind: boolean } {
@@ -527,7 +643,9 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
     return { x: (v3.x + 1) / 2, y: (1 - v3.y) / 2, behind: v3.z > 1 };
   }
 
-  return { canvas, render, project };
+  return { canvas, render, project, stats: () => ({ look, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
+    textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, renderMs: +renderMs.toFixed(2),
+    walker: lastWalker, driver: lastDriver, assets: { ...assetState } }) };
 }
 
 // ---------- cars ----------
@@ -542,6 +660,18 @@ const EVE_HEAD = 0.45, EVE_TAIL = 0.5;     // headlight beam / tail glow opacity
 // one shared material each: every car's beams switch on together when the evening comes
 const HEAD_MAT = new THREE.MeshBasicMaterial({ map: beamTexture(), color: 0xfff0c0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, visible: false });
 const TAIL_MAT = new THREE.MeshBasicMaterial({ map: beamTexture(), color: 0xff2030, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, visible: false });
+/** Traffic is replaced as it crosses the city. Release its GPU buffers while retaining shared hero/beam assets. */
+function disposeVehicle(root: THREE.Object3D): void {
+  const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
+  root.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    if (!o.geometry.userData.heroShared) geometries.add(o.geometry);
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (!m.userData.heroShared && m !== HEAD_MAT && m !== TAIL_MAT) materials.add(m);
+    }
+  });
+  geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose());
+}
 /** Headlights and tail lights as light on the road (the camera looks straight down): a long warm beam ahead of the
  *  nose and a short red glow behind the tail. `nose` / `tail` = the car's ends along z, before its scale. */
 function addLights(g: THREE.Group, nose: number, tail: number): void {
@@ -649,14 +779,27 @@ function makeHeli(glowTex: THREE.Texture): HeliGroup {
   const disc = add(new THREE.CircleGeometry(4.3, 28), new THREE.MeshBasicMaterial({ color: 0x1a1a22, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide }), 0, 0.02, 0, false, g.rotor);
   disc.rotation.x = -Math.PI / 2;
   g.scale.setScalar(1.2);
-  // searchlight: a cone that opens toward the ground (unit height, apex at its origin) and a soft spot with a rim
-  const cone = new THREE.CylinderGeometry(0.4, 5, 1, 20, 1, true); cone.translate(0, -0.5, 0);
-  g.beam = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  // Evening searchlight: a soft cone, not a new shadow-casting light. Front faces only:
+  // when the chase camera passes inside the cone, its back faces cannot wash out the road.
+  const cone = new THREE.CylinderGeometry(0.3, 6, 1, 20, 1, true); cone.translate(0, -0.5, 0);
+  const shaft = new THREE.ShaderMaterial({
+    uniforms: { color: { value: new THREE.Color(0xdcecff) }, strength: { value: 0.75 } },
+    vertexShader: `varying vec3 n,v;varying vec2 uv0;void main(){
+      vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=-p.xyz;uv0=uv;
+      gl_Position=projectionMatrix*p;}`,
+    fragmentShader: `uniform vec3 color;uniform float strength;varying vec3 n,v;varying vec2 uv0;void main(){
+      float edge=pow(abs(dot(normalize(n),normalize(v))),.65);
+      float ends=smoothstep(0.,.12,uv0.y)*(1.-smoothstep(.88,1.,uv0.y));
+      gl_FragColor=vec4(color,.15*(.25+.75*edge)*ends*strength);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide,
+  });
+  g.beam = new THREE.Mesh(cone, shaft);
   g.beam.frustumCulled = false;   // its box is the unscaled unit cone
-  g.spot = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xfff4c8, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  g.spot = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xdcecff, transparent: true, opacity: 0.135, blending: THREE.AdditiveBlending, depthWrite: false }));
   g.spot.rotation.x = -Math.PI / 2;
-  const rim = new THREE.Mesh(new THREE.RingGeometry(4.7, 5.1, 40), new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
-  g.spot.add(rim);
   return g;
 }
 
@@ -770,10 +913,14 @@ function makeGoalArrow(): THREE.Group & { tip: THREE.Group } {
 
 /** The facades of looks 3 and 4: windowTex's grid (9 x 21 windows per tile) at four times the pixels, with frames,
  *  a reflection in the glass and floor lines; `lit` = the windows with the light on, on black. Smooth filtering. */
-function windowTexHi(aniso: number): { map: THREE.CanvasTexture; lit: THREE.CanvasTexture } {
+function windowTexHi(aniso: number, atlas?: HTMLImageElement): { map: THREE.CanvasTexture; lit: THREE.CanvasTexture } {
   const mk = (lit: boolean): THREE.CanvasTexture => {
     const c = document.createElement('canvas'); c.width = 512; c.height = 1024; const g = c.getContext('2d')!;
     g.fillStyle = lit ? '#000' : '#e6dfd4'; g.fillRect(0, 0, 512, 1024);
+    if (!lit && atlas) {
+      g.drawImage(atlas, 0, 0, 512, 512, 0, 0, 512, 1024);
+      g.fillStyle = 'rgba(255,255,255,.40)'; g.fillRect(0, 0, 512, 1024);
+    }
     for (let r = 0; r < 21; r++) {
       const y = 24 + r * 48;
       if (!lit) { g.fillStyle = 'rgba(0,0,0,.07)'; g.fillRect(0, y + 30, 512, 4); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(0, y - 8, 512, 2); }
@@ -804,6 +951,27 @@ function asphaltTex(aniso: number): THREE.CanvasTexture {
   for (let i = 0; i < d.data.length; i += 4) { const v = 195 + Math.floor(Math.random() * 60); d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
   g.putImageData(d, 0, 0);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(70, 70); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; return t;
+}
+
+/** Atlas inset guards against adjacent tiles at normal mip levels. */
+function atlasUV(g: THREE.BufferGeometry, tile: number): void {
+  const uv = g.attributes.uv!;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (tile % 2) * 0.5 + 0.012 + uv.getX(i) * 0.476, Math.floor(tile / 2) * 0.5 + 0.012 + uv.getY(i) * 0.476);
+}
+
+/** Blender reference silhouette, 20 triangles/frond, opaque and double sided. */
+function palmFrond(): THREE.BufferGeometry {
+  const positions: number[] = [], indices: number[] = [];
+  for (let j = 0; j < 6; j++) {
+    const t = j / 5, width = Math.sin(t * Math.PI) * 0.52 + 0.02;
+    const y = 0.8 * Math.sin(t * Math.PI) - 1.5 * t * t;
+    positions.push(-width, y, t * 4.2, 0, y + 0.1, t * 4.2, width, y, t * 4.2);
+  }
+  for (let j = 0; j < 5; j++) for (let side = 0; side < 2; side++) {
+    const a = j * 3 + side, b = a + 3; indices.push(a, b, b + 1, a, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  g.setIndex(indices); g.computeVertexNormals(); return g;
 }
 
 window.__w6world3d = { create };

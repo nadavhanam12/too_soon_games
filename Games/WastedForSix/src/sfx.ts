@@ -127,14 +127,14 @@ Object.assign(sfx, OURS);
 // debug (CLAUDE.md): __sfx() lists the sounds, __sfx(name) plays one
 (window as unknown as Record<string, unknown>).__sfx = (name?: string) => (name ? (sfx[name]!(), name) : Object.keys(sfx));
 
-/** Four looped G-funk tracks made with ACE-Step (DECISIONS 74), ~215 KB each, loaded after the first frame:
- *  theme = title / cutscene / PRESS START / result · drive = commute + launch legs · chase = the home leg ·
- *  scheme = boss, clerk and the password. Which candidate, prompt + seed: music/chosen.json (/make-music). */
+/** Seven looped tracks made with ACE-Step (DECISIONS 74), loaded after the first frame ('bounce' was the eighth;
+ *  Nadav had it deleted on 2026-11-18). theme = title / cutscene / PRESS START / result, and the launch leg; inside a run every stage starts a song not heard yet (play.ts STAGE_MUSIC, nextSong).
+ *  Which candidate, prompt + seed: music/chosen.json (/make-music). */
 export const MUSIC: Partial<MusicDef> = {
   files: {
     theme: 'assets/audio/theme.mp3', drive: 'assets/audio/drive.mp3', chase: 'assets/audio/chase.mp3', scheme: 'assets/audio/scheme.mp3',
     // radio-only stations (content.ts RADIO), 40 kbps to keep all audio under 1.5 MB (music/chosen.json)
-    midnight: 'assets/audio/midnight.mp3', bounce: 'assets/audio/bounce.mp3', jazzy: 'assets/audio/jazzy.mp3', electro: 'assets/audio/electro.mp3',
+    midnight: 'assets/audio/midnight.mp3', jazzy: 'assets/audio/jazzy.mp3', electro: 'assets/audio/electro.mp3',
   },
-  volume: { theme: 0.34, drive: 0.36, chase: 0.38, scheme: 0.3, midnight: 0.38, bounce: 0.34, jazzy: 0.32, electro: 0.36 },
+  volume: { theme: 0.34, drive: 0.36, chase: 0.38, scheme: 0.3, midnight: 0.38, jazzy: 0.32, electro: 0.36 },
 };
