@@ -1,7 +1,7 @@
 // Builds the studio site into GamesTemplate/dist/ (see docs/CONTRACTS.md).
 //   node run.mjs [--games <file>] [--out <dir>] [--serve] [--port <n>]
 // Game pages (dist/<slug>/) are produced by common-game-code, never touched here.
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, cpSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -63,6 +63,15 @@ export async function main(args: string[]): Promise<void> {
     writeFileSync(join(out, rel), html);
   }
 
+  // press kits (PublishGamesPipeline, stage press-kit): Games/<id>/launch/press/ → /press/<slug>/
+  const pressSlugs: string[] = [];
+  for (const g of games) {
+    const src = join(templateRoot, '..', 'Games', g.id, 'launch', 'press');
+    if (!existsSync(join(src, 'index.html'))) continue;
+    cpSync(src, join(out, 'press', g.slug), { recursive: true });
+    pressSlugs.push(g.slug);
+  }
+
   // assets
   const assets = join(here, 'src/assets');
   copyFileSync(join(assets, 'logo.png'), join(out, 'assets/logo.png'));
@@ -76,8 +85,8 @@ export async function main(args: string[]): Promise<void> {
     short_name: 'Too Soon',
     start_url: '/',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#121212',
+    background_color: '#100e1a',
+    theme_color: '#100e1a',
     icons: [
       { src: '/assets/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
       { src: '/assets/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
@@ -87,7 +96,7 @@ export async function main(args: string[]): Promise<void> {
   // robots, sitemap, headers, security.txt
   const base = ctx.base || 'https://toosoon-games.pages.dev';
   writeFileSync(join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${base}/sitemap.xml\n`);
-  const urls = ['/', '/about/', '/privacy/', '/terms/', '/contact/', '/accessibility/', ...sortGames(games).map((g) => `/${g.slug}/`)];
+  const urls = ['/', '/about/', '/privacy/', '/terms/', '/contact/', '/accessibility/', ...sortGames(games).map((g) => `/${g.slug}/`), ...pressSlugs.map((s) => `/press/${s}/`)];
   const today = new Date().toISOString().slice(0, 10);
   writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
     .map((u) => `  <url><loc>${base}${u}</loc><lastmod>${today}</lastmod></url>`)
@@ -124,7 +133,7 @@ export async function main(args: string[]): Promise<void> {
   });
 
   const n = Object.keys(pages).length;
-  console.log(`frontend built → ${out}  (${n} pages, ${games.length} games from ${gamesFile.replace(templateRoot, '…')}, css ${cssHref})`);
+  console.log(`frontend built → ${out}  (${n} pages, ${pressSlugs.length} press kits, ${games.length} games from ${gamesFile.replace(templateRoot, '…')}, css ${cssHref})`);
   if (!studio.email) console.log('note: studio.json "email" is empty → contact pages show a TODO placeholder');
 
   if (args.includes('--serve')) serve(out, Number(arg(args, '--port') ?? 5180), arg(args, '--host') ?? '127.0.0.1');

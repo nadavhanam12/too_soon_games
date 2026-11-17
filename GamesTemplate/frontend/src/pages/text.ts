@@ -31,7 +31,7 @@ export function aboutPage(ctx: SiteCtx): string {
 <p>A small independent studio. We build, test and publish the games ourselves, with AI tools helping on code and content and a human making every editorial call.</p>
 <h2>Credits</h2>
 <ul>
-  <li>Type: <a href="https://fonts.google.com/specimen/Fredoka" rel="noopener" target="_blank">Fredoka</a> and <a href="https://fonts.google.com/specimen/Rubik" rel="noopener" target="_blank">Rubik</a> (Open Font License), served by Google Fonts.</li>
+  <li>Type: <a href="https://fonts.google.com/specimen/Lilita+One" rel="noopener" target="_blank">Lilita One</a> and <a href="https://fonts.google.com/specimen/Nunito" rel="noopener" target="_blank">Nunito</a> on this site, <a href="https://fonts.google.com/specimen/Fredoka" rel="noopener" target="_blank">Fredoka</a> and <a href="https://fonts.google.com/specimen/Rubik" rel="noopener" target="_blank">Rubik</a> in the games (Open Font License), served by Google Fonts.</li>
   <li>Infrastructure: Cloudflare Pages and Workers.</li>
   <li>Game audio is synthesized in the browser unless a game's own page credits otherwise.</li>
 </ul>

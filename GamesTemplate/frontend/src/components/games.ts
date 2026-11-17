@@ -1,5 +1,5 @@
 import type { GameEntry, FeedEvent } from '../types';
-import { esc, attr, fmtDate, relTime, regionOf } from './html';
+import { esc, attr, shortTime, regionOf } from './html';
 import { icons } from './icons';
 
 export const gameUrl = (g: GameEntry) => `/${g.slug}/`;
@@ -51,63 +51,72 @@ export function checkEventLimits(games: GameEntry[], events: FeedEvent[]): strin
   return errors;
 }
 
-const timeMeta = (iso: string): string =>
-  iso ? `<time datetime="${attr(iso)}" data-rel>${esc(relTime(iso))}</time> · <span>${esc(fmtDate(iso).replace(/, \d{4}$/, ''))}</span>` : '';
+/** The studio as the author of every post. The handle is derived from the name (no networks are linked yet). */
+export const studioHandle = (name: string) => '@' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** The lead story. Leaderboard (3 rows) and the played counter are filled in by the page script. */
-export function leadStory(g: GameEntry | undefined): string {
-  if (!g) {
-    return `<article class="lead-story">
-  <p class="kicker">Coming soon</p>
-  <h1 class="serif">First game coming soon.</h1>
-  <p class="dek">Something happened. Everyone is talking about it. We are building the game.</p>
-</article>`;
-  }
+function author(name: string, iso: string): string {
+  return `<div class="phead"><b>${esc(name)}</b><span class="badge" title="Studio">${icons.pad}</span><span class="handle">${esc(studioHandle(name))}${iso ? ` · <time datetime="${attr(iso)}" data-rel>${esc(shortTime(iso))}</time>` : ''}</span></div>`;
+}
+const avatar = `<span class="av" aria-hidden="true"><img src="/assets/logo.png" alt="" width="360" height="352" loading="lazy"></span>`;
+
+/** One game as a timeline post. The pinned one (the lead game) also carries the live demo clip and the 3-row scoreboard. */
+function gamePost(g: GameEntry, studio: string, pinned: boolean): string {
+  const url = gameUrl(g);
+  const cover = coverUrl(g);
   const date = gameDate(g);
-  const cover = coverUrl(g);
-  return `<article class="lead-story" data-slug="${attr(g.slug)}">
-  <p class="kicker">${g.status === 'archived' ? 'From the archive' : 'New game'}</p>
-  <h1 class="serif">${esc(headlineOf(g))} <span class="made">We made it a game.</span></h1>
-  <p class="dek" dir="auto">${esc(g.tagline)}</p>
-  <p class="byline"><b>By Too Soon Games</b> · ${timeMeta(date)} · ${esc(g.region || regionOf(g.audience))}</p>
-  ${cover ? `<figure class="lead-fig${g.clip ? ' has-clip' : ''}"${g.clip ? ` data-clip="${attr(`/${g.slug}/${g.clip.replace(/^\/+/, '')}`)}"` : ''}><a href="${attr(gameUrl(g))}" tabindex="-1" aria-hidden="true"><img src="${attr(cover)}" alt="" width="1200" height="900" fetchpriority="high">${g.clip ? '<span class="live-badge">Live demo</span>' : ''}</a>
-    <figcaption>The game: <span dir="auto">${esc(g.title)}</span><span class="players" data-count="${attr(g.slug)}" data-min="1"> · <b></b> games played so far</span></figcaption></figure>` : `<p class="caption">The game: <span dir="auto">${esc(g.title)}</span><span class="players" data-count="${attr(g.slug)}" data-min="1"> · <b></b> games played so far</span></p>`}
-  <a class="btn btn-play" href="${attr(gameUrl(g))}">${icons.play} <span class="lbl">Play the game</span></a>
-  <section class="board is-loading" id="board" data-slug="${attr(g.slug)}" aria-labelledby="board-h" aria-busy="true">
-    <h2 id="board-h" class="kicker-dark"><span>Live scoreboard</span><a href="${attr(gameUrl(g))}#board">Full board</a></h2>
+  const clip = pinned && g.clip ? `/${g.slug}/${g.clip.replace(/^\/+/, '')}` : '';
+  const ctxLine = pinned ? `<p class="ctx">${icons.pin}Pinned · ${g.status === 'archived' ? 'From the archive' : 'New game'}</p>` : '';
+  const H = pinned ? 'h1' : 'h2';
+  const media = cover
+    ? `<a class="media" href="${attr(url)}" tabindex="-1" aria-hidden="true"${clip ? ` data-clip="${attr(clip)}"` : ''}>
+    <span class="frame"><img src="${attr(cover)}" alt="" width="1200" height="900"${pinned ? ' fetchpriority="high"' : ' loading="lazy"'}>${clip ? '<span class="live-badge">Live demo</span>' : ''}</span>
+    <span class="card-foot"><span><small>${g.lang === 'he' ? 'In Hebrew' : 'Web game'} · ${esc(g.region || regionOf(g.audience))}</small><b dir="auto">${esc(g.title)}</b></span><span class="play-pill">${icons.play}Play</span></span>
+  </a>`
+    : '';
+  const board = pinned
+    ? `<section class="board is-loading" id="board" data-slug="${attr(g.slug)}" aria-labelledby="board-h" aria-busy="true">
+    <h3 id="board-h"><span>Live scoreboard</span><a href="${attr(url)}#board">Full board</a></h3>
     <ol class="board-list"><li class="sk"><span></span><span></span><span></span></li><li class="sk"><span></span><span></span><span></span></li><li class="sk"><span></span><span></span><span></span></li></ol>
-  </section>
+  </section>`
+    : '';
+  return `<article class="post is-link${pinned ? ' pinned' : ''}" data-kind="game" data-slug="${attr(g.slug)}" data-date="${attr(date)}">
+  ${avatar}
+  <div class="pbody">
+  ${ctxLine}
+  ${author(studio, date)}
+  <${H} class="ptext"><a class="stretch" href="${attr(url)}">${esc(headlineOf(g))} <span class="made">We made it a game.</span></a></${H}>
+  <p class="psub" dir="auto">${esc(g.tagline)}</p>
+  ${media}
+  ${board}
+  <div class="actions">
+    <a class="act play" href="${attr(url)}">${icons.play}<span class="lbl">Play</span></a>
+    <a class="act scores" href="${attr(url)}#board">${icons.trophy}<span>Scores</span></a>
+    <span class="act plays" data-count="${attr(g.slug)}" data-min="${attr(g.showPlayerCountFrom ?? 1)}" title="Games played" hidden>${icons.eye}<b></b><span class="sr"> games played</span></span>
+    <button class="act share" type="button" data-url="${attr(url)}" data-title="${attr(g.title)}">${icons.share}<span>Share</span></button>
+  </div>
+  </div>
 </article>`;
 }
 
-function gameItem(g: GameEntry): string {
-  const cover = coverUrl(g);
-  return `<li class="item item-game${cover ? ' has-thumb' : ''}" data-slug="${attr(g.slug)}" data-date="${attr(gameDate(g))}">
-  <div class="item-body">
-    <p class="kicker">Game</p>
-    <h3 class="serif"><a href="${attr(gameUrl(g))}">${esc(headlineOf(g))} We made it a game.</a></h3>
-    <p class="item-tag" dir="auto">${esc(g.tagline)}</p>
-    <p class="meta">${timeMeta(gameDate(g))} · ${esc(g.region || regionOf(g.audience))} · <span dir="auto">${esc(g.title)}</span>${g.status === 'archived' ? ' · Archive' : ''}</p>
-    <a class="play-sm" href="${attr(gameUrl(g))}">${icons.play} <span class="lbl">Play</span></a>
+function eventPost(e: FeedEvent, studio: string): string {
+  return `<article class="post event" data-kind="event" data-date="${attr(e.date)}">
+  ${avatar}
+  <div class="pbody">
+  ${author(studio, e.date)}
+  <h2 class="ptext">${esc(e.text)}</h2>
+  <span class="label">Too soon even for us</span>
   </div>
-  ${cover ? `<a class="thumb" href="${attr(gameUrl(g))}" tabindex="-1" aria-hidden="true"><img src="${attr(cover)}" alt="" width="208" height="156" loading="lazy"></a>` : ''}
-</li>`;
+</article>`;
 }
 
-function eventItem(e: FeedEvent): string {
-  return `<li class="item item-event" data-date="${attr(e.date)}">
-  <div class="item-body">
-    <p class="kicker muted-kicker">Too soon even for us</p>
-    <h3 class="serif">${esc(e.text)}</h3>
-    <p class="meta">${timeMeta(e.date)}</p>
-  </div>
-</li>`;
-}
-
-export function feedList(items: FeedItem[]): string {
-  if (!items.length) return '';
-  return `<section class="feed" id="latest" aria-labelledby="latest-h">
-  <h2 id="latest-h" class="serif section-title">Latest</h2>
-  <ul class="items">${items.map((i) => (i.kind === 'game' ? gameItem(i.game) : eventItem(i.event))).join('\n')}</ul>
-</section>`;
+/** The home timeline: the lead game pinned on top, then everything else newest first. */
+export function timeline(lead: GameEntry | undefined, items: FeedItem[], studio: string): string {
+  const pinned = lead
+    ? gamePost(lead, studio, true)
+    : `<article class="post pinned" data-kind="game">${avatar}<div class="pbody">${author(studio, '')}<h1 class="ptext">First game coming soon.</h1><p class="psub">Something happened. Everyone is talking about it. We are building the game.</p></div></article>`;
+  return `<div id="feed">
+${pinned}
+${items.map((i) => (i.kind === 'game' ? gamePost(i.game, studio, false) : eventPost(i.event, studio))).join('\n')}
+</div>
+<p class="empty" id="feed-empty" hidden>Nothing here yet.</p>`;
 }
