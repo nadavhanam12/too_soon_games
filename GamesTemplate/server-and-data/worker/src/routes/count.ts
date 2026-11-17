@@ -3,19 +3,20 @@ import { cached, getGame } from '../util';
 
 /**
  * GET /v1/games/:game/count → { players, plays, playsPublic }: distinct players who pressed start, total game starts,
- * and the number the site and the title screen show (decision 51): below 200 real plays it is a fixed number between
- * 100 and 200 derived from the slug (the same for everyone), from 200 on it is the real count.
+ * and the number the site and the title screen show (decision 77, replaces 51): the real count from PUBLIC_MIN_PLAYS
+ * on, 0 below it. 0 means "show nothing": a low number is not shown and never replaced by a made-up one.
  */
-function publicPlays(slug: string, plays: number): number {
-  if (plays >= 200) return plays;
-  let h = 0; for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return 100 + (h % 101);
-}
+const PUBLIC_MIN_PLAYS = 100;
+const publicPlays = (plays: number): number => (plays >= PUBLIC_MIN_PLAYS ? plays : 0);
 export async function count(ctx: Ctx, game: string): Promise<Response> {
   return cached(ctx, `/count/${game}`, 60, async () => {
-    const g = await getGame(ctx.env, game);
-    const row = await ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM players WHERE game_id = ?').bind(game).first<{ n: number }>();
-    const plays = Number((g as unknown as { plays?: number }).plays ?? 0);
-    return { players: row?.n ?? 0, plays, playsPublic: publicPlays(game, plays) };
+    await getGame(ctx.env, game);   // 404 for an unknown game
+    // plays is read here: getGame does not select it (until 2026-11-17 this route read it from getGame's row and always got 0)
+    const [row, g] = await Promise.all([
+      ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM players WHERE game_id = ?').bind(game).first<{ n: number }>(),
+      ctx.env.DB.prepare('SELECT plays FROM games WHERE game_id = ?').bind(game).first<{ plays: number }>(),
+    ]);
+    const plays = g?.plays ?? 0;
+    return { players: row?.n ?? 0, plays, playsPublic: publicPlays(plays) };
   });
 }

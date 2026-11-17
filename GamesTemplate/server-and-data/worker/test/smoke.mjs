@@ -75,6 +75,8 @@ check('bad userId → 400', r.status === 400);
 await new Promise((res) => setTimeout(res, 300)); // waitUntil side effects
 r = await call('GET', `/v1/games/${game}/count`);
 check('count = 1 after game_start', r.status === 200 && r.data.players === 1, JSON.stringify(r.data));
+check('count: no public number under 100 plays (decision 77)', r.data.playsPublic === 0, JSON.stringify(r.data));
+check('count: plays counts the game_start', r.data.plays >= 1, JSON.stringify(r.data));
 
 r = await call('POST', `/v1/games/${game}/scores`, { userId: user, nick: 'דני', score: 420, durationS: 42, stage: '3', version: '0.0.1' });
 check('score accepted, rank 1', r.status === 200 && r.data.rank === 1 && r.data.best === 420 && r.data.improved === true, JSON.stringify(r.data));
