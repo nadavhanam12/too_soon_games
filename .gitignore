@@ -59,3 +59,11 @@ Games/*/launch/private/
 Games/*/launch/.work/
 PublishGamesPipeline/private/
 Games/*/launch/press/
+
+# Nice City: Blender scenes, exports, logs and texture masters written by Games/WastedForSix/tools/build_*.py and
+# preview_*.py (rerun the tool to get them back), the bundled hero review page, and browser QA captures. The game
+# itself ships src/models/hero-data.json and assets/environment/*.webp, which are tracked.
+Games/WastedForSix/assets-src/models/
+Games/WastedForSix/Scene/hero-review.html
+Games/WastedForSix/Scene/hero-review.js
+Games/WastedForSix/Scene/integration-shots/

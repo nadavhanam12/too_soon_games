@@ -78,7 +78,6 @@ let html = '';
 }
 
 // ---------- static server for .local-dist ----------
-const port = 5199;
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.webp': 'image/webp' };
 const server = createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
@@ -86,7 +85,9 @@ const server = createServer((req, res) => {
   if (!f.startsWith(DIST) || !existsSync(f) || statSync(f).isDirectory()) { res.writeHead(404); res.end('nf'); return; }
   res.writeHead(200, { 'content-type': types[extname(f)] || 'application/octet-stream', 'cache-control': 'no-store' }); res.end(readFileSync(f));
 });
-await new Promise((r) => server.listen(port, '127.0.0.1', r));
+// port 0 = any free port: a fixed 5199 made the whole check crash when another local server already had it (2026-11-18)
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const port = server.address().port;
 const base = `http://127.0.0.1:${port}/${slug}/`;
 
 // ---------- 3+4. scenes on desktop and phones ----------
