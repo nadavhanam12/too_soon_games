@@ -3,7 +3,11 @@ import { esc, attr, shortTime, regionOf } from './html';
 import { icons } from './icons';
 
 export const gameUrl = (g: GameEntry) => `/${g.slug}/`;
-export const coverUrl = (g: GameEntry) => (g.cover ? `/${g.slug}/${g.cover.replace(/^\/+/, '')}` : '');
+/** A game's media file (cover, clip) as a site URL. The game's version rides along as `?v=`: these files keep their
+ *  name between releases and are cached for hours, so without it a returning visitor saw the old clip after a
+ *  publish (Nadav, 2026-11-17). games.json changes the version on every publish. */
+const mediaUrl = (g: GameEntry, file: string): string => `/${g.slug}/${file.replace(/^\/+/, '')}${g.version ? `?v=${encodeURIComponent(g.version)}` : ''}`;
+export const coverUrl = (g: GameEntry) => (g.cover ? mediaUrl(g, g.cover) : '');
 
 /** The date a game sits at in the feed: the event's date, else the release day. */
 export const gameDate = (g: GameEntry): string => g.event?.date || g.publishedAt || '';
@@ -64,7 +68,7 @@ function gamePost(g: GameEntry, studio: string, pinned: boolean): string {
   const url = gameUrl(g);
   const cover = coverUrl(g);
   const date = gameDate(g);
-  const clip = pinned && g.clip ? `/${g.slug}/${g.clip.replace(/^\/+/, '')}` : '';
+  const clip = pinned && g.clip ? mediaUrl(g, g.clip) : '';
   const ctxLine = pinned ? `<p class="ctx">${icons.pin}Pinned · ${g.status === 'archived' ? 'From the archive' : 'New game'}</p>` : '';
   const H = pinned ? 'h1' : 'h2';
   const media = cover

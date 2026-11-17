@@ -100,6 +100,9 @@ CUR="$(jq_ "$GAME_JSON" version)"; CUR="${CUR:-0.0.0}"
 IFS=. read -r MA MI PA <<<"$CUR"; NEW="$MA.$MI.$((PA+1))"
 if [ "$DRY" = 1 ]; then echo "  (dry-run) $CUR → $NEW"; else
   node -e "const fs=require('fs');const p=process.argv[1];const j=JSON.parse(fs.readFileSync(p,'utf8'));j.version=process.argv[2];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')" "$GAME_JSON" "$NEW"
+  # the registry entry was written in step 3 with the version before the bump: the site showed the previous version
+  # and its media URLs (?v=<version>, frontend games.ts mediaUrl) were keyed to it
+  node -e "const fs=require('fs');const [p,slug,v]=process.argv.slice(1);const j=JSON.parse(fs.readFileSync(p,'utf8'));const g=(j.games||[]).find(x=>x.slug===slug);if(!g)throw new Error('games.json has no entry for '+slug);g.version=v;fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')" "$REGISTRY" "$SLUG" "$NEW" || fail "could not write the new version into $REGISTRY"
   echo "  $CUR → $NEW"; fi
 
 # 6. build client
