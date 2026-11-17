@@ -1,7 +1,9 @@
-// One portrait canvas. Logical width is always 360; logical height flexes 640..780 with the device.
-// The 360x640 SAFE zone is centred: UI lives there, backgrounds use the whole height (rule 8).
-// Game code draws in safe coordinates (0..640): the main loop translates by view.top before each scene.
-// Use fullBleed(fn) to draw in full-canvas coordinates (0..view.H).
+// One canvas. The 360x640 SAFE zone is centred in it: UI lives there, backgrounds use the whole canvas (rule 8).
+// Logical height flexes 640..780 with the device. Logical width is 360, unless the game sets GameDef.maxWidth:
+// then on a screen wider than a phone (tablet, desktop) the canvas widens up to that, with the safe zone in the middle.
+// Game code draws in safe coordinates (0..360, 0..640): the main loop translates by (-view.x0, view.top) before each
+// scene. The whole canvas in safe coordinates is the rectangle (view.x0, -view.top, view.fullW, view.H).
+// Use fullBleed(fn) to draw in full-height coordinates (0..view.H).
 
 export const W = 360;
 export const SAFE_H = 640;
@@ -10,6 +12,8 @@ export const MAX_H = 780;
 
 export const view = {
   W,
+  fullW: W,      // current logical width of the whole canvas (W, or up to the game's maxWidth on a wide screen)
+  x0: 0,         // the canvas' left edge in safe coordinates (0, or negative on a wide canvas); right edge = x0 + fullW
   H: 640,        // current logical height
   top: 0,        // safe-zone offset (full coords)
   bottom: 640,   // safe-zone bottom (full coords)
@@ -25,8 +29,11 @@ export let ctx: CanvasRenderingContext2D;
 const resizeFns: Array<() => void> = [];
 export function onResize(fn: () => void): void { resizeFns.push(fn); }
 
-export function initCanvas(el: HTMLCanvasElement): void {
-  cv = el;
+let maxW = W;
+
+/** `maxWidth` = the widest logical canvas the game can draw (default: 360, a phone column on every screen). */
+export function initCanvas(el: HTMLCanvasElement, maxWidth = W): void {
+  cv = el; maxW = Math.max(W, maxWidth);
   const c = el.getContext('2d', { alpha: false });
   if (!c) throw new Error('no 2d context');
   ctx = c;
@@ -44,8 +51,11 @@ export function fit(): void {
   view.top = Math.round((H - SAFE_H) / 2);
   view.bottom = view.top + SAFE_H;
   view.scale = Math.min(vw / W, vh / H);
+  // room left beside the phone column goes to the canvas, up to the game's limit (an even number: x0 stays whole)
+  view.fullW = Math.max(W, Math.min(maxW, Math.floor(vw / view.scale / 2) * 2));
+  view.x0 = -(view.fullW - W) / 2;
   view.dpr = Math.min(window.devicePixelRatio || 1, 3);
-  const cssW = W * view.scale, cssH = H * view.scale;
+  const cssW = view.fullW * view.scale, cssH = H * view.scale;
   cv.style.width = cssW + 'px';
   cv.style.height = cssH + 'px';
   // backing store = real device pixels of the displayed size (sharp on desktop too)
@@ -61,11 +71,11 @@ export function fit(): void {
 /** Client (CSS px) → logical safe-zone coordinates. */
 export function toSafe(clientX: number, clientY: number): { x: number; y: number } {
   const r = cv.getBoundingClientRect();
-  const sc = r.width / W || view.scale || 1;
-  return { x: (clientX - r.left) / sc, y: (clientY - r.top) / sc - view.top };
+  const sc = r.width / view.fullW || view.scale || 1;
+  return { x: (clientX - r.left) / sc + view.x0, y: (clientY - r.top) / sc - view.top };
 }
 
-/** Draw in full-canvas coordinates (0..view.H). Call from inside a scene's draw (which runs translated by view.top). */
+/** Draw in full-height coordinates (y 0..view.H; x is unchanged: the canvas spans view.x0 .. view.x0 + view.fullW). Call from inside a scene's draw (which runs translated by view.top). */
 export function fullBleed(fn: (h: number) => void): void {
   ctx.save();
   ctx.translate(0, -view.top);
@@ -84,7 +94,7 @@ export function fillBg(a: string, b?: string): void {
   fullBleed((h) => {
     if (b) { const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, a); g.addColorStop(1, b); ctx.fillStyle = g; }
     else ctx.fillStyle = a;
-    ctx.fillRect(0, 0, W, h);
+    ctx.fillRect(view.x0, 0, view.fullW, h);
   });
 }
 
@@ -92,7 +102,7 @@ export function fillBg(a: string, b?: string): void {
 export function place(el: HTMLElement, x: number, y: number, w: number, h: number, fontPx = 14): void {
   const s = view.scale;
   const r = cv.getBoundingClientRect();
-  el.style.left = r.left + x * s + 'px';
+  el.style.left = r.left + (x - view.x0) * s + 'px';
   el.style.top = r.top + (y + view.top) * s + 'px';
   el.style.width = w * s + 'px';
   el.style.height = h * s + 'px';

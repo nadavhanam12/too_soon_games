@@ -2,7 +2,7 @@
 export { createGame, type GameDef } from './core/game';
 export { R, type Content, type CutStep, type Hooks, type RunResult, type Runtime } from './core/runtime';
 export { W, SAFE_H, view, ctx, cv, fullBleed, fillBg, place, drawOn } from './core/canvas';
-export { input, takeTap, clearTaps, keyHeld, keyLeft, keyRight, setPointerIntercept, onKeyDown, type Tap } from './core/input';
+export { input, takeTap, clearTaps, keyName, keyHeld, keyLeft, keyRight, setPointerIntercept, onKeyDown, type Tap } from './core/input';
 export { scenes, S, state, go, goNow, easeO, easeOB, type Scene } from './core/scenes';
 export { startFromTitle } from './screens/title';
 export * from './draw/prims';

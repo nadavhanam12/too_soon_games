@@ -1,5 +1,5 @@
 // Scene registry, transitions and the per-scene scratch object S.
-import { ctx, W, SAFE_H } from './canvas';
+import { ctx, view, SAFE_H } from './canvas';
 import { clearTaps } from './input';
 
 export interface Scene {
@@ -63,6 +63,6 @@ export function drawTransition(color = '#111'): void {
   if (!trans) return;
   const p = trans.t < 0.5 ? trans.t * 2 : 1 - (trans.t - 0.5) * 2;
   ctx.fillStyle = color;
-  ctx.fillRect(0, -200, W, (SAFE_H + 400) * easeO(p));
+  ctx.fillRect(view.x0, -200, view.fullW, (SAFE_H + 400) * easeO(p));
 }
 export const inTransition = (): boolean => !!trans;

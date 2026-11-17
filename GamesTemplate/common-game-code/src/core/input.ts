@@ -10,6 +10,9 @@ export const input = {
   px: 0, py: 0,         // held pointer position
   keys: {} as Record<string, boolean>,
   movePid: null as number | null,
+  // the player is on a touch screen: starts from the device's main pointer, then follows the last pointer used
+  // (a game shows its on-screen controls only when this is true)
+  touch: false,
 };
 
 type Intercept = (p: Tap, e: PointerEvent) => boolean;
@@ -22,8 +25,14 @@ export function setPointerIntercept(fn: Intercept | null): void { intercept = fn
 /** Add a keydown hook; return true to swallow the key (it will not become a tap). */
 export function onKeyDown(fn: KeyHook): void { keyHooks.push(fn); }
 
+/** The name of a key, the same on every keyboard layout: a letter key gives its Latin lowercase letter by its place
+ *  on the keyboard ('w' also when the layout is Hebrew and the key types an apostrophe); any other key gives e.key. */
+export const keyName = (e: KeyboardEvent): string => (/^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key);
+
 export function initInput(): void {
+  input.touch = window.matchMedia('(pointer: coarse)').matches;
   cv.addEventListener('pointerdown', (e) => {
+    input.touch = e.pointerType !== 'mouse';
     const p = toSafe(e.clientX, e.clientY);
     try { cv.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     if (intercept && intercept(p, e)) return;
@@ -41,11 +50,12 @@ export function initInput(): void {
   window.addEventListener('keydown', (e) => {
     if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault();
     if (e.repeat) return;
-    input.keys[e.key] = true;
+    const k = keyName(e);
+    input.keys[k] = true;
     for (const h of keyHooks) if (h(e)) return;
-    if ([' ', 'Enter', 'ArrowUp', 'w', 'W'].includes(e.key)) input.taps.push({ x: W / 2, y: 320, key: true });
+    if ([' ', 'Enter', 'ArrowUp', 'w'].includes(k)) input.taps.push({ x: W / 2, y: 320, key: true });
   });
-  window.addEventListener('keyup', (e) => { input.keys[e.key] = false; });
+  window.addEventListener('keyup', (e) => { input.keys[keyName(e)] = false; });
   window.addEventListener('blur', () => { input.keys = {}; input.down = false; input.movePid = null; });
 }
 
@@ -60,5 +70,6 @@ export function clearTaps(): void { input.taps.length = 0; }
  *  tap-heavy game don't land on their buttons. The buttons show dimmed until then. */
 export const END_GRACE_S = 0.8;
 export const keyHeld = (...names: string[]): boolean => names.some((n) => !!input.keys[n]);
-export const keyLeft = (): boolean => keyHeld('ArrowLeft', 'a', 'A');
-export const keyRight = (): boolean => keyHeld('ArrowRight', 'd', 'D');
+// letter keys are stored by keyName(): lowercase Latin, whatever the layout or Shift
+export const keyLeft = (): boolean => keyHeld('ArrowLeft', 'a');
+export const keyRight = (): boolean => keyHeld('ArrowRight', 'd');

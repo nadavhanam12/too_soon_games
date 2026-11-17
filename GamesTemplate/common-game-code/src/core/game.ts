@@ -16,7 +16,7 @@ import { PRESETS } from '../share/presets';
 import { hideAllOverlays, initOverlays } from '../share/overlays';
 import { music, sfx, unlockAudio, type MusicDef, type MusicMode } from '../audio/synth';
 import { sharedScenes } from '../screens/index';
-import { onKeyDown } from './input';
+import { keyName, onKeyDown } from './input';
 
 export interface GameDef {
   cfg: GameConfig;
@@ -28,6 +28,9 @@ export interface GameDef {
   musicFor?: (scene: string) => MusicMode;
   stingerFor?: (scene: string) => string | null;
   font?: string;                        // canvas font family stack
+  /** Widest logical canvas the game draws (default 360). Set it (e.g. 854 = 4:3) and tablets / desktops get a wide
+   *  canvas with the 360 safe zone in the middle; the game must then paint view.x0 .. view.x0 + view.fullW. */
+  maxWidth?: number;
   /** Called after everything is initialised, before the first frame. */
   onReady?: () => void;
 }
@@ -64,7 +67,7 @@ export function createGame(def: GameDef): void {
   setDirection(cfg.lang === 'he' ? 'rtl' : 'ltr');
   if (def.font) setFont(def.font);
   const canvas = document.getElementById('c') as HTMLCanvasElement;
-  initCanvas(canvas);
+  initCanvas(canvas, def.maxWidth);
   initInput();
   initOverlays({ strings: R.strs, preset: PRESETS[cfg.audience], lang: cfg.lang, title: cfg.title });
   unlockAudio();
@@ -90,7 +93,7 @@ export function createGame(def: GameDef): void {
     const st = stingerFor(to); if (st) sfx[st]?.();
     R.hooks.onSceneChange?.(to, from);
   });
-  onKeyDown((e) => { if (e.key === 'm' || e.key === 'M') { const on = music.toggle(); R.say(on ? R.strs.unmuted : R.strs.muted, 1); return true; } return false; });
+  onKeyDown((e) => { if (keyName(e) === 'm') { const on = music.toggle(); R.say(on ? R.strs.unmuted : R.strs.muted, 1); return true; } return false; });
 
   // debug hooks (docs/CONTRACTS.md)
   const w = window as unknown as Record<string, unknown>;
@@ -102,7 +105,7 @@ export function createGame(def: GameDef): void {
   w.__manual = (on: boolean) => { manual = on; };
   // __seed(n) restarts the stream: the frames drawn before the clock went manual have already used some of it
   w.__seed = (n?: number) => { if (n) setSeed(n); return getSeed(); };
-  w.__state = () => ({ scene: state.scene, st: state.st, playTime: R.playTime, run: R.run, best: R.best, players: R.players, H: view.H, top: view.top, scale: view.scale, banner: !!banner, inTransition: inTransition(), S: { ...S } });
+  w.__state = () => ({ scene: state.scene, st: state.st, playTime: R.playTime, run: R.run, best: R.best, players: R.players, H: view.H, fullW: view.fullW, top: view.top, scale: view.scale, banner: !!banner, inTransition: inTransition(), S: { ...S } });
   w.__scenes = () => Object.keys(scenes);
   w.__fit = fit;
   w.__music = () => ({ mode: music.mode, on: music.on, files: Object.fromEntries(Object.entries(music.tracks).map(([k, a]) => [k, { paused: a!.paused, volume: +a!.volume.toFixed(2), missing: !!a!.dataset.missing }])) });
@@ -132,7 +135,7 @@ export function createGame(def: GameDef): void {
     const dt = paused || frozen ? 0 : rawDt;
     if (state.scene === 'play' && !paused) R.playTime += dt;
     ctx.save();
-    ctx.translate(0, view.top);
+    ctx.translate(-view.x0, view.top);
     if (state.shake > 0) { state.shake -= rawDt; ctx.translate(rnd(-5, 5), rnd(-5, 5)); }
     const sc = scenes[state.scene];
     // screen entry (rule 13יב, 250–400 ms): every template screen rises into place with a little overshoot. The play
@@ -144,8 +147,8 @@ export function createGame(def: GameDef): void {
     drawToast(rawDt);
     drawBanner(rawDt);
     ctx.restore();
-    ctx.save(); ctx.translate(0, view.top); drawTransition(theme.colors.bg); ctx.restore();
-    if (state.flash > 0) { state.flash -= rawDt * 2; ctx.fillStyle = `rgba(255,255,255,${Math.max(0, state.flash)})`; ctx.fillRect(0, 0, W, view.H); }
+    ctx.save(); ctx.translate(-view.x0, view.top); drawTransition(theme.colors.bg); ctx.restore();
+    if (state.flash > 0) { state.flash -= rawDt * 2; ctx.fillStyle = `rgba(255,255,255,${Math.max(0, state.flash)})`; ctx.fillRect(0, 0, view.fullW, view.H); }
     if (!stepping) requestAnimationFrame(frame);
   }
 
@@ -167,7 +170,7 @@ export function createGame(def: GameDef): void {
     banner.t += rawDt;
     const k = Math.min(1, banner.t * 4);
     ctx.globalAlpha = k;
-    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, -200, W, SAFE_H + 400);
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(view.x0, -200, view.fullW, SAFE_H + 400);
     if (theme.banner) { ctx.globalAlpha = 1; theme.banner(banner.title, banner.lines, banner.t); } // the game's own card
     else {
       // the card pops in (scale with overshoot around its centre)
