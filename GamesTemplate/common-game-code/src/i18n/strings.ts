@@ -10,7 +10,7 @@ export interface Strings {
   challenge: (name: string, result: string) => string; aFriend: string;
   whatHappened: string; source: string; parodyNote: string; reportLink: string;
   followTitle: string; followBody: string; shareTitle: string; shareBody: string;
-  shareCentral: string; shareSystem: string; copy: string; copied: string; notCopied: string; moreGames: string;
+  shareCentral: string; shareSystem: string; shareTo: string; email: string; close: string; copy: string; copied: string; notCopied: string; moreGames: string;
   tapToContinue: string; tapToSkip: string; loading: string; muted: string; unmuted: string;
 }
 
@@ -24,7 +24,7 @@ const he: Strings = {
   whatHappened: 'מה קרה באמת', source: 'מקור', parodyNote: 'פרודיה. לא קשור לאנשים ולגופים האמיתיים.', reportLink: 'בקשה להסרת תוכן',
   followTitle: 'רוצים להיות הראשונים לשחק במשחק הבא?', followBody: 'המשחק הבא תלוי בחדשות. עקבו אחרינו.',
   shareTitle: 'מי מהחברים שלך ינצח אותך?', shareBody: 'שתף את התוצאה ואתגר חבר',
-  shareCentral: 'שיתוף בווצאפ', shareSystem: 'שיתוף', copy: 'העתק קישור', copied: 'הועתק ✓', notCopied: 'לא הועתק', moreGames: 'עוד משחקים שלנו',
+  shareCentral: 'שיתוף בווצאפ', shareSystem: 'שיתוף', shareTo: 'איפה לשתף?', email: 'אימייל', close: 'סגור', copy: 'העתק קישור', copied: 'הועתק ✓', notCopied: 'לא הועתק', moreGames: 'עוד משחקים שלנו',
   tapToContinue: 'הקש להמשך', tapToSkip: 'לחיצה ארוכה לדילוג', loading: 'טוען…', muted: 'מוזיקה כבויה', unmuted: 'מוזיקה פועלת',
 };
 
@@ -38,7 +38,7 @@ const en: Strings = {
   whatHappened: 'What actually happened', source: 'Source', parodyNote: 'Parody. Not affiliated with the real people or companies.', reportLink: 'Report content',
   followTitle: 'Want to be first to play the next one?', followBody: 'The next game depends on the news. Follow us.',
   shareTitle: 'Which of your friends can beat you?', shareBody: 'Share your result and challenge a friend',
-  shareCentral: 'Text a friend', shareSystem: 'Share', copy: 'Copy link', copied: 'Copied ✓', notCopied: 'Not copied', moreGames: 'More games',
+  shareCentral: 'Text a friend', shareSystem: 'Share', shareTo: 'Share to', email: 'Email', close: 'Close', copy: 'Copy link', copied: 'Copied ✓', notCopied: 'Not copied', moreGames: 'More games',
   tapToContinue: 'Tap to continue', tapToSkip: 'Hold to skip', loading: 'Loading…', muted: 'Music off', unmuted: 'Music on',
 };
 

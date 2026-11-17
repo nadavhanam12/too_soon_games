@@ -15,6 +15,8 @@
 <meta property="og:description" content="{{ogDescription}}">
 <meta property="og:url" content="{{url}}">
 <meta property="og:image" content="{{ogImage}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ogTitle}}">
 <meta name="twitter:description" content="{{ogDescription}}">
@@ -35,6 +37,15 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
 .tsg-btn{display:flex;align-items:center;justify-content:center;border:0;border-radius:999px;padding:0 .8em;font:900 1em var(--font);cursor:pointer;text-decoration:none;white-space:nowrap;min-height:0;box-sizing:border-box;box-shadow:0 .25em .7em rgba(0,0,0,.35)}
 .tsg-central{font-size:1.15em}
 .tsg-copy{background:rgba(255,255,255,.14);color:#fff;border:.1em solid rgba(255,255,255,.35);box-shadow:none}
+.tsg-menu{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(6,6,8,.78)}
+.tsg-menu-panel{box-sizing:border-box;width:min(340px,88vw);padding:18px 16px 14px;border-radius:18px;background:#18181b;border:1px solid rgba(255,255,255,.2);box-shadow:0 20px 60px rgba(0,0,0,.6);text-align:center;color:#fff}
+.tsg-menu-panel p{margin:0 0 14px;font:900 18px var(--font)}
+.tsg-menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 6px;margin-bottom:16px}
+.tsg-menu-item{display:flex;flex-direction:column;align-items:center;gap:7px;padding:4px 0;border:0;background:none;color:#fff;font:700 13px var(--font);text-decoration:none;cursor:pointer}
+.tsg-menu-item i{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.tsg-menu-item:hover i,.tsg-menu-item:focus-visible i{transform:scale(1.08)}
+.tsg-menu-item svg{width:28px;height:28px}
+.tsg-menu-close{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;border-radius:999px;padding:9px 26px;font:700 14px var(--font);cursor:pointer}
 .tsg-follow{position:fixed;display:flex;justify-content:center;gap:1.15em;box-sizing:border-box}
 .tsg-net{width:4em;height:4em;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff4fd8,#8a3cff);color:#fff;box-shadow:0 .25em .7em rgba(0,0,0,.35)}
 .tsg-net svg{width:2.1em;height:2.1em}

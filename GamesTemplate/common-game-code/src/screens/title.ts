@@ -22,7 +22,7 @@ export const titleScene: Scene = {
       const words = R.content.result.resultWords({ score: R.challenge.score, durationS: 0, won: true });
       th.panel(24, 420, W - 48, 64);
       th.text(s.challenge(name, words), W / 2, 452, 16, th.colors.accent, 'center', 900);
-    } else if (R.players !== null && R.players > 0) { // always shown: the server floors the public number (decision 51)
+    } else if (R.players !== null && R.players > 0) { // 0 = fewer than 100 real plays: nothing is shown (decision 77)
       th.text(s.playersPlayed(fmtInt(R.players)), W / 2, 452, 14, th.colors.muted, 'center', 700);
     }
     if (R.best > 0) th.text(`${s.yourBest}: ${R.content.result.resultWords({ score: R.best, durationS: 0, won: true })}`, W / 2, 500, 14, th.colors.muted, 'center', 700);

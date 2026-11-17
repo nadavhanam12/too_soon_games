@@ -49,3 +49,6 @@ GamesTemplate/other-services/bugcheck/out/
 # prompts + seeds in runs/*/prompts.json are enough to regenerate (GamesTemplate/other-services/skills/make-music)
 Games/*/music/runs/*/raw/
 Games/*/music/runs/*/game/
+
+# internal legal / research notes: local only, never committed
+research_notes/

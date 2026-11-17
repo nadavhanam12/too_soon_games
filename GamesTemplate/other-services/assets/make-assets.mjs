@@ -113,7 +113,11 @@ for (const t of todo) {
   await p.setContent(html(t.w, t.h), { waitUntil: 'load' });
   try { await p.evaluate(() => document.fonts.ready); } catch { /* offline: system font */ }
   await p.waitForTimeout(300);
-  const png = await p.screenshot({ type: 'png', fullPage: false });
+  // a .jpg target is written as JPEG: WhatsApp shows no picture for a preview image over ~300 KB, and a painted card
+  // is 600-700 KB as PNG (found 2026-11-17: the link's card had a title but no picture in WhatsApp only)
+  const jpg = /\.jpe?g$/i.test(t.name);
+  const png = await p.screenshot(jpg ? { type: 'jpeg', quality: 84, fullPage: false } : { type: 'png', fullPage: false });
+  if (t.w === 1200 && t.h === 630 && png.length > 300 * 1024) console.warn(`[assets] WARNING: ${t.name} is ${(png.length / 1024).toFixed(0)} KB; over 300 KB WhatsApp drops the preview picture. Use "ogImage": "assets/og.jpg" in game.json.`);
   writeFileSync(join(OUT_DIR, t.name), png);
   console.log(`[assets] ${gameId}: assets/${t.name} ${t.w}x${t.h} (${(png.length / 1024).toFixed(0)} KB)`);
   await p.close();

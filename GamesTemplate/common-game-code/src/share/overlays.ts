@@ -7,7 +7,7 @@ import type { Strings } from '../i18n/strings';
 import { centralHref, isPhone, type SharePreset } from './presets';
 import { track } from '../analytics/track';
 
-export type Channel = 'whatsapp' | 'sms' | 'system' | 'copy';
+export type Channel = 'whatsapp' | 'sms' | 'system' | 'copy' | 'menu' | 'x' | 'facebook' | 'telegram' | 'email';
 
 let root: HTMLElement;
 let strs: Strings;
@@ -23,15 +23,21 @@ const ICONS: Record<string, string> = {
   youtube: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8c1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3L10 15z"/></svg>',
 };
 const NETWORKS = ['instagram', 'tiktok', 'x', 'facebook', 'youtube'] as const;
+const MENU_ICONS: Record<string, string> = {
+  whatsapp: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.700 6.700 0 0 1-3.300-2.900c-.2-.4.2-.4.600-1.200.100-.200 0-.300 0-.500l-.800-1.900c-.200-.500-.400-.400-.600-.400h-.500c-.2 0-.5.100-.700.300-.900.900-1.100 2.100-.500 3.400a11.600 11.600 0 0 0 4.700 4.400c1.700.7 2.400.8 3.200.600.500-.100 1.500-.600 1.700-1.200.2-.600.2-1.100.100-1.200l-.300-.200z"/></svg>',
+  telegram: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M21.4 3.6 2.9 10.700c-1.200.500-1.200 1.200-.200 1.500l4.700 1.500 1.800 5.600c.2.600.4.800.9.800.4 0 .600-.200.900-.400l2.300-2.200 4.700 3.500c.9.500 1.500.2 1.700-.800L22.900 5c.3-1.300-.5-1.900-1.500-1.400zM8.100 13.300l9.300-5.900c.4-.3.800-.1.500.2l-7.700 7-.3 3.200-1.800-4.500z"/></svg>',
+  email: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm9 7.700L4.500 7v10h15V7L12 12.700zM6 7l6 4.500L18 7H6z"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10.600 13.400a1 1 0 0 1 0-1.400l3.500-3.500a3 3 0 1 1 4.200 4.200l-1.700 1.700a1 1 0 0 1-1.400-1.400l1.700-1.700a1 1 0 0 0-1.400-1.400L12 13.400a1 1 0 0 1-1.400 0zm2.800-2.800a1 1 0 0 1 0 1.400l-3.500 3.500a3 3 0 1 1-4.200-4.200l1.700-1.700a1 1 0 0 1 1.400 1.400l-1.700 1.700a1 1 0 0 0 1.400 1.400l3.500-3.500a1 1 0 0 1 1.400 0z"/></svg>',
+};
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag); e.className = cls; e.innerHTML = html; return e;
 }
 
 // ---------- share block ----------
-// One share button (DECISIONS 68): the system share sheet where the browser has one (it already lists WhatsApp,
-// Messages, Instagram...), otherwise the audience's messaging app (wa.me / sms:), and on a desktop without either
-// it copies. Under it, "Copy link".
+// One share button (DECISIONS 68, 78). On a phone: the system share sheet where the browser has one (it already lists
+// WhatsApp, Messages, Instagram...), otherwise the audience's messaging app (wa.me / sms:). On a desktop: our own
+// menu of platforms, each with a link prepared the way that platform wants it (shareMenu below). Under it, "Copy link".
 const shareBox = el('div', 'tsg-share');
 const central = el('a', 'tsg-btn tsg-central'); central.target = '_blank'; central.rel = 'noopener';
 const copyBtn = el('button', 'tsg-btn tsg-copy'); copyBtn.type = 'button';
@@ -55,17 +61,19 @@ export const shareOverlay = {
   /** y = top of the block in safe units; it takes 108 units: share button 50, gap 10, copy row 44 (+4). */
   show(data: { text: string; url: string }, y: number, cb?: (c: Channel) => void): void {
     shareData = data; onShare = cb || null;
-    const system = typeof navigator.share === 'function';
-    const centralIsCopy = !system && preset.central === 'sms' && !isPhone();
-    central.textContent = system ? strs.shareSystem : centralIsCopy ? strs.copy : preset.centralLabel[lang];
+    // a desktop gets the menu even where the browser has a share sheet: the Windows / macOS sheet hands apps bare text,
+    // and WhatsApp desktop then shows the link without its preview card (found 2026-11-17)
+    const menu = !isPhone(), system = !menu && typeof navigator.share === 'function';
+    central.textContent = menu || system ? strs.shareSystem : preset.centralLabel[lang];
     central.style.background = preset.centralColor; central.style.color = preset.centralInk;
-    central.href = system || centralIsCopy ? '#' : centralHref(preset.central, data.text);
-    central.dataset.channel = system ? 'system' : centralIsCopy ? 'copy' : preset.central;
-    copyBtn.textContent = strs.copy; copyBtn.hidden = centralIsCopy;
+    central.href = menu || system ? '#' : centralHref(preset.central, data.text);
+    central.dataset.channel = menu ? 'menu' : system ? 'system' : preset.central;
+    copyBtn.textContent = strs.copy; copyBtn.hidden = false;
+    shareMenu.hidden = true;
     shareBox.hidden = false; shareBox.dataset.y = String(y);
     this.layout();
   },
-  hide(): void { shareBox.hidden = true; },
+  hide(): void { shareBox.hidden = true; shareMenu.hidden = true; },
   layout(): void {
     if (shareBox.hidden) return;
     const y = Number(shareBox.dataset.y || 400);
@@ -75,19 +83,71 @@ export const shareOverlay = {
 central.addEventListener('click', (e) => {
   const ch = central.dataset.channel as Channel;
   track('share_click', { channel: ch }); onShare?.(ch);
-  if (ch === 'copy') { e.preventDefault(); copyText(shareData.text); return; }
+  if (ch === 'menu') { e.preventDefault(); openShareMenu(); return; }
   if (ch !== 'system') return; // a real wa.me / sms: link
   e.preventDefault();
   // The link only, never a file (2026-11-17): with a picture attached Facebook and Messenger open their photo picker
   // and drop the link, WhatsApp sends the picture and the text as two messages, iOS drops the text. A bare link gets
   // one message with the page's preview card (og:image + the personal og:title) everywhere.
-  navigator.share({ title, text: shareData.text, url: shareData.url || undefined }).then(() => track('share_complete', { channel: 'system' })).catch((err: { name?: string }) => {
+  // the share text already ends with the link (RULES 16); passing `url` as well made apps print it twice. `url` goes
+  // along only for a text that has no link in it.
+  const url = shareData.url && !shareData.text.includes(shareData.url) ? shareData.url : undefined;
+  navigator.share({ title, text: shareData.text, url }).then(() => track('share_complete', { channel: 'system' })).catch((err: { name?: string }) => {
     if (err && err.name === 'AbortError') return;
     window.open(centralHref(preset.central === 'sms' && !isPhone() ? 'whatsapp' : preset.central, shareData.text), '_blank', 'noopener');
   });
 });
 copyBtn.addEventListener('click', () => { track('share_click', { channel: 'copy' }); onShare?.('copy'); copyText(shareData.text); });
 shareBox.append(central, copyBtn);
+
+// ---------- the share menu (desktop): pick a platform, the link is prepared for it ----------
+// Like the share menus of the big sites: every platform gets its own share URL, so each one builds its own preview
+// card from the page (og tags). Opened in a new tab; the menu closes on a pick, on the backdrop and on Escape.
+const shareMenu = el('div', 'tsg-menu');
+const MENU: ReadonlyArray<{ id: Exclude<Channel, 'sms' | 'system' | 'menu'>; name: string; bg: string; ink: string }> = [
+  { id: 'whatsapp', name: 'WhatsApp', bg: '#25d366', ink: '#0b2a1a' },
+  { id: 'x', name: 'X', bg: '#000000', ink: '#ffffff' },
+  { id: 'facebook', name: 'Facebook', bg: '#1877f2', ink: '#ffffff' },
+  { id: 'telegram', name: 'Telegram', bg: '#29a9eb', ink: '#ffffff' },
+  { id: 'email', name: '', bg: '#6b6b76', ink: '#ffffff' },   // name from strs.email
+  { id: 'copy', name: '', bg: '#3c3c44', ink: '#ffffff' },    // name from strs.copy
+];
+/** The share URL of a platform. `text` ends with the link (RULES 16); platforms that take the link on its own get the
+ *  words and the link apart, so the link is never printed twice. */
+function platformHref(id: string, text: string, url: string): string {
+  const words = encodeURIComponent(text.replace(url, '').trim()), u = encodeURIComponent(url), all = encodeURIComponent(text);
+  switch (id) {
+    case 'whatsapp': return `https://wa.me/?text=${all}`;
+    case 'x': return `https://x.com/intent/post?text=${words}&url=${u}`;
+    case 'facebook': return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+    case 'telegram': return `https://t.me/share/url?url=${u}&text=${words}`;
+    case 'email': return `mailto:?subject=${encodeURIComponent(title)}&body=${all}`;
+    default: throw new Error(`no share URL for ${id}`);
+  }
+}
+function openShareMenu(): void {
+  const items = MENU.map((m) => {
+    const label = m.id === 'email' ? strs.email : m.id === 'copy' ? strs.copy : m.name;
+    const icon = `<i style="background:${m.bg};color:${m.ink}">${MENU_ICONS[m.id] ?? ICONS[m.id] ?? ''}</i><span>${label}</span>`;
+    return m.id === 'copy'
+      ? `<button type="button" class="tsg-menu-item" data-ch="copy">${icon}</button>`
+      : `<a class="tsg-menu-item" data-ch="${m.id}" target="_blank" rel="noopener" href="${platformHref(m.id, shareData.text, shareData.url)}">${icon}</a>`;
+  }).join('');
+  shareMenu.innerHTML = `<div class="tsg-menu-panel" role="dialog" aria-label="${strs.shareTo}"><p>${strs.shareTo}</p><div class="tsg-menu-grid">${items}</div><button type="button" class="tsg-menu-close">${strs.close}</button></div>`;
+  shareMenu.hidden = false;
+}
+shareMenu.addEventListener('click', (e) => {
+  const t = e.target as HTMLElement, item = t.closest<HTMLElement>('.tsg-menu-item');
+  if (item) {
+    const ch = item.dataset.ch as Channel;
+    track('share_click', { channel: ch }); onShare?.(ch);
+    if (ch === 'copy') copyText(shareData.text);   // the "Copy link" button under the menu shows "Copied"
+    shareMenu.hidden = true;
+    return;
+  }
+  if (t === shareMenu || t.closest('.tsg-menu-close')) shareMenu.hidden = true;   // the backdrop or Close
+});
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !shareMenu.hidden) { shareMenu.hidden = true; e.stopPropagation(); } }, true);
 
 // ---------- follow block ----------
 const followBox = el('div', 'tsg-follow');
@@ -177,7 +237,7 @@ export function hideAllOverlays(): void { shareOverlay.hide(); followOverlay.hid
 export function initOverlays(opts: { strings: Strings; preset: SharePreset; lang: 'he' | 'en'; title: string }): void {
   strs = opts.strings; preset = opts.preset; lang = opts.lang; title = opts.title;
   root = el('div', 'tsg-ov'); root.dir = lang === 'he' ? 'rtl' : 'ltr';
-  root.append(shareBox, followBox, nickBox, srcLink, reportLink, moreLink);
+  root.append(shareBox, followBox, nickBox, srcLink, reportLink, moreLink, shareMenu);
   document.body.append(root, footer);
   const home = (env.publicBase || '').replace(/\/$/, '') + '/';
   const arrow = lang === 'he' ? '←' : '→'; // points forward in the reading direction

@@ -96,8 +96,8 @@ const CLIENT_JS = `
     var slug=n.getAttribute('data-count');if(!slug)return;
     counts[slug]=counts[slug]||fetch(api+'/v1/games/'+encodeURIComponent(slug)+'/count').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     counts[slug].then(function(d){
-      if(!d)return;var plays=typeof d.playsPublic==='number'?d.playsPublic:(typeof d.plays==='number'?d.plays:0);
-      if(plays<Number(n.getAttribute('data-min')||0))return;
+      if(!d)return;var plays=typeof d.playsPublic==='number'?d.playsPublic:0;
+      if(!plays||plays<Number(n.getAttribute('data-min')||0))return;
       var b=n.querySelector('b');if(b)b.textContent=fmt(plays);n.classList.add('is-set');
     });
   });
