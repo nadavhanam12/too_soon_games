@@ -74,6 +74,7 @@ server-and-data/
 | GET | `/v1/games/:game/count` | | `{players}` (cache 60s) |
 | GET | `/v1/games/:game/stats?days=7` | header `x-admin-key` | סיכומים יומיים |
 | DELETE | `/v1/games/:game/scores/:userId` | header `x-admin-key` | מחיקת טרול |
+| DELETE | `/v1/admin/games/:game` | header `x-admin-key` | מחיקת משחק עם השחקנים והניקודים שלו (משחק בדיקת העשן, slug ששונה) |
 | GET | `/v1/version` | | `{version, deployedAt}` |
 
 - CORS: רק הדומיין שלנו (ו־localhost בפיתוח).

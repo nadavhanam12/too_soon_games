@@ -50,9 +50,9 @@ Run when `wrangler.toml` still has the placeholder `database_id = "00000000-..."
 | deploy | `npm run deploy` | stop; see rollback |
 | verify | `curl <url>/v1/version` must return the new version; `node test/smoke.mjs <url>` must print "all passed" | rollback |
 
-The smoke test creates a throwaway game `smoke-<id>` in the production DB (one `games` row, one
-`players` row, scores deleted at the end). That is intended; the admin page can delete the game row
-later if it bothers anyone. Set `ADMIN_KEY` in the environment or keep `.dev.vars` filled.
+The smoke test creates a throwaway game `smoke-<id>` in the production DB and deletes it at the end
+(`DELETE /v1/admin/games/<id>`: the `games` row, its players and its scores), so a passing run leaves
+nothing in the admin list. A run that fails midway can leave its `smoke-<id>` row; delete it the same way. Set `ADMIN_KEY` in the environment or keep `.dev.vars` filled.
 
 ## 3. Rollback
 

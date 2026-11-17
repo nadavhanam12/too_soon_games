@@ -18,6 +18,7 @@ export async function admin(ctx: Ctx, parts: string[]): Promise<Response> {
     const game = gameSlug(parts[1]);
     const leaf = parts[2];
     if (!leaf && method === 'PUT') return upsertGame(ctx, game);
+    if (!leaf && method === 'DELETE') return deleteGame(ctx, game);
     if (leaf === 'stats' && method === 'GET') return stats(ctx, game);
     if (leaf === 'board' && method === 'GET') return adminBoard(ctx, game);
     if (leaf === 'scores' && parts[3] && method === 'DELETE') return deleteScore(ctx, game, parseUserId(parts[3]));
@@ -72,6 +73,25 @@ async function upsertGame(ctx: Ctx, game: string): Promise<Response> {
   return json({ ok: true, game: { game_id: game, name, max_score: maxScore, min_duration_s: minDurationS } });
 }
 
+/** DELETE /v1/admin/games/:game — removes the game with its players and scores (the smoke test's throwaway game, a
+ *  slug that was renamed). Analytics Engine events cannot be deleted; they age out on their own. */
+async function deleteGame(ctx: Ctx, game: string): Promise<Response> {
+  const [scores, players, games] = await ctx.env.DB.batch([
+    ctx.env.DB.prepare('DELETE FROM scores WHERE game_id = ?').bind(game),
+    ctx.env.DB.prepare('DELETE FROM players WHERE game_id = ?').bind(game),
+    ctx.env.DB.prepare('DELETE FROM games WHERE game_id = ?').bind(game),
+  ]);
+  if (!games?.meta.changes) throw new HttpError(404, 'unknown game', 'unknown_game');
+  await bustBoard(ctx, game);
+  return json({ ok: true, deleted: { scores: scores?.meta.changes ?? 0, players: players?.meta.changes ?? 0 } });
+}
+
+/** Drop the cached board (all common limits) and player count of a game; awaited so the next GET already sees the change. */
+async function bustBoard(ctx: Ctx, game: string): Promise<void> {
+  const keys = [`/count/${game}`, ...[10, 20, 50].map((l) => `/board/${game}/${l}`)];
+  await Promise.all(keys.map((k) => caches.default.delete(new Request(new URL(`/__cache${k}`, ctx.url.origin).toString()))));
+}
+
 async function adminBoard(ctx: Ctx, game: string): Promise<Response> {
   const limit = int(ctx.url.searchParams.get('limit') ?? 50, 'limit', 1, 200);
   const rows = await ctx.env.DB.prepare(
@@ -82,8 +102,7 @@ async function adminBoard(ctx: Ctx, game: string): Promise<Response> {
 
 async function deleteScore(ctx: Ctx, game: string, uid: string): Promise<Response> {
   const r = await ctx.env.DB.prepare('DELETE FROM scores WHERE game_id = ? AND user_id = ?').bind(game, uid).run();
-  // bust the cached board for this game (all common limits); awaited so the next GET already sees the change
-  await Promise.all([10, 20, 50].map((l) => caches.default.delete(new Request(new URL(`/__cache/board/${game}/${l}`, ctx.url.origin).toString()))));
+  await bustBoard(ctx, game);
   return json({ ok: true, deleted: r.meta.changes ?? 0 });
 }
 
