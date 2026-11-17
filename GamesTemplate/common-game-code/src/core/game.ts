@@ -3,7 +3,6 @@ import { ctx, fit, initCanvas, view, W, SAFE_H } from './canvas';
 import { initInput, input, takeTap } from './input';
 import { drawTransition, easeOB, go, goNow, inTransition, onSceneChange, S, scenes, state, stepTransition, type Scene } from './scenes';
 import { getSeed, setSeed } from './rng';
-import { setLazyVersion } from './lazy';
 import { R, type Content, type Hooks, type RunResult } from './runtime';
 import { env, validateConfig, type GameConfig } from '../config';
 import { defaultTheme, type Theme } from '../draw/theme';
@@ -80,7 +79,6 @@ export function createGame(def: GameDef): void {
 
   // analytics + challenge + player count
   initAnalytics({ slug: cfg.slug, version: cfg.version, lang: cfg.lang });
-  setLazyVersion(cfg.version);
   R.challenge = parseChallenge();
   if (R.challenge) track('referral_start', { fromUser: R.challenge.from, theirScore: R.challenge.score });
   void api.count(cfg.slug).then((r) => { if (r) R.players = r.playsPublic ?? 0; }); // games played: the real number from 100 on, 0 = show nothing (decision 77)

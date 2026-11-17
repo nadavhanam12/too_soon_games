@@ -114,6 +114,10 @@ if (browser) {
     page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
     // ERR_ABORTED is expected: the perf check reloads the page while audio is still loading, which cancels it
     page.on('requestfailed', (r) => { const why = r.failure()?.errorText || ''; if (!r.url().includes(API) && !/ERR_ABORTED/.test(why)) errors.push('request failed: ' + r.url() + ' ' + why); });
+    // RULES 22ב: every file of the game that the page asks for carries the version in its URL (the page itself excluded).
+    // A file with a fixed name and no version stays in a returning player's browser for hours after a publish.
+    const unversioned = new Set();
+    page.on('request', (r) => { const u = new URL(r.url()); if (u.origin === new URL(base).origin && u.pathname.startsWith(`/${slug}/`) && u.pathname !== `/${slug}/` && u.pathname !== `/${slug}/index.html` && !u.searchParams.has('v')) unversioned.add(u.pathname); });
     const dir = join(OUT, name); mkdirSync(dir, { recursive: true });
     try {
       await page.goto(base + '?c=42&n=Test&u=abcd1234', { waitUntil: 'load', timeout: 15000 });
@@ -172,6 +176,7 @@ if (browser) {
     const realErrors = errors.filter((e) => !/favicon|ERR_ABORTED|net::ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
     ok(S, `${name}: no JS errors`, realErrors.length === 0, realErrors.slice(0, 3).join(' | '));
     if (resourceErrors.length) add(S, `${name}: ${resourceErrors.length} resources failed to load (fonts/CDN offline?)`, 'yellow', resourceErrors[0]);
+    ok(S, `${name}: game files are requested with the version in the URL (rule 22ב)`, unversioned.size === 0, `no ?v= on: ${[...unversioned].slice(0, 6).join(', ')} (load it through assetUrl)`);
     await context.close();
   }
   // ---------- 4b. playthrough (story arc, bot run to the end, same seed twice, lose → retry) ----------

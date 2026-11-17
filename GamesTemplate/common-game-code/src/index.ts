@@ -9,6 +9,7 @@ export * from './draw/prims';
 export { haptic, haptics } from './core/haptics';
 export { getSeed } from './core/rng';
 export { loadLazy } from './core/lazy';
+export { assetUrl } from './core/assets';
 export { defaultTheme, type Theme, type ThemeColors } from './draw/theme';
 export { sfx, music, tone, noise, after, sfxOut, noiseBuffer, type MusicDef, type MusicMode } from './audio/synth';
 export { track, type EventName } from './analytics/track';

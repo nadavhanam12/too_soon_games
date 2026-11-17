@@ -1,7 +1,7 @@
 // The opening, in the painted-poster language of the portraits: full-bleed key art on the title, the cutscene as
 // three comic panels (white poster frame, slow zoom, comic caption boxes) and the stage banner as a mission card.
 // The four paintings are separate WebP files in assets/scenes/ (same reasoning as the portraits, DECISIONS 67).
-import { W, view, ctx, fullBleed, rr, txt, wrap, textWidth, clamp, takeTap, easeO, easeOB, R, state, fmtInt, startFromTitle, env, type Scene } from '@tsg/index';
+import { W, view, ctx, fullBleed, rr, txt, wrap, textWidth, clamp, takeTap, easeO, easeOB, R, state, fmtInt, startFromTitle, env, assetUrl, type Scene } from '@tsg/index';
 import { C, launchSticker, palmSil, sunset } from './art';
 import { ptxt } from './pixel';
 import { UI as UI_TEXT } from './content';
@@ -15,7 +15,7 @@ function load(id: SceneImg): void {
   const im = new Image(); im.decoding = 'async';
   im.onload = () => { readyAt[id] = performance.now(); };
   im.onerror = () => console.error(`[opening] assets/scenes/${id}.webp failed to load`);
-  im.src = `assets/scenes/${id}.webp`;
+  im.src = assetUrl(`assets/scenes/${id}.webp`);
   imgs[id] = im;
 }
 /** The title painting is on the first screen: requested as soon as the module runs. */

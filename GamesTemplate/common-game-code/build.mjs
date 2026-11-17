@@ -61,6 +61,7 @@ const env = (dev) => ({
   apiBase: local ? (process.env.API_BASE ?? 'http://127.0.0.1:8787') : (studio.apiBase || ''),
   publicBase: dev ? '' : (studio.publicBase || ''),
   buildTime: new Date().toISOString(),
+  version: cfg.version,   // goes into the URL of every file the game loads (RULES 22ב, src/core/assets.ts)
   dev,
   studio: { instagram: studio.instagram || '', tiktok: studio.tiktok || '', x: studio.x || '', facebook: studio.facebook || '', youtube: studio.youtube || '', email: studio.email || '' },
   studioLogo,

@@ -34,13 +34,14 @@ export interface Env {
   apiBase: string;       // '' = no server (leaderboard/analytics silently off)
   publicBase: string;    // 'https://toosoon-games.pages.dev' ('' = location.origin)
   buildTime: string;
+  version: string;       // game.json's version at build time: the cache key of every file the game loads (assetUrl)
   dev: boolean;
   studio: StudioLinks;
   studioLogo: string;    // data URI of the studio logo (the site logo, frontend/src/assets/logo.png)
 }
 
 declare const TSG_ENV: Env;
-export const env: Env = typeof TSG_ENV !== 'undefined' ? TSG_ENV : { apiBase: '', publicBase: '', buildTime: '', dev: true, studio: {}, studioLogo: '' };
+export const env: Env = typeof TSG_ENV !== 'undefined' ? TSG_ENV : { apiBase: '', publicBase: '', buildTime: '', version: '', dev: true, studio: {}, studioLogo: '' };
 
 export function validateConfig(c: GameConfig): string[] {
   const errs: string[] = [];

@@ -1,3 +1,4 @@
+import { assetUrl } from '../core/assets';
 // Synth-only audio (no files): one-shot sfx + a step-sequencer music loop. Ported from FallingCEO.
 // Everything waits for the first pointerdown (AudioContext resume). `M` toggles music.
 
@@ -127,7 +128,7 @@ export const music = {
     // looped files: created now (preload), played after the first gesture, crossfaded by a 100 ms ticker
     for (const k of Object.keys(def.files) as TrackName[]) {
       const src = def.files[k]; if (!src) continue;
-      const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.volume = 0;
+      const a = new Audio(assetUrl(src)); a.loop = true; a.preload = 'auto'; a.volume = 0;
       a.addEventListener('error', () => { a.dataset.missing = '1'; });
       this.tracks[k] = a;
     }

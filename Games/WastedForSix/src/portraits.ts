@@ -1,7 +1,7 @@
 // The 8 painted portraits (boss / clerk states). First bitmap portraits on the template (DECISIONS 67): 720x960 WebP
 // files in assets/portraits/, NOT inlined into index.html, and requested only after the first frame so the 300 KB /
 // first-frame budget (rule 13א) is untouched. Until a file arrives the scene draws a neutral silhouette.
-import { ctx, rr, txt } from '@tsg/index';
+import { ctx, rr, txt, assetUrl } from '@tsg/index';
 import { launchSticker } from './art';
 
 export type PortraitId = 'boss-idle' | 'boss-agree' | 'boss-sick' | 'boss-quit' | 'clerk-idle' | 'clerk-loan' | 'clerk-steal' | 'clerk-tradein'
@@ -17,7 +17,7 @@ export function loadPortraits(): void {
   for (const id of ORDER) {
     const im = new Image(); im.decoding = 'async';
     im.onload = () => ready.add(id);
-    im.src = `assets/portraits/${id}.webp`;
+    im.src = assetUrl(`assets/portraits/${id}.webp`);
     imgs[id] = im;
   }
 }
