@@ -3,6 +3,8 @@
 //   blob1 game, blob2 name, blob3 userId, blob4 sessionId, blob5 country, blob6 city,
 //   blob7 device, blob8 version, blob9 dim (stage|channel|network|reason|fromUser|lastScreen),
 //   blob10 props JSON (≤ 1KB)
+//   blob11 ch: the visit's channel, "medium:source" from UTM, or referral | ref:<host> | direct (same for every event of a visit)
+//   blob12 origin: the channel that started the share chain this visit came from (the `o` param), else = ch
 //   double1 value (score|timeS|rank|durationS), double2 client ts (ms)
 // Counting with sampling in mind: SUM(_sample_interval) instead of count().
 
@@ -19,7 +21,7 @@ export interface IncomingEvent {
 const DIM_KEYS = ['stage', 'channel', 'network', 'reason', 'fromUser', 'lastScreen'] as const;
 const VALUE_KEYS = ['score', 'timeS', 'rank', 'durationS', 'theirScore', 'atS'] as const;
 
-export function writeEvent(ctx: Ctx, game: string, userId: string, version: string, e: IncomingEvent): void {
+export function writeEvent(ctx: Ctx, game: string, userId: string, version: string, e: IncomingEvent, ch = '', origin = ''): void {
   const p = e.props || {};
   let dim = '';
   for (const k of DIM_KEYS) {
@@ -35,7 +37,7 @@ export function writeEvent(ctx: Ctx, game: string, userId: string, version: stri
   try { propsJson = JSON.stringify(p).slice(0, 1024); } catch { /* ignore */ }
   ctx.env.EVENTS.writeDataPoint({
     indexes: [game],
-    blobs: [game, e.name, userId, e.sessionId, ctx.country, ctx.city, ctx.device, version, dim, propsJson],
+    blobs: [game, e.name, userId, e.sessionId, ctx.country, ctx.city, ctx.device, version, dim, propsJson, ch, origin],
     doubles: [value, e.ts],
   });
 }
@@ -61,6 +63,11 @@ export async function querySql<T = Record<string, unknown>>(ctx: Ctx, sql: strin
   });
   if (!res.ok) throw new Error(`analytics query failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
   return (await res.json()) as SqlResult<T>;
+}
+
+/** A channel label from the client: lower-case letters, digits and . _ - :, at most 64 ("" when absent or malformed). */
+export function channelLabel(v: unknown): string {
+  return typeof v === 'string' && /^[a-z0-9._:-]{1,64}$/.test(v) ? v : '';
 }
 
 /** Escapes a value for use inside single quotes in an AE SQL string. */

@@ -55,8 +55,10 @@ const LOGO_PATH = join(HERE, '..', 'frontend', 'src', 'assets', 'logo.png');
 if (!existsSync(LOGO_PATH)) die(`missing studio logo ${LOGO_PATH}`);
 const studioLogo = 'data:image/png;base64,' + readFileSync(LOGO_PATH).toString('base64');
 
+// Only the publish build (no --local) talks to the live API. dev and --local builds (bug check, asset and clip tools)
+// use the local worker, so test runs never write events or scores into production data.
 const env = (dev) => ({
-  apiBase: dev ? (process.env.API_BASE ?? 'http://127.0.0.1:8787') : (studio.apiBase || ''),
+  apiBase: local ? (process.env.API_BASE ?? 'http://127.0.0.1:8787') : (studio.apiBase || ''),
   publicBase: dev ? '' : (studio.publicBase || ''),
   buildTime: new Date().toISOString(),
   dev,

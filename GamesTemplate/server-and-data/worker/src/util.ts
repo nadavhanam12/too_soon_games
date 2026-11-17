@@ -100,12 +100,27 @@ export function makeCtx(req: Request, env: Env, ec: ExecutionContext): Ctx {
   };
 }
 
+// ---------- test traffic ----------
+
+const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const isLocalHost = (h: string): boolean => h === 'localhost' || h === '127.0.0.1';
+
+/**
+ * A page served from localhost (dev server, bug check, asset tools) must not write events or scores into the live
+ * data. The deployed worker refuses those writes; `wrangler dev` (itself on localhost) accepts them.
+ */
+export function refuseLocalWrite(ctx: Ctx): void {
+  if (ctx.origin && LOCAL_ORIGIN.test(ctx.origin) && !isLocalHost(ctx.url.hostname)) {
+    throw new HttpError(403, 'a localhost page cannot write to the live API', 'local_origin');
+  }
+}
+
 // ---------- CORS ----------
 
 export function allowedOrigin(ctx: Ctx): string | null {
   const o = ctx.origin;
   if (!o) return null;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return o;
+  if (LOCAL_ORIGIN.test(o)) return o;
   const list = (ctx.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
   for (const a of list) {
     if (a === o) return o;

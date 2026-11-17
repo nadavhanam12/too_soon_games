@@ -1,14 +1,15 @@
 import type { Ctx } from '../env';
-import { isEventName, writeEvent, type IncomingEvent } from '../analytics';
+import { channelLabel, isEventName, writeEvent, type IncomingEvent } from '../analytics';
 import { HttpError, getGame, noContent, rateLimit, readJson, shortText, userId as parseUserId } from '../util';
 
-interface Body { userId?: unknown; version?: unknown; lang?: unknown; events?: unknown }
+interface Body { userId?: unknown; version?: unknown; lang?: unknown; ch?: unknown; origin?: unknown; events?: unknown }
 interface RawEvent { name?: unknown; ts?: unknown; sessionId?: unknown; props?: unknown }
 
 const MAX_BATCH = 50;
 
 /**
- * POST /v1/games/:game/events  { userId, version, lang?, events: [{name, ts, sessionId, props?}] }  → 204
+ * POST /v1/games/:game/events  { userId, version, lang?, ch?, origin?, events: [{name, ts, sessionId, props?}] }  → 204
+ * ch/origin: the visit's channel and the share chain's origin (docs/EVENTS.md), written on every event.
  * Every event goes to Analytics Engine. Two cheap D1 side effects:
  *   session_start → upsert users (country/city/device/lang/last_seen)
  *   game_start    → INSERT OR IGNORE players (the "N players" counter)
@@ -20,6 +21,8 @@ export async function postEvents(ctx: Ctx, game: string): Promise<Response> {
   const uid = parseUserId(b.userId);
   const version = shortText(b.version, 'version', 32) ?? '';
   const lang = shortText(b.lang, 'lang', 16);
+  const ch = channelLabel(b.ch);
+  const origin = channelLabel(b.origin) || ch;
   if (!Array.isArray(b.events) || b.events.length === 0) throw new HttpError(400, 'events must be a non-empty array', 'bad_events');
   if (b.events.length > MAX_BATCH) throw new HttpError(400, `at most ${MAX_BATCH} events per batch`, 'batch_too_big');
   await getGame(ctx.env, game);
@@ -34,7 +37,7 @@ export async function postEvents(ctx: Ctx, game: string): Promise<Response> {
     if (Math.abs(ts - nowMs) > 7 * 86_400_000) ts = nowMs; // wild client clocks → server time
     const props = raw.props && typeof raw.props === 'object' && !Array.isArray(raw.props) ? (raw.props as Record<string, unknown>) : {};
     const e: IncomingEvent = { name: raw.name, ts, sessionId, props };
-    writeEvent(ctx, game, uid, version, e);
+    writeEvent(ctx, game, uid, version, e, ch, origin);
     if (e.name === 'session_start') sawSessionStart = true;
     if (e.name === 'game_start') sawGameStart = true;
   }

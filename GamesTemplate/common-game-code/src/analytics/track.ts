@@ -19,6 +19,30 @@ let timer = 0;
 let sessionStartedAt = 0;
 let lastScreen = 'title';
 let started = false;
+let ch = 'direct', origin = 'direct';
+
+/** Lower-case a-z0-9._- only, so a label is safe in a URL and accepted by the API (channelLabel). */
+const clean = (s: string, max = 32): string => s.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, max);
+
+/**
+ * The visit's channel (docs/EVENTS.md): "medium:source" from UTM, "referral" for a challenge link, "ref:<host>" for
+ * another site, else "direct". The origin is where the share chain started: the `o` param a challenge link carries,
+ * so a friend who opens a shared link still counts toward the creator or outlet that brought the first player.
+ */
+function channelOf(u: URL, refHost: string): { ch: string; origin: string } {
+  const p = u.searchParams;
+  const src = clean(p.get('utm_source') || ''), med = clean(p.get('utm_medium') || '');
+  let c: string;
+  if (src || med) c = `${med || 'none'}:${src || 'none'}`;
+  else if (p.has('c')) c = 'referral';
+  else if (refHost && refHost !== location.host) c = `ref:${clean(refHost, 48)}`;
+  else c = 'direct';
+  const o = (p.get('o') || '').toLowerCase();
+  return { ch: c, origin: /^[a-z0-9._:-]{1,64}$/.test(o) ? o : c };
+}
+
+/** The origin to carry in this player's share links (`o=`). */
+export function shareOrigin(): string { return origin; }
 
 function sid(): string { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
 
@@ -28,8 +52,10 @@ export function initAnalytics(opts: { slug: string; version: string; lang: strin
   const u = new URL(location.href);
   let ref = '';
   try { ref = document.referrer ? new URL(document.referrer).host : ''; } catch { /* ignore */ }
+  ({ ch, origin } = channelOf(u, ref));
   track('session_start', {
     ref, utm_source: u.searchParams.get('utm_source') || '', utm_medium: u.searchParams.get('utm_medium') || '',
+    utm_campaign: u.searchParams.get('utm_campaign') || '', utm_content: u.searchParams.get('utm_content') || '',
     lang: navigator.language, viewportW: innerWidth, viewportH: innerHeight, dpr: Math.round((devicePixelRatio || 1) * 10) / 10,
   });
   document.addEventListener('visibilitychange', () => {
@@ -55,7 +81,7 @@ export function flush(beacon = false): void {
   if (timer) { clearTimeout(timer); timer = 0; }
   if (!queue.length) return;
   const events = queue.splice(0, 50);
-  const body = { userId: userId(), version, lang, events };
+  const body = { userId: userId(), version, lang, ch, origin, events };
   if (beacon) api.beacon(slug, body);
   else void api.events(slug, body);
   if (queue.length) flush(beacon);

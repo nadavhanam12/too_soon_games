@@ -50,7 +50,7 @@ svg{width:100%;height:120px;display:block}
 <header>
   <h1>Too Soon Games · דאטה</h1>
   <select id="game"></select>
-  <select id="days"><option value="1">24 שעות</option><option value="7" selected>7 ימים</option><option value="30">30 יום</option><option value="90">90 יום</option></select>
+  <select id="days"><option value="h6">6 שעות</option><option value="h24">24 שעות (מדויק)</option><option value="h72">72 שעות</option><option value="1">יום</option><option value="7" selected>7 ימים</option><option value="30">30 יום</option><option value="90">90 יום</option></select>
   <button id="refresh" class="ghost">רענן</button>
   <span class="sp"></span>
   <button id="newGame" class="ghost">+ משחק</button>
@@ -59,6 +59,7 @@ svg{width:100%;height:120px;display:block}
 <main>
   <section class="wide"><h2>סיכום</h2><div class="tiles" id="tiles"></div></section>
   <section><h2>משפך <span class="muted" id="funnelNote"></span></h2><div class="funnel" id="funnel"></div></section>
+  <section><h2>ערוצים <span class="muted">· UTM, ומקור שרשרת השיתוף (k = הגיעו משיתוף חלקי התחילו)</span></h2><div id="channels"></div></section>
   <section><h2>ביקורים ליום</h2><svg id="daily" viewBox="0 0 600 120" preserveAspectRatio="none"></svg><div class="muted" id="dailyNote" style="font-size:12px"></div></section>
   <section><h2>מדינות</h2><table id="countries"></table></section>
   <section><h2>ערים</h2><table id="cities"></table></section>
@@ -115,25 +116,26 @@ function table(sel,rows,cols,render){
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function load(){
   const game=$('#game').value;const days=$('#days').value;if(!game)return;
-  const [s,b]=await Promise.all([api(`/v1/admin/games/${game}/stats?days=${days}`),api(`/v1/admin/games/${game}/board?limit=50`)]);
+  const [s,b]=await Promise.all([api(`/v1/admin/games/${game}/stats?${days.startsWith('h')?`days=7&hours=${days.slice(1)}`:`days=${days}`}`),api(`/v1/admin/games/${game}/board?limit=50`)]);
   const ae=s.ae,aeOk=!ae.error;
   const c=aeOk?ae.counts:{};
   $('#tiles').innerHTML=[
     ['שחקנים (סה"כ)',fmt(s.d1.players)],['שחקנים חדשים בטווח',fmt(s.d1.playersInRange)],['בלוח',fmt(s.d1.scores)],
     ['שיא',s.d1.bestScore==null?'-':fmt(s.d1.bestScore)],['ממוצע',s.d1.avgScore==null?'-':fmt(s.d1.avgScore)],
-    ['ביקורים',aeOk?fmt(c.session_start):'-'],['סיימו',aeOk?fmt(c.game_complete):'-'],['לחצו שיתוף',aeOk?fmt(c.share_click):'-'],['הגיעו משיתוף',aeOk?fmt(c.referral_start):'-'],
+    ['ביקורים',aeOk?fmt(c.session_start):'-'],['סיימו ריצה',aeOk?fmt(c.run_end):'-'],['לחצו שיתוף',aeOk?fmt(c.share_click):'-'],['הגיעו משיתוף',aeOk?fmt(c.referral_start):'-'],
   ].map(([l,v])=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
   if(!aeOk){
     const msg=`<div class="err">אנליטיקה לא זמינה: ${esc(ae.error)}\n(מקומית זה צפוי. בענן: הגדר CF_ACCOUNT_ID ו־CF_API_TOKEN.)</div>`;
-    for(const id of ['funnel','countries','cities','devices','share','over','referrals','follows','errors','counts'])$('#'+id).innerHTML=msg;
+    for(const id of ['funnel','channels','countries','cities','devices','share','over','referrals','follows','errors','counts'])$('#'+id).innerHTML=msg;
     $('#daily').innerHTML='';$('#dailyNote').textContent='';
   }else{
     const f=ae.funnel,max=f[0].n||1;
     $('#funnelNote').textContent=ae.uniques?`· ${fmt(ae.uniques.users)} משתמשים ייחודיים, ${fmt(ae.uniques.sessions)} ביקורים`:'';
-    $('#funnel').innerHTML=f.map((x,i)=>`<div><span>${{session_start:'הגיעו',game_start:'התחילו',game_complete:'סיימו',share_click:'לחצו שיתוף',referral_start:'הגיעו משיתוף'}[x.name]}</span><div class="bar" style="width:${Math.max(2,x.n/max*100)}%"></div><b>${fmt(x.n)}</b><span class="muted">${i?pct(x.n,f[i-1].n):''}</span></div>`).join('');
+    $('#funnel').innerHTML=f.map((x,i)=>`<div><span>${{session_start:'הגיעו',visits_started:'התחילו',run_end:'סיימו ריצה',share_click:'לחצו שיתוף',referral_start:'הגיעו משיתוף'}[x.name]}</span><div class="bar" style="width:${Math.max(2,x.n/max*100)}%"></div><b>${fmt(x.n)}</b><span class="muted">${i?pct(x.n,f[i-1].n):''}</span></div>`).join('');
     const d=ae.daily||[],m=Math.max(1,...d.map(x=>+x.n)),w=600/Math.max(1,d.length);
     $('#daily').innerHTML=d.map((x,i)=>`<rect x="${i*w+1}" y="${120-(+x.n/m*110)}" width="${Math.max(1,w-2)}" height="${+x.n/m*110}" fill="url(#g)"><title>${x.day}: ${fmt(x.n)}</title></rect>`).join('')+'<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4fd8"/><stop offset="1" stop-color="#8a3cff"/></linearGradient></defs>';
     $('#dailyNote').textContent=d.length?`${d[0].day.slice(0,10)} → ${d[d.length-1].day.slice(0,10)}, שיא ${fmt(m)} ביום`:'אין נתונים';
+    table('#channels',Object.entries(ae.channels||{}).sort((a,b)=>b[1].visits-a[1].visits),['ערוץ','ביקורים','התחילו','כניסה','סיימו','שיתוף','הביאו (k)'],([k,v])=>[esc(k),fmt(v.visits),fmt(v.starts),pct(v.starts,v.visits),fmt(v.runEnds),pct(v.shareClicks,v.starts),`${fmt(v.referrals)} (${v.starts?(v.referrals/v.starts).toFixed(2):'-'})`]);
     table('#countries',ae.countries,['מדינה','ביקורים'],r=>[esc(r.country||'?'),fmt(r.n)]);
     table('#cities',ae.cities,['עיר','מדינה','ביקורים'],r=>[esc(r.city||'?'),esc(r.country||''),fmt(r.n)]);
     table('#devices',ae.devices,['מכשיר','ביקורים'],r=>[esc(r.device),fmt(r.n)]);

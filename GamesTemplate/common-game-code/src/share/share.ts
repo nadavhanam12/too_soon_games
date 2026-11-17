@@ -1,6 +1,7 @@
 // Share text, the public URL and the challenge link (docs/SHARE.md).
 import { env, type GameConfig } from '../config';
 import { shortUserId } from '../storage/storage';
+import { shareOrigin } from '../analytics/track';
 
 export interface Challenge { score: number; nick: string; from: string }
 
@@ -16,6 +17,8 @@ export function challengeUrl(cfg: GameConfig, score: number, nick: string): stri
   u.searchParams.set('c', String(Math.round(score)));
   if (nick) u.searchParams.set('n', nick.slice(0, 16));
   u.searchParams.set('u', shortUserId());
+  const o = shareOrigin();
+  if (o !== 'direct') u.searchParams.set('o', o); // who started the share chain (docs/EVENTS.md); direct adds nothing
   return u.toString();
 }
 

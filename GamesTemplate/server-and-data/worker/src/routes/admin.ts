@@ -110,6 +110,9 @@ async function deleteScore(ctx: Ctx, game: string, uid: string): Promise<Respons
 
 async function stats(ctx: Ctx, game: string): Promise<Response> {
   const days = int(ctx.url.searchParams.get('days') ?? 7, 'days', 1, 90);
+  // ?hours=N narrows the analytics to the last N hours (the launch gates: T0+6, T0+24); D1 numbers stay per `days`
+  const hoursRaw = ctx.url.searchParams.get('hours');
+  const hours = hoursRaw === null ? null : int(hoursRaw, 'hours', 1, 2160);
   const [players, scores, since] = await Promise.all([
     ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM players WHERE game_id = ?').bind(game).first<{ n: number }>(),
     ctx.env.DB.prepare('SELECT COUNT(*) AS n, MAX(score) AS best, AVG(score) AS avg FROM scores WHERE game_id = ?').bind(game).first<{ n: number; best: number | null; avg: number | null }>(),
@@ -119,18 +122,21 @@ async function stats(ctx: Ctx, game: string): Promise<Response> {
 
   let ae: Record<string, unknown> | { error: string };
   try {
-    ae = await aeStats(ctx, game, days);
+    ae = await aeStats(ctx, game, days, hours);
   } catch (e) {
     ae = { error: (e as Error).message };
   }
-  return json({ game, days, d1, ae });
+  return json({ game, days, hours, d1, ae });
 }
 
-async function aeStats(ctx: Ctx, game: string, days: number): Promise<Record<string, unknown>> {
+async function aeStats(ctx: Ctx, game: string, days: number, hours: number | null): Promise<Record<string, unknown>> {
   const ds = ctx.env.EVENTS_DATASET;
-  const where = `index1 = ${sqlStr(game)} AND timestamp > NOW() - INTERVAL '${days}' DAY`;
+  // test traffic that was cleaned out of D1 (migrations/0003): its events stay in Analytics Engine, so leave them out here
+  const ex = await ctx.env.DB.prepare('SELECT user_id FROM excluded_users').all<{ user_id: string }>();
+  const notExcluded = ex.results.length ? ` AND blob3 NOT IN (${ex.results.map((r) => sqlStr(r.user_id)).join(',')})` : '';
+  const where = `index1 = ${sqlStr(game)} AND timestamp > NOW() - INTERVAL '${hours ?? days}' ${hours ? 'HOUR' : 'DAY'}${notExcluded}`;
   const q = (sql: string) => querySql(ctx, sql).then((r) => r.data);
-  const [byName, daily, countries, cities, devices, share, overByStage, referrals, follows, errors, uniques] = await Promise.all([
+  const [byName, daily, countries, cities, devices, share, overByStage, referrals, follows, errors, uniques, channelRows, originRows, startedRows, endedRows] = await Promise.all([
     q(`SELECT blob2 AS name, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} GROUP BY name ORDER BY n DESC`),
     q(`SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY day ORDER BY day`),
     q(`SELECT blob5 AS country, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY country ORDER BY n DESC LIMIT 12`),
@@ -142,9 +148,27 @@ async function aeStats(ctx: Ctx, game: string, days: number): Promise<Record<str
     q(`SELECT blob9 AS network, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'follow_click' GROUP BY network ORDER BY n DESC`),
     q(`SELECT timestamp, blob10 AS props, blob7 AS device FROM ${ds} WHERE ${where} AND blob2 = 'error' ORDER BY timestamp DESC LIMIT 20`),
     q(`SELECT COUNT(DISTINCT blob3) AS users, COUNT(DISTINCT blob4) AS sessions FROM ${ds} WHERE ${where} AND blob2 = 'session_start'`),
+    q(`SELECT blob11 AS ch, blob2 AS name, COUNT(DISTINCT blob4) AS visits, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 IN ('session_start','game_start','game_complete','game_over','share_click') GROUP BY ch, name`),
+    q(`SELECT blob12 AS origin, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'referral_start' GROUP BY origin`),
+    // per visit, not per event: "replay" starts a new run without a new game_start, so event counts overstate run ends
+    q(`SELECT COUNT(DISTINCT blob4) AS n FROM ${ds} WHERE ${where} AND blob2 = 'game_start'`),
+    q(`SELECT COUNT(DISTINCT blob4) AS n FROM ${ds} WHERE ${where} AND blob2 IN ('game_complete','game_over')`),
   ]);
   const counts: Record<string, number> = {};
   for (const r of byName) counts[String(r['name'])] = Number(r['n']);
-  const funnel = ['session_start', 'game_start', 'game_complete', 'share_click', 'referral_start'].map((name) => ({ name, n: counts[name] ?? 0 }));
-  return { counts, funnel, daily, countries, cities, devices, share, overByStage, referrals, follows, errors, uniques: uniques[0] ?? null };
+  // The funnel counts visits (sessions): started = visits with a game_start, finished = visits that ended at least one run,
+  // a win OR a loss (endless games only send game_over). docs/EVENTS.md
+  counts['visits_started'] = Number(startedRows[0]?.['n'] ?? 0);
+  counts['run_end'] = Number(endedRows[0]?.['n'] ?? 0);
+  const funnel = ['session_start', 'visits_started', 'run_end', 'share_click', 'referral_start'].map((name) => ({ name, n: counts[name] ?? 0 }));
+  // per channel: visits, starts, run ends, share clicks, and the referral starts whose share chain began there
+  type ChRow = { visits: number; starts: number; runEnds: number; shareClicks: number; referrals: number };
+  const channels: Record<string, ChRow> = {};
+  const row = (k: string): ChRow => (channels[k || '(none)'] ??= { visits: 0, starts: 0, runEnds: 0, shareClicks: 0, referrals: 0 });
+  // starts and run ends per visit (like the funnel), visits and share clicks as event counts. A visit that both won and
+  // lost counts twice in runEnds: rare (a win ends the game) and only in games with a win
+  const key: Record<string, [keyof ChRow, 'visits' | 'n']> = { session_start: ['visits', 'n'], game_start: ['starts', 'visits'], game_complete: ['runEnds', 'visits'], game_over: ['runEnds', 'visits'], share_click: ['shareClicks', 'n'] };
+  for (const r of channelRows) { const k = key[String(r['name'])]; if (k) row(String(r['ch'] ?? ''))[k[0]] += Number(r[k[1]]); }
+  for (const r of originRows) row(String(r['origin'] ?? '')).referrals += Number(r['n']);
+  return { counts, funnel, channels, daily, countries, cities, devices, share, overByStage, referrals, follows, errors, uniques: uniques[0] ?? null };
 }

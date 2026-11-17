@@ -7,12 +7,20 @@
 - לא מודדים כל לחיצה. 16 אירועים, לא יותר.
 - כל אירוע נושא אוטומטית: `game`, `version`, `userId`, `sessionId`, `ts`, ובשרת: `country`, `city`,
   `device` (phone/tablet/desktop), `os`. אין צורך לשלוח אותם ידנית.
+- **ערוץ ומקור (נוסף 2026-11-17, MARKETING-BUILD-PLAN E2-E3):** כל אירוע נושא גם `ch` ו־`origin` (blob11, blob12).
+  `ch` הוא ערוץ הביקור, נקבע פעם אחת בטעינה: `medium:source` מ־UTM (`press:wccftech`, `social:tiktok`), `referral` ללינק
+  אתגר בלי UTM, `ref:<host>` לאתר אחר, אחרת `direct`. `origin` הוא מי שהתחיל את שרשרת השיתוף: לינק האתגר נושא `o=<origin>`,
+  ומי שנכנס ממנו ומשתף מעביר אותו הלאה. ככה `k` של ערוץ = `referral_start` שה־origin שלהם הוא הערוץ, חלקי `game_start` בערוץ.
+  האדמין מציג טבלת ערוצים, ו־`?hours=N` מצמצם לחלון של השערים. המשפך באדמין סופר ביקורים: "התחילו" = ביקורים עם `game_start`, "סיימו" (`run_end`) = ביקורים שסיימו לפחות ריצה אחת, בניצחון (`game_complete`) או בהפסד (`game_over`). לא אירועים: "שחק שוב" מתחיל ריצה בלי `game_start` חדש, וספירת אירועים מנפחת את הסיום.
+
+- **תעבורת בדיקה לא נספרת** (DECISIONS 82): build מקומי שולח ל־API המקומי, השרת החי דוחה כתיבה מ־localhost,
+  ומכשיר שנפתח פעם אחת עם `?internal=1` לא שולח אירועים וניקוד (`?internal=0` מבטל). משתמשים ב־`excluded_users` לא נכנסים לדאשבורד.
 
 ## הרשימה
 
 | אירוע | מתי | props | השאלה שהוא עונה עליה |
 |---|---|---|---|
-| `session_start` | טעינת הדף | `ref` (referrer host), `utm_source`, `utm_medium`, `lang`, `viewportW/H`, `dpr` | מאיפה מגיעים, על איזה מכשירים |
+| `session_start` | טעינת הדף | `ref` (referrer host), `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `lang`, `viewportW/H`, `dpr` | מאיפה מגיעים, על איזה מכשירים |
 | `referral_start` | טעינה עם פרמטרי אתגר | `fromUser`, `theirScore` | כמה פתיחות הגיעו משיתוף, מי מביא חברים |
 | `game_start` | הקשה בפתיחה | | כמה מהמגיעים משחקים (לא רק רואים) |
 | `cutscene_skip` | דילוג על הסצנה | `atS` | הסצנה ארוכה מדי? |

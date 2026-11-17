@@ -1,11 +1,26 @@
 // The only place that calls fetch (rule 12). Every call times out and returns null on failure:
 // the game never waits on the server and never breaks because of it.
 import { env } from '../config';
+import { get, set } from '../storage/storage';
 
 const TIMEOUT_MS = 4000;
 
+/**
+ * The studio's own devices: opening any game once with `?internal=1` marks this browser (per site origin), and from
+ * then on it sends no events and no scores, so the owner's plays on the live site stay out of the data.
+ * `?internal=0` clears the mark. Reads (counter, leaderboard) still work.
+ */
+function readInternal(): boolean {
+  const q = new URLSearchParams(location.search).get('internal');
+  if (q === '1') set('internal', '1');
+  if (q === '0') set('internal', '');
+  return get('internal') === '1';
+}
+export const internalDevice = readInternal();
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T | null> {
   if (!env.apiBase) return null;
+  if (internalDevice && method !== 'GET') return null;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
@@ -38,7 +53,7 @@ export const api = {
   events: (slug: string, body: unknown) => call<Record<string, never>>('POST', `/v1/games/${slug}/events`, body),
   /** Fire-and-forget on page hide; falls back to keepalive fetch. */
   beacon(slug: string, body: unknown): void {
-    if (!env.apiBase) return;
+    if (!env.apiBase || internalDevice) return;
     const url = env.apiBase.replace(/\/$/, '') + `/v1/games/${slug}/events`;
     const data = JSON.stringify(body);
     try {
