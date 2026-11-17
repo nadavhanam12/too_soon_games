@@ -168,7 +168,7 @@ registerStage('launch', {
         if (noteCd <= 0) { noteCd = 5; say(pick(LINES.noteFlash), 2, true); }
       };
     } else {
-      G.fuel = 0.62;   // you quit before filling up
+      G.fuel = 0.8;   // you quit before filling up (0.62 until the gas station moved deep into the docks: 377 u away, was 105)
       ev.caught = () => fail('cop');
     }
     ev.arrive = (id) => {

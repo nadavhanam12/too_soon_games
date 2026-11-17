@@ -31,11 +31,14 @@ export interface Place { id: PlaceId; i: number; j: number; side: 'N' | 'S' | 'E
 
 // ---------- the story's places: blocks reserved in the scene's grid, door on the road beside the block ----------
 const PLACE_DEF: Array<[PlaceId, number, number, Place['side']]> = [
-  ['home', -5, 3, 'E'],     // suburbs, west
-  ['office', 2, -3, 'S'],   // downtown, by the ring road
-  ['store', -3, -1, 'S'],   // midtown
-  ['clinic', 1, 1, 'W'],    // off the way to the store (sick branch detour)
-  ['gas', 3, -1, 'W'],      // edge of the docks (quit branch detour)
+  // Spread to the corners (2026-11-17, Nadav: the run should show more of the map). Measured on the nav grid: the
+  // commute crosses suburbs, mall, park and the ring road (702 u); the sick branch the park and the plaza (651); the
+  // quit branch the docks and the bends (690); the chase home runs the whole beach road, east to west (485).
+  ['home', -5, 4, 'E'],     // suburbs, south-west, a block from the beach
+  ['office', 1, -6, 'S'],   // the north edge, beyond the ring road
+  ['store', 4, 4, 'W'],     // south-east, on the beach road
+  ['clinic', 1, 0, 'W'],    // centre, east of the park (sick branch detour)
+  ['gas', 5, -1, 'W'],      // deep in the docks (quit branch detour)
 ];
 const door = (i: number, j: number, side: Place['side']): { x: number; y: number } => {
   const cx = i * CELL, cz = j * CELL, o = CELL / 2;
@@ -241,10 +244,11 @@ road([[-290, -40], [-270, -30], [-245, -28]]);
   road([[cx + rx - 2, -252], [122, -252], [140, -252], [148, -252]], ROAD - 2);
   road([[cx, -316], [cx, -308], [cx, -296], [cx, cz - rz + 2]], ROAD - 2);
 }
-// sweeping bends in the docks, a lazy S-curve along the beach
+// sweeping bends in the docks. The scene also had an S-curve along the beach: it was painted over the straight grid
+// road there (the blocks on both sides stay square), which looked like two roads on top of each other once the chase
+// home ran along it (Nadav, 2026-11-17), so it is gone and the beach road is the plain grid road.
 road(arc(252, 140, 56, Math.PI, Math.PI * 1.5));
 road(arc(140, 28, 56, 0, Math.PI * 0.5));
-road([[-196, 252], [-150, 236], [-100, 262], [-50, 240], [0, 262], [56, 252]]);
 // roundabouts
 for (const o of ISLANDS) {
   cyl('plain', o.r, o.r + 0.4, 0.6, 28, o.x, 0.3, o.z, 0xe8e0d0);
