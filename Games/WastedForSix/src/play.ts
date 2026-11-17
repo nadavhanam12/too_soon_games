@@ -35,7 +35,7 @@ export function stageTrack(name: StageName = G.stage): string {
   while (i > 0 && !DRIVING[ORDER[i]!]) i--;
   return STAGE_MUSIC[ORDER[i]!];
 }
-export const LEG_TARGET_S: Partial<Record<StageName, number>> = { commute: 46, launch: 68, home: 58 };   // the old slack over the longer routes (places moved to the corners, 2026-11-17)
+export const LEG_TARGET_S: Partial<Record<StageName, number>> = { commute: 36, launch: 68, home: 58 };   // the old slack over the longer routes (places moved to the corners, 2026-11-17)
 export const OUTRO_S = 1.5;      // "PRESS START" end beat (rule 13ג)
 export const START_MONEY = 60;   // wallet at 8:30 a.m. (the sick branch always has something for the doctor)
 export const FAIL_S = 1.2;       // the caught / fired / out-of-fuel moment before the lose screen (rules 13ג, 13ז)

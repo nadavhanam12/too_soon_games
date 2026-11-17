@@ -31,13 +31,14 @@ export interface Place { id: PlaceId; i: number; j: number; side: 'N' | 'S' | 'E
 
 // ---------- the story's places: blocks reserved in the scene's grid, door on the road beside the block ----------
 const PLACE_DEF: Array<[PlaceId, number, number, Place['side']]> = [
-  // Spread to the corners (2026-11-17, Nadav: the run should show more of the map). Measured on the nav grid: the
-  // commute crosses suburbs, mall, park and the ring road (702 u); the sick branch the park and the plaza (651); the
-  // quit branch the docks and the bends (690); the chase home runs the whole beach road, east to west (485).
+  // Spread over the map (2026-11-17, Nadav: the run should show more of it). Measured on the nav grid: the commute is
+  // short, it is the first mission: suburbs, mall, park (390 u); the sick branch goes north under the ring road, then
+  // through the plaza and the bends (638); the quit branch the docks and the bends (680); the chase home runs the
+  // whole beach road, east to west (485). The office was north of the ring road for a day (commute 702): too far.
   ['home', -5, 4, 'E'],     // suburbs, south-west, a block from the beach
-  ['office', 1, -6, 'S'],   // the north edge, beyond the ring road
+  ['office', -2, -1, 'E'],  // midtown, facing the central park from the west
   ['store', 4, 4, 'W'],     // south-east, on the beach road
-  ['clinic', 1, 0, 'W'],    // centre, east of the park (sick branch detour)
+  ['clinic', 1, -3, 'S'],   // north, just under the ring road (sick branch detour)
   ['gas', 5, -1, 'W'],      // deep in the docks (quit branch detour)
 ];
 const door = (i: number, j: number, side: Place['side']): { x: number; y: number } => {
