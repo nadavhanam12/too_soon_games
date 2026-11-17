@@ -1,7 +1,7 @@
 // The opening, in the painted-poster language of the portraits: full-bleed key art on the title, the cutscene as
 // three comic panels (white poster frame, slow zoom, comic caption boxes) and the stage banner as a mission card.
 // The four paintings are separate WebP files in assets/scenes/ (same reasoning as the portraits, DECISIONS 67).
-import { W, ctx, fullBleed, rr, txt, wrap, textWidth, clamp, takeTap, easeO, easeOB, R, state, fmtInt, startFromTitle, env, type Scene } from '@tsg/index';
+import { W, view, ctx, fullBleed, rr, txt, wrap, textWidth, clamp, takeTap, easeO, easeOB, R, state, fmtInt, startFromTitle, env, type Scene } from '@tsg/index';
 import { C, launchSticker, palmSil, sunset } from './art';
 import { ptxt } from './pixel';
 
@@ -36,6 +36,14 @@ function cover(im: HTMLImageElement, x: number, y: number, w: number, h: number,
   return { x: dx, y: dy, s };
 }
 const k01 = (t: number, from: number, dur: number): number => clamp((t - from) / dur, 0, 1);
+/** On a wide canvas a picture that fills only the 360 column gets its two side edges melted into the dark around it. */
+export function edgeFade(y: number, h: number, col = '10,10,12', a = 0.9): void {
+  const F = 34;
+  for (const [x, dir] of [[0, 1], [W, -1]] as const) {
+    const g = ctx.createLinearGradient(x, 0, x + dir * F, 0); g.addColorStop(0, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.fillRect(Math.min(x, x + dir * F), y, F, h);
+  }
+}
 
 // ---------- title ----------
 /** One logo word in the pixel font: thick dark outline, hard drop shadow, lighter top half. Slams in with `k`. */
@@ -130,6 +138,7 @@ function buttonSparks(cx: number, cy: number, w: number, h: number, col: string)
   ctx.globalAlpha = 1;
 }
 
+const TITLE_WIDE_PY = -0.02;   // cover()'s py on a wide canvas: -1 = the painting's bottom edge, 0 = its middle
 export const titleScene: Scene = {
   draw() {
     const st = state.st, th = R.theme, c = R.content.title, s = R.strs;
@@ -138,12 +147,14 @@ export const titleScene: Scene = {
       const a = fade('title'), im = imgs.title;
       // until the painting arrives (a separate file, by design) the pixel sunset holds the screen
       if (a < 1) { sunset(0, h * 0.6, st); palmSil(40, h * 0.6, 1); palmSil(322, h * 0.6, 0.9); rr(0, h * 0.6, W, h * 0.4, 0, '#34323a'); }
-      if (a > 0 && im) { ctx.globalAlpha = a; cover(im, 0, 0, W, h, 1.05 + 0.03 * Math.sin(st * 0.3), Math.sin(st * 0.19) * 0.7, 0); ctx.globalAlpha = 1; }
+      // the painting fills the whole canvas. On a wide one (tablet, desktop) that is a band of the upright painting:
+      // TITLE_WIDE_PY picks the band with the car in it
+      if (a > 0 && im) { ctx.globalAlpha = a; cover(im, view.x0, 0, view.fullW, h, 1.05 + 0.03 * Math.sin(st * 0.3), Math.sin(st * 0.19) * 0.7, view.fullW > W ? TITLE_WIDE_PY : 0); ctx.globalAlpha = 1; }
       // scrims: the logo sits on the top one, the text and the button on the bottom one
       let g = ctx.createLinearGradient(0, 0, 0, h * 0.4); g.addColorStop(0, 'rgba(10,10,12,.94)'); g.addColorStop(0.55, 'rgba(10,10,12,.6)'); g.addColorStop(1, 'rgba(10,10,12,0)');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, h * 0.4);
+      ctx.fillStyle = g; ctx.fillRect(view.x0, 0, view.fullW, h * 0.4);
       g = ctx.createLinearGradient(0, h * 0.55, 0, h); g.addColorStop(0, 'rgba(10,10,12,0)'); g.addColorStop(0.45, 'rgba(10,10,12,.82)'); g.addColorStop(1, 'rgba(10,10,12,.97)');
-      ctx.fillStyle = g; ctx.fillRect(0, h * 0.55, W, h * 0.45);
+      ctx.fillStyle = g; ctx.fillRect(view.x0, h * 0.55, view.fullW, h * 0.45);
     });
 
     // logo: the neon sign pops in and flickers on like a tube warming up, then breathes; the old name is the
@@ -215,10 +226,10 @@ export function comicBackdrop(st: number): void {
   fullBleed((h) => {
     const g = ctx.createRadialGradient(W / 2, h * 0.42, 40, W / 2, h * 0.42, h * 0.7);
     g.addColorStop(0, '#5a1a14'); g.addColorStop(0.6, '#1c1214'); g.addColorStop(1, '#0e0e10');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, h);
+    ctx.fillStyle = g; ctx.fillRect(view.x0, 0, view.fullW, h);
     ctx.fillStyle = 'rgba(255,204,0,.1)';
     const drift = (st * 6) % 16;
-    for (let y = -16; y < h + 16; y += 16) for (let x = (Math.round(y / 16) % 2) * 8 - 8; x < W + 8; x += 16) {
+    for (let y = -16; y < h + 16; y += 16) for (let x = (Math.round(y / 16) % 2) * 8 - 8 - Math.ceil(-view.x0 / 16) * 16; x < W - view.x0 + 8; x += 16) {
       const r = 1 + 2.4 * clamp(1 - Math.abs(y - h * 0.42) / (h * 0.6), 0, 1);
       ctx.beginPath(); ctx.arc(x + drift, y + drift, r, 0, Math.PI * 2); ctx.fill();
     }
@@ -307,10 +318,10 @@ export function phoneMessage(lines: readonly string[]): Overlay {
 export function missionCard(title: string, lines: string[], t: number): void {
   const cut = title.indexOf(' · '), num = cut > 0 ? title.slice(0, cut) : '', name = cut > 0 ? title.slice(cut + 3) : title;
   const e = easeOB(Math.min(1, t / 0.3));
-  ctx.save(); ctx.translate(W / 2, 250); ctx.rotate(-0.055); ctx.translate((e - 1) * (W + 80), 0);
-  ctx.fillStyle = '#000'; ctx.fillRect(-W, -30, W * 2, 76);
-  ctx.fillStyle = C.yellow; ctx.fillRect(-W, -36, W * 2, 72);
-  ctx.fillStyle = C.red; ctx.fillRect(-W, 28, W * 2, 8);
+  ctx.save(); ctx.translate(W / 2, 250); ctx.rotate(-0.055); ctx.translate((e - 1) * (view.fullW + 80), 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(-W * 2, -30, W * 4, 76);
+  ctx.fillStyle = C.yellow; ctx.fillRect(-W * 2, -36, W * 4, 72);
+  ctx.fillStyle = C.red; ctx.fillRect(-W * 2, 28, W * 4, 8);
   if (num) { ptxt(num, -W / 2 + 30, -3, 7, '#0e0e10', 'left', 'rgba(0,0,0,.25)'); ptxt(name, -W / 2 + 30 + num.length * 42 + 14, -2, 3, '#0e0e10', 'left'); }
   else ptxt(name, 0, -2, 3, '#0e0e10', 'center');
   ctx.restore();

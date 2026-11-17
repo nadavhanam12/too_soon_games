@@ -167,9 +167,9 @@ export function hud(goal: PlaceId | null, opts: { fuel?: boolean } = {}): void {
   const ek = easeOB(Math.min(1, G.t / 0.3));
   ctx.save(); ctx.translate(0, (ek - 1) * (view.top + 60));
   // two HUD rows (0..50), then the story timeline on its own row under them
-  ctx.fillStyle = 'rgba(14,14,16,.9)'; ctx.fillRect(0, -view.top, W, view.top + TL_BAND);
-  ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(0, 50, W, 1);
-  ctx.fillStyle = C.pink; ctx.fillRect(0, TL_BAND, W, 2);
+  ctx.fillStyle = 'rgba(14,14,16,.9)'; ctx.fillRect(view.x0, -view.top, view.fullW, view.top + TL_BAND);
+  ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(view.x0, 50, view.fullW, 1);
+  ctx.fillStyle = C.pink; ctx.fillRect(view.x0, TL_BAND, view.fullW, 2);
   // wallet: in when the money changes, out again after SHOW_S; it pops when a bill lands in it
   const mAge = now - H.moneyT;
   if (mAge < SHOW_S) {
@@ -339,7 +339,7 @@ export function hint(s: string, until = 3.5): void {
 
 /** A finger that shows the drag gesture at the start of the first leg. */
 export function demoDrag(x: number, y: number): void {
-  if (G.t > 3 || G.ended || D.stick.on || D.usedKeys) return;
+  if (G.t > 3 || G.ended || D.stick.on || D.usedKeys || !input.touch) return;
   const k = (G.t * 0.8) % 1, a = Math.min(1, (3 - G.t) * 2);
   ctx.globalAlpha = a * 0.8;
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 46, 0, Math.PI * 2); ctx.stroke();
@@ -350,7 +350,7 @@ export function demoDrag(x: number, y: number): void {
 /** End beat: the TV says PRESS START, every tap is swallowed (rule 13ג). */
 function endBeat(): void {
   const k = clamp((OUTRO_S - G.outro) / 0.25, 0, 1);
-  ctx.fillStyle = `rgba(0,0,0,${0.75 * k})`; ctx.fillRect(0, -view.top, W, view.H);
+  ctx.fillStyle = `rgba(0,0,0,${0.75 * k})`; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
   ctx.globalAlpha = k;
   rr(40, 200, 280, 180, 12, '#2b2b33', '#555', 3); rr(54, 212, 252, 140, 6, '#0e0e10');
   if (Math.sin(state.t * 9) > -0.4) ptxt(PC.start, W / 2, 282, 3, C.pink, 'center', '#3a2a00');
@@ -390,7 +390,7 @@ export const playScene: Scene = {
       failMoment(dt);
     }
     stages[G.stage]!.render();
-    if (G.failT > 0) grayOut(0, -view.top, W, view.H, 0.15 + 0.5 * easeO(clamp((FAIL_S - G.failT) / 0.6, 0, 1)));
+    if (G.failT > 0) grayOut(view.x0, -view.top, view.fullW, view.H, 0.15 + 0.5 * easeO(clamp((FAIL_S - G.failT) / 0.6, 0, 1)));
     if (G.outro > 0) endBeat();
   },
 };

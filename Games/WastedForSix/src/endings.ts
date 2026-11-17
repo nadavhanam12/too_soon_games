@@ -7,7 +7,7 @@ import { W, view, ctx, rr, txt, textWidth, clamp, easeO, easeOB } from '@tsg/ind
 import { C, confettiPx } from './art';
 import { ptxt, grayOut } from './pixel';
 import { portraitImg, portraitSticker, type PortraitId } from './portraits';
-import { comicBox, sceneImg } from './opening';
+import { comicBox, edgeFade, sceneImg } from './opening';
 import { montagePoster } from './montage';
 import { G, loseTimeline } from './play';
 import { LOSE_STAMP, RECEIPT } from './content';
@@ -30,20 +30,24 @@ function culprit(reason: string): Shot {
 
 function loseStrip(st: number, reason: string): void {
   const top = -view.top, h = STRIP_B - top, { im, id, cy, left } = culprit(reason);
-  ctx.save(); ctx.beginPath(); ctx.rect(0, top, W, h); ctx.clip();
-  ctx.fillStyle = '#17171c'; ctx.fillRect(0, top, W, h);
+  ctx.save(); ctx.beginPath(); ctx.rect(view.x0, top, view.fullW, h); ctx.clip();
+  ctx.fillStyle = '#17171c'; ctx.fillRect(view.x0, top, view.fullW, h);
   // the paintings are separate files requested after the first frame: until one lands the strip stays dark
   if (im) {
     const z = 1.14 - 0.1 * easeO(clamp(st / 1.4, 0, 1));   // settles from a slight push-in
     const iw = W * z, ih = (im.naturalHeight / im.naturalWidth) * iw, ix = (W - iw) / 2;
     const iy = clamp(top + h / 2 - cy * (iw / 720), top + h - ih, top);
+    // the painting keeps to the 360 column; on a wide canvas its side edges melt into the strip
+    ctx.save(); ctx.beginPath(); ctx.rect(0, top, W, h); ctx.clip();
     ctx.imageSmoothingEnabled = true; ctx.drawImage(im, ix, iy, iw, ih);
     if (id) portraitSticker(id, ix, iy, iw);
-    grayOut(0, top, W, h, 0.28);
-    ctx.fillStyle = 'rgba(208,32,42,.14)'; ctx.fillRect(0, top, W, h);
+    ctx.restore();
+    grayOut(view.x0, top, view.fullW, h, 0.28);
+    if (view.fullW > W) edgeFade(top, h, '23,23,28', 1);
+    ctx.fillStyle = 'rgba(208,32,42,.14)'; ctx.fillRect(view.x0, top, view.fullW, h);
   }
   const g = ctx.createLinearGradient(0, STRIP_B - 70, 0, STRIP_B); g.addColorStop(0, 'rgba(12,12,14,0)'); g.addColorStop(1, 'rgba(12,12,14,.95)');
-  ctx.fillStyle = g; ctx.fillRect(0, STRIP_B - 70, W, 70);
+  ctx.fillStyle = g; ctx.fillRect(view.x0, STRIP_B - 70, view.fullW, 70);
   ctx.restore();
 
   // the verdict, stamped on the picture's corner
@@ -68,8 +72,8 @@ export function loseArt(st: number, reason: string): void {
 export function wastedBand(s: string, y: number, st: number): void {
   const k = k01(st, 0.1, 0.22), p = Math.min(7, Math.floor((W - 40) / (s.length * 6)));
   ctx.save(); ctx.translate(W / 2, y); ctx.rotate(-0.045);
-  ctx.fillStyle = '#000'; ctx.fillRect(-W, -34, W * 2, 68);
-  ctx.fillStyle = C.red; ctx.fillRect(-W, -34, W * 2, 4); ctx.fillRect(-W, 30, W * 2, 4);
+  ctx.fillStyle = '#000'; ctx.fillRect(-W * 2, -34, W * 4, 68);
+  ctx.fillStyle = C.red; ctx.fillRect(-W * 2, -34, W * 4, 4); ctx.fillRect(-W * 2, 30, W * 4, 4);
   if (k > 0) {
     const sc = 1 + (1 - easeO(k)) * 1.6;
     ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, k * 2);

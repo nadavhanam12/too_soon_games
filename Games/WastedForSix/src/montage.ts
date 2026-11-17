@@ -15,12 +15,18 @@ type Pt = readonly [number, number];
 const mid = (u: number): number => 0.525 - 0.05 * u;
 const TOP_X = 0.544, MID_X = 0.489, BOT_X = 0.533;   // where the vertical gutter crosses the top edge / the middle line / the bottom edge
 // fx, fy: the point of the picture kept in the middle of the panel (the faces stay clear of the logo); zoom: over "cover"
-const SLOTS: ReadonlyArray<{ who: Face; top: boolean; left: boolean; poly: readonly Pt[]; fx: number; fy: number; zoom: number }> = [
+const SLOTS_TALL: ReadonlyArray<{ who: Face; top: boolean; left: boolean; poly: readonly Pt[]; fx: number; fy: number; zoom: number }> = [
   { who: 'you', top: true, left: true, poly: [[0, 0], [TOP_X, 0], [MID_X, mid(MID_X)], [0, mid(0)]], fx: 0.36, fy: 0.5, zoom: 1.12 },
   { who: 'boss', top: true, left: false, poly: [[TOP_X, 0], [1, 0], [1, mid(1)], [MID_X, mid(MID_X)]], fx: 0.45, fy: 0.5, zoom: 1 },
   { who: 'clerk', top: false, left: true, poly: [[0, mid(0)], [MID_X, mid(MID_X)], [BOT_X, 1], [0, 1]], fx: 0.43, fy: 0, zoom: 1.3 },
   { who: 'fiancee', top: false, left: false, poly: [[MID_X, mid(MID_X)], [1, mid(1)], [1, 1], [BOT_X, 1]], fx: 0.34, fy: 0, zoom: 1.45 },
 ];
+// A wide box (tablet on its side, desktop): the same four, side by side as slanted columns. The portraits are upright
+// (3:4), so in the 2 x 2 grid stretched wide their heads and chins were cut off.
+const WX = [0, 0.27, 0.52, 0.77, 1], WB = [0, 0.23, 0.48, 0.73, 1];   // the gutters' x on the top / bottom edge
+const wideSlot = (i: number, who: Face, fx: number): (typeof SLOTS_TALL)[number] =>
+  ({ who, top: i % 2 === 0, left: i < 2, poly: [[WX[i]!, 0], [WX[i + 1]!, 0], [WB[i + 1]!, 1], [WB[i]!, 1]], fx, fy: 0.5, zoom: 1.04 });
+const SLOTS_WIDE = [wideSlot(0, 'you', 0.36), wideSlot(1, 'boss', 0.45), wideSlot(2, 'clerk', 0.43), wideSlot(3, 'fiancee', 0.34)];
 const NAME: Record<Face, string> = { you: UI.you, boss: BOSS.name, clerk: CLERK.name, fiancee: FIANCEE.name };
 const INK = '#060608';
 
@@ -43,7 +49,8 @@ export interface MontageOpts {
 
 /** The montage in the box (x, y, w, h) of the current canvas. */
 export function drawMontage(x: number, y: number, w: number, h: number, o: MontageOpts): void {
-  const u = w / 360;   // sizes were tuned on a 360-wide montage
+  const wide = w > h, SLOTS = wide ? SLOTS_WIDE : SLOTS_TALL;
+  const u = wide ? h / 520 : w / 360;   // sizes were tuned on a 360-wide montage
   ctx.save();
   ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
   ctx.fillStyle = INK; ctx.fillRect(x, y, w, h);
@@ -78,14 +85,14 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
   ctx.strokeStyle = INK; ctx.lineWidth = Math.max(3, 7 * u); ctx.lineJoin = 'miter';
   for (const P of polys) { trace(P); ctx.stroke(); }
   // the logo sits ON the pictures: a soft dark halo keeps the neon readable, the screen blend drops the painting's black
-  const cx = x + w / 2, cy = y + h / 2;
+  const cx = x + w / 2, cy = y + h * (wide ? 0.66 : 0.5), lw = wide ? 300 * u : w * 0.83;   // wide: under the faces
   ctx.save(); ctx.translate(cx, cy); ctx.scale(1.15, 0.6);
   const halo = ctx.createRadialGradient(0, 0, 20 * u, 0, 0, 170 * u);
   halo.addColorStop(0, 'rgba(6,6,8,.82)'); halo.addColorStop(0.6, 'rgba(6,6,8,.6)'); halo.addColorStop(1, 'rgba(6,6,8,0)');
   ctx.fillStyle = halo; ctx.fillRect(-200 * u, -200 * u, 400 * u, 400 * u);
   ctx.restore();
   const lit = o.pulse === undefined ? 1 : 0.9 + 0.1 * Math.sin(o.pulse * 2.2);
-  if (drawLogo(cx, cy, w * 0.83, lit)) drawLogo(cx, cy, w * 0.83, lit * 0.5);   // twice: the neon holds against the bright paintings
+  if (drawLogo(cx, cy, lw, lit)) drawLogo(cx, cy, lw, lit * 0.5);   // twice: the neon holds against the bright paintings
   // the fresh panel: a yellow frame while it arrives
   SLOTS.forEach((s, i) => {
     if (s.who !== o.fresh || !o.glow || o.glow <= 0) return;
@@ -112,7 +119,7 @@ const IN_S = 0.2, HOLD_S = 0.35, FADE_S = 0.8;
 export function montageMoment(t: number, out: number, who: Who, met: readonly Who[]): void {
   const land = t - HOLD_S - FADE_S;   // seconds since the picture is fully in
   ctx.save(); ctx.translate(0, -view.top);
-  drawMontage(0, 0, W, view.H, {
+  drawMontage(view.x0, 0, view.fullW, view.H, {
     met, fresh: who, tags: true, pulse: t,
     k: easeO(clamp((t - HOLD_S) / FADE_S, 0, 1)),
     glow: land < 0 ? clamp((t - HOLD_S + 0.1) / 0.3, 0, 1) : clamp(1 - land / 0.9, 0, 1),
@@ -124,7 +131,7 @@ export function montageMoment(t: number, out: number, who: Who, met: readonly Wh
   }
   // in from black, out to black
   const dark = out >= 0 ? clamp(out / MONTAGE_OUT_S, 0, 1) : 1 - clamp(t / IN_S, 0, 1);
-  if (dark > 0) { ctx.fillStyle = `rgba(6,6,8,${dark})`; ctx.fillRect(0, 0, W, view.H); }
+  if (dark > 0) { ctx.fillStyle = `rgba(6,6,8,${dark})`; ctx.fillRect(view.x0, 0, view.fullW, view.H); }
   ctx.restore();
 }
 

@@ -18,15 +18,15 @@ import { drawFace, type Who } from './portraits';
 export const MAX_V = 43;           // player top speed (the scene's 46; eased 2026-11-17)
 const STICK_R = 46;
 const STICK_GRAB = 100;            // a touch within this distance of the stick's centre grabs it
-/** The fixed stick's centre: bottom-left of the real screen (below the safe zone on tall phones). */
-export const stickPos = (): { x: number; y: number } => ({ x: 76, y: view.H - view.top - 108 });
+/** The fixed stick's centre: bottom-left of the real screen (below the safe zone on tall phones, left of it on a wide one). */
+export const stickPos = (): { x: number; y: number } => ({ x: view.x0 + 76, y: view.H - view.top - 108 });
 const CAR_R = 1.15;                // collision radius vs buildings (the scene's is 1.6; smaller = more forgiving)
 const CRASH_V = 30, CRASH_DOT = 0.8;   // a crash needs this speed and a near head-on angle; anything else slides
-const CATCH_D = 3.8;
+const CATCH_D = 3;
 // Around the home (the last leg's goal) the chasers hang back: they slow down inside SAFE_R and cannot catch you
 // there (Nadav, 2026-11-17: they always caught him at the door). The arrive radius is 10.
 const SAFE_R = 34, SAFE_V = 0.55;
-export const HR_R = 12;            // HR minivan's "sees you" radius (~a third of the screen width at the scene's camera)
+export const HR_R = 9;             // HR minivan's "sees you" radius (~a third of the screen width at the scene's camera)
 const LANE = 4;                    // right-hand lane offset from a grid road's centre line
 const NPC_N = 28;
 // feel (2026-11-17, RULES 13ד–13ז). Visual and audio only, except STEER_IN.
@@ -37,7 +37,7 @@ const SKID_STEP = 1.1;             // one tire-mark segment per this many units 
 const SPEED_LINES_V = 31;          // speed lines fade in from here to top speed
 // forgiveness (RULES 13יא)
 const STICK_ZONE_W = 190, STICK_ZONE_H = 290;   // a touch anywhere in the bottom-left corner this big grabs the stick
-export const HR_SPOT_S = 0.3;      // the HR minivan needs this long with you in its circle before it counts ("!" fills up)
+export const HR_SPOT_S = 0.7;      // the HR minivan needs this long with you in its circle before it counts ("!" fills up)
 // drift + boost. Keys: Space is the handbrake. Stick: a sharp turn at speed lets the tail go by itself.
 const DRIFT_IN = 1.0, DRIFT_OUT = 0.4;   // stick: heading error (rad) where a drift starts / ends
 const DRIFT_V = 24;                // stick: only above this speed (below it the car just turns)
@@ -302,10 +302,10 @@ export function nearHr(): Npc | null {
 }
 
 /** `wait` = seconds the chaser sits still before the chase starts (reaction time after the banner). */
-export function addChaser(kind: ChaserKind, x: number, y: number, grace = 1.2, wait = 0): void {
-  const max = kind === 'shark' ? 36 : kind === 'cop' ? 34 : 32;   // player 43: they are 74–84% of it (were 82–90%)
+export function addChaser(kind: ChaserKind, x: number, y: number, grace = 1.2, wait = 0, n = PACK): void {
+  const max = kind === 'shark' ? 31 : kind === 'cop' ? 29 : 28;   // player 43: they are 65–72% of it (were 74–84%)
   // a pack of PACK: the others start on nearby roads, a little slower, and set off a beat later each, so they come strung out
-  for (let k = 0; k < PACK; k++) {
+  for (let k = 0; k < n; k++) {
     const off = k === 0 ? 0 : k % 2 ? 26 : -26, w = wait + k * 0.45;
     const p = roadNear(clamp(x + off, BMIN + 10, BMAX - 10), clamp(y + off, BMIN + 10, BMAX - 10));
     D.chasers.push({ id: nextId++, x: p.x, y: p.y, a: Math.atan2(D.p.y - p.y, D.p.x - p.x), v: 0, kind, max: max - k * 1.2, grace: grace + w, wait: w, chk: 0, cx: p.x, cy: p.y, rev: 0, taunt: 2 + k * 1.5, kick: { x: 0, v: 0 }, puff: 0 });
@@ -427,17 +427,17 @@ function stepPlayer(dt: number): void {
   // fixed stick, bottom-left: a touch that starts anywhere in that corner drives; a touch elsewhere does not, and the
   // stick's ring flashes so you see where it is
   const c = stickPos(); s.ax = c.x; s.ay = c.y;
-  if (!input.down) { s.on = false; s.miss = false; }
+  if (!input.down || !input.touch) { s.on = false; s.miss = false; }   // the stick is for fingers: a mouse drives with the keys
   else if (!s.on && !s.miss) {
-    const inZone = input.px < STICK_ZONE_W && input.py > view.H - view.top - STICK_ZONE_H;
-    if (inZone || Math.hypot(input.px - c.x, input.py - c.y) < STICK_GRAB) { s.on = true; s.grabT = state.t; } else { s.miss = true; if (D.control && input.px < W * 0.6) s.missT = state.t; }   // the right side has its own buttons
+    const inZone = input.px < view.x0 + STICK_ZONE_W && input.py > view.H - view.top - STICK_ZONE_H;
+    if (inZone || Math.hypot(input.px - c.x, input.py - c.y) < STICK_GRAB) { s.on = true; s.grabT = state.t; } else { s.miss = true; if (D.control && input.px < view.x0 + view.fullW * 0.6) s.missT = state.t; }   // the right side has its own buttons
   }
   if (s.on && D.control) {
     s.dx = input.px - c.x; s.dy = input.py - c.y;
     const L = Math.hypot(s.dx, s.dy);
     if (L > STICK_R) { s.dx *= STICK_R / L; s.dy *= STICK_R / L; }
   } else { s.dx = 0; s.dy = 0; }
-  let up = keyHeld('ArrowUp', 'w', 'W'), dn = keyHeld('ArrowDown', 's', 'S'), hb = keyHeld(' ');
+  let up = keyHeld('ArrowUp', 'w'), dn = keyHeld('ArrowDown', 's'), hb = keyHeld(' ');
   let steer = (keyRight() ? 1 : 0) - (keyLeft() ? 1 : 0);
   let soft = false;   // the stick's own drift: a gentler slide than the Space handbrake
   if (up || dn || steer || hb) { D.usedKeys = true; s.drift = false; }
@@ -590,7 +590,7 @@ function stepNpc(n: Npc, dt: number): void {
     n.s -= CELL; const prev = n.from; n.from = n.to;
     let opts = neighbors(n.from[0], n.from[1]).filter((b) => !(b[0] === prev[0] && b[1] === prev[1]));
     if (!opts.length) opts = [prev];
-    if (n.hr && rand() < 0.35) {   // the HR minivan drifts toward you
+    if (n.hr && rand() < 0.2) {   // the HR minivan drifts toward you
       const [pi, pj] = nodeOf(D.p.x, D.p.y), best = opts.reduce((m, o) => (Math.hypot(o[0] - pi, o[1] - pj) < Math.hypot(m[0] - pi, m[1] - pj) ? o : m));
       opts = [best];
     }
@@ -659,7 +659,7 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
   const top = -view.top;
   if (!world) { loadingCard(); return; }
   const f: Frame = {
-    w: Math.max(1, Math.round((W * view.scale) / PIX)), h: Math.max(1, Math.round((view.H * view.scale) / PIX)), t: D.t, dusk: D.dusk,
+    w: Math.max(1, Math.round((view.fullW * view.scale) / PIX)), h: Math.max(1, Math.round((view.H * view.scale) / PIX)), t: D.t, dusk: D.dusk,
     cam: { x: D.cam.x, y: D.cam.y, zoom: D.zoom },
     cars: [
       ...D.npcs.map((n) => ({ id: n.id, kind: 'npc' as CarKind, x: n.x, y: n.y, a: n.a, color: n.color })),
@@ -672,22 +672,22 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
     picks: D.picks.filter((k) => !k.taken),
     letters: D.letters,
     // only the ones the camera can see (the renderer draws them instanced, PED_MAX at most)
-    peds: D.peds.filter((q) => Math.abs(q.x - D.cam.x) < 75 && Math.abs(q.y - D.cam.y) < 100).map((q) => ({ x: q.x, y: q.y, a: q.a, step: q.step, look: q.look, h: q.h, rx: q.rx, s: q.st === 'down' ? clamp((PED_DOWN_S - q.t) / 0.4, 0, 1) : 1 })),
+    peds: D.peds.filter((q) => Math.abs(q.x - D.cam.x) < Math.max(75, view.fullW * 0.1) && Math.abs(q.y - D.cam.y) < 100).map((q) => ({ x: q.x, y: q.y, a: q.a, step: q.step, look: q.look, h: q.h, rx: q.rx, s: q.st === 'down' ? clamp((PED_DOWN_S - q.t) / 0.4, 0, 1) : 1 })),
     walker: showPlayer ? D.walker : null,
     pending,
     fx: D.fx.splice(0),
   };
   world.render(f);
   ctx.save(); ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(world.canvas, 0, top, W, view.H);
+  ctx.drawImage(world.canvas, view.x0, top, view.fullW, view.H);
   ctx.restore();
-  const scr = (x: number, y: number, h = 0) => { const q = world!.project(x, y, h); return { x: q.x * W, y: top + q.y * view.H }; };
+  const scr = (x: number, y: number, h = 0) => { const q = world!.project(x, y, h); return { x: view.x0 + q.x * view.fullW, y: top + q.y * view.H }; };
   if (showPlayer) { speedLines(scr(D.p.x, D.p.y), top); for (const c of D.chasers) edgeArrow(scr(c.x, c.y, 2), top); }
   if (showPlayer) { chaseAlarm(top); chaseCall(); }
   // who is inside: the character's face floats over their building (yellow ring and bigger when it is the goal)
   for (const w of RESIDENTS) {
     const pl = PLACES[w.place], goal = pending.includes(w.place), s = scr(pl.i * CELL, pl.j * CELL, w.h);
-    if (s.x < -50 || s.x > W + 50 || s.y < top - 30 || s.y > top + view.H + 110) continue;
+    if (s.x < view.x0 - 50 || s.x > view.x0 + view.fullW + 50 || s.y < top - 30 || s.y > top + view.H + 110) continue;
     const r = goal ? 38 : 30, y = s.y - r - 20 + Math.sin(D.t * 2.6 + pl.i) * 4;
     if (!drawFace(w.who, s.x, y, r, goal ? C.yellow : '#ffffff')) continue;   // portrait still downloading: no badge yet
     ctx.fillStyle = '#0b0b0f'; ctx.beginPath(); ctx.moveTo(s.x - 11, y + r + 3); ctx.lineTo(s.x + 11, y + r + 3); ctx.lineTo(s.x, y + r + 20); ctx.closePath(); ctx.fill();
@@ -732,7 +732,7 @@ function chaseAlarm(top: number): void {
   const on = Math.floor(age * 8) % 2 === 0, a = 0.75 * easeO(1 - age / ALARM_S);
   ctx.save(); ctx.globalAlpha = a; ctx.lineWidth = 14;
   ctx.strokeStyle = D.alarmCop ? (on ? '#ff2030' : '#2a5cff') : on ? '#ff2030' : '#ffffff';
-  ctx.strokeRect(0, top, W, view.H);
+  ctx.strokeRect(view.x0, top, view.fullW, view.H);
   ctx.restore();
 }
 /** Who is after you, big, in the middle of the screen for CALL_S: a tilted band slams in from the left with the
@@ -743,10 +743,10 @@ function chaseCall(): void {
   const inK = easeOB(clamp(age / 0.3, 0, 1)), outK = easeO(clamp((age - (CALL_S - 0.3)) / 0.3, 0, 1));
   const name = UI.chaseCall[D.alarmKind] ?? '', line = UI.chaseSub[D.alarmKind] ?? '';
   const p = name.length > 10 ? 3 : 4, blink = Math.floor(age * 8) % 2 === 0 && age < 1.2;
-  ctx.save(); ctx.translate(W / 2, 236); ctx.rotate(-0.055); ctx.translate((inK - 1) * (W + 80) + outK * (W + 80), 0);
-  ctx.fillStyle = '#000'; ctx.fillRect(-W, -30, W * 2, 84);
-  ctx.fillStyle = D.alarmCop ? (blink ? '#2a5cff' : C.red) : C.red; ctx.fillRect(-W, -36, W * 2, 80);
-  ctx.fillStyle = C.yellow; ctx.fillRect(-W, 36, W * 2, 8);
+  ctx.save(); ctx.translate(W / 2, 236); ctx.rotate(-0.055); ctx.translate((inK - 1) * (view.fullW + 80) + outK * (view.fullW + 80), 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(-W * 2, -30, W * 4, 84);
+  ctx.fillStyle = D.alarmCop ? (blink ? '#2a5cff' : C.red) : C.red; ctx.fillRect(-W * 2, -36, W * 4, 80);
+  ctx.fillStyle = C.yellow; ctx.fillRect(-W * 2, 36, W * 4, 8);
   ptxt(name, 0, -8, p, '#ffffff', 'center', 'rgba(0,0,0,.45)');
   txt(line, 0, 24, 13, C.yellow, 'center', 900);
   ctx.restore();
@@ -763,7 +763,7 @@ function speedLines(car: { x: number; y: number }, top: number): void {
   if (k <= 0) { streaks.length = 0; return; }
   const ux = -D.p.vx / sp, uy = -D.p.vy / sp;
   while (streaks.length < 12) {
-    const x = Math.random() * W, y = top + Math.random() * view.H;
+    const x = view.x0 + Math.random() * view.fullW, y = top + Math.random() * view.H;
     if (Math.hypot(x - car.x, y - car.y) < 90) continue;   // keep the car itself clean
     const max = 0.22 + Math.random() * 0.2;
     streaks.push({ x, y, life: max, max, spd: 420 + Math.random() * 380 });
@@ -781,8 +781,8 @@ function speedLines(car: { x: number; y: number }, top: number): void {
 
 /** A chaser that is off screen gets a blinking arrow on the screen edge that points at it (RULES 13ח). */
 function edgeArrow(s: { x: number; y: number }, top: number): void {
-  const x0 = 20, x1 = W - 20, y0 = 112, y1 = top + view.H - 24;   // below the HUD band (play.ts TL_BAND)
-  if (s.x >= 0 && s.x <= W && s.y >= 94 && s.y <= top + view.H) return;
+  const x0 = view.x0 + 20, x1 = view.x0 + view.fullW - 20, y0 = 112, y1 = top + view.H - 24;   // below the HUD band (play.ts TL_BAND)
+  if (s.x >= view.x0 && s.x <= view.x0 + view.fullW && s.y >= 94 && s.y <= top + view.H) return;
   const cx = W / 2, cy = (y0 + y1) / 2, dx = s.x - cx, dy = s.y - cy;
   const k = Math.min(dx > 0 ? (x1 - cx) / dx : dx < 0 ? (x0 - cx) / dx : Infinity, dy > 0 ? (y1 - cy) / dy : dy < 0 ? (y0 - cy) / dy : Infinity);
   const pulse = 1 + 0.18 * Math.sin(D.t * 12);
@@ -794,7 +794,7 @@ function edgeArrow(s: { x: number; y: number }, top: number): void {
 
 /** Shown until lazy/world3d.js has arrived (a slow connection), or when it failed (tap retries). */
 function loadingCard(): void {
-  ctx.fillStyle = '#0e0e10'; ctx.fillRect(0, -view.top, W, view.H);
+  ctx.fillStyle = '#0e0e10'; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
   if (worldState === 'error') {
     ptxt(UI.noSignal,W / 2, 290, 3, C.pink, 'center', '#3a2a00');
     txt('The city didn’t load. Tap to retry.', W / 2, 336, 14, '#fff', 'center', 700);
@@ -807,8 +807,9 @@ function loadingCard(): void {
   rr(W / 2 - 60, 322, 120, 6, 3, 'rgba(255,255,255,.15)'); rr(W / 2 - 60 + 90 * k, 322, 30, 6, 3, C.pink);
 }
 
-/** The on-screen stick where the finger went down. */
+/** The on-screen stick where the finger went down. Not drawn for a mouse (desktop): there the keys drive. */
 export function renderStick(): void {
+  if (!input.touch) return;
   const s = D.stick, c = stickPos(); s.ax = c.x; s.ay = c.y;
   // a touch that missed the stick: the ring swells and turns pink for 0.3 s ("it's here"); a grab pops the knob
   const miss = state.t - s.missT, missed = miss >= 0 && miss < 0.3;
@@ -847,7 +848,7 @@ function miniMap(): HTMLCanvasElement {
 }
 /** Minimap with you (white arrow), the goal (pulsing yellow), chasers and the HR minivan (blinking red). */
 export function renderMinimap(): void {
-  const x0 = W - MINI - 12, y0 = view.H - view.top - MINI - 62;
+  const x0 = view.x0 + view.fullW - MINI - 12, y0 = view.H - view.top - MINI - 62;
   rr(x0 - 3, y0 - 3, MINI + 6, MINI + 6, 6, '#0b0b0f', 'rgba(255,255,255,.35)', 1.5);
   ctx.drawImage(miniMap(), x0, y0, MINI, MINI);
   const dot = (x: number, y: number, r: number, col: string): void => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + mmx(x), y0 + mmx(y), r, 0, Math.PI * 2); ctx.fill(); };

@@ -4,11 +4,11 @@
 //   quit: the tank drains; empty = WASTED. The gas station "beat" (no gray scene) fills it and starts a police chase.
 // Leg 3: the store choice picks the chaser (loan sharks / cops / spouse); the quit branch's gas-theft cop resumes from
 // where it froze when you walked into the store. Caught = WASTED.
-import { R, W, view, ctx, state, input, pick, rr, txt, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
+import { R, W, view, ctx, state, input, keyName, pick, rr, txt, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
 import { G, registerStage, stageDone, fail, addScore, say, hud, hint, demoDrag, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
 import { D, ev, resetWorld, stepWorld, renderWorld, renderStick, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, stickPos, renderMinimap, MINI, type ChaserKind } from './drive';
 import { PLACES, CELL, type PlaceId } from './city';
-import { BANNERS, HINT, LINES, PLACE_NAME, BOOST_TEXT, UI, TAUNTS } from './content';
+import { BANNERS, HOW_KEYS, HINT, LINES, PLACE_NAME, BOOST_TEXT, UI, TAUNTS } from './content';
 import { C } from './art';
 import { ptxt } from './pixel';
 
@@ -93,12 +93,12 @@ function commonEvents(): void {
 function controlsIn(draw: () => void): void { if (G.failT > 0) return; const k = easeOB(Math.min(1, Math.max(0, G.t - 0.1) / 0.3)); ctx.save(); ctx.translate(0, (1 - k) * 170); draw(); ctx.restore(); }
 // ---------- the car radio: a button above the minimap (and the R key) tunes to the next track ----------
 const RADIO_W = MINI, RADIO_H = 34;
-const radioPos = (): { x: number; y: number } => ({ x: W - 12 - RADIO_W / 2, y: view.H - view.top - MINI - 62 - 10 - RADIO_H / 2 });
+const radioPos = (): { x: number; y: number } => ({ x: view.x0 + view.fullW - 12 - RADIO_W / 2, y: view.H - view.top - MINI - 62 - 10 - RADIO_H / 2 });
 function radioTaps(): void {
   const b = radioPos();
   for (const p of input.taps) if (!p.key && inBtn(p, b.x, b.y, RADIO_W, RADIO_H, 8)) { nextStation(); return; }
 }
-function radioKey(e: KeyboardEvent): boolean { if (e.key !== 'r' && e.key !== 'R') return false; nextStation(); return true; }
+function radioKey(e: KeyboardEvent): boolean { if (keyName(e) !== 'r') return false; nextStation(); return true; }
 /** The button: a note and "RADIO"; for 2 s after a change it shows the station's name instead, and pops. */
 function renderRadio(): void {
   const b = radioPos(), age = state.t - G.radioT, fresh = age < 2;
@@ -120,7 +120,7 @@ function renderRadio(): void {
   ctx.restore();
 }
 function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; radioTaps(); input.taps.length = 0; }
-const hintFor = (): string => (D.usedKeys ? HINT.keys : HINT.touch);
+const hintFor = (): string => (D.usedKeys || !input.touch ? HINT.keys : HINT.touch);
 
 // ---------- leg 1: the commute ----------
 registerStage('commute', {
@@ -133,7 +133,7 @@ registerStage('commute', {
     addLetters('WA', a, b);
     commonEvents();
     ev.arrive = (id) => { if (id === 'office') arriveEnd('office', UI.beat.parking, 0, () => say(LINES.arriveOffice[0]!, 1.6, true)); };
-    R.banner(BANNERS.commute[0], [...BANNERS.commute[1]]);
+    R.banner(BANNERS.commute[0], input.touch ? [...BANNERS.commute[1]] : [BANNERS.commute[1][0], HOW_KEYS, ...BANNERS.commute[1].slice(2)]);   // no stick with a mouse: the how-to line names the keys
   },
   step(dt) {
     tick(dt);
@@ -232,9 +232,9 @@ registerStage('home', {
     commonEvents();
     const kind: ChaserKind = G.store === 'loan' ? 'shark' : G.store === 'steal' ? 'cop' : 'spouse';
     G.stars = (G.store === 'steal' ? 1 : 0) + (G.branch === 'quit' ? 1 : 0);
-    const sp = behind(125); addChaser(kind, sp.x, sp.y, 0.6, 2);
+    const sp = behind(125); addChaser(kind, sp.x, sp.y, 0.6, 3);
     if (G.branch === 'quit') { // the gas-theft cop resumes where it froze, but never right on your bumper
-      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 2);
+      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 3, 1);   // one car, not a second pack: three chasers at most
     }
     ev.caught = (k) => fail(k);
     ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(TAUNTS.spouse), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(TAUNTS.shark), x, y - 26, C.yellow); };

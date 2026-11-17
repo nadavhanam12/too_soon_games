@@ -20,6 +20,7 @@ createGame({
   content,
   theme,
   scenes: { play: playScene, title: titleScene },
+  maxWidth: 1138,   // 16:9 at the safe height: tablets and ordinary monitors are filled, an ultra-wide one stops at 16:9
   music: MUSIC,
   // theme opens and closes the story; inside play each stage picks its own track (play.ts STAGE_MUSIC)
   musicFor: (s) => (s === 'play' ? stageTrack() : s === 'lose' ? 'off' : 'theme'),

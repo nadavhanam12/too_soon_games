@@ -55,13 +55,13 @@ const SPARKS: Array<[number, number, number]> = [[-118, -110, 0], [124, -84, 1.1
 export function itemMoment(t: number, out: number, paid: StoreChoice): void {
   const o = out < 0 ? 0 : easeO(Math.min(1, out / ITEM_OUT_S)), stay = 1 - o;
   // the scene behind goes dark
-  ctx.fillStyle = `rgba(10,10,12,${k01(t, 0, 0.25) * stay})`; ctx.fillRect(0, -view.top, W, view.H);
+  ctx.fillStyle = `rgba(10,10,12,${k01(t, 0, 0.25) * stay})`; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
   // sunburst: a warm glow and slowly turning rays
   const rk = easeO(k01(t, 0.1, 0.5)) * stay;
   if (rk > 0) {
     const g = ctx.createRadialGradient(CX, CY, 20, CX, CY, 260);
     g.addColorStop(0, `rgba(255,204,0,${0.5 * rk})`); g.addColorStop(0.5, `rgba(208,32,42,${0.22 * rk})`); g.addColorStop(1, 'rgba(208,32,42,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, -view.top, W, view.H);
+    ctx.fillStyle = g; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
     ctx.save(); ctx.translate(CX, CY); ctx.rotate(t * 0.35); ctx.fillStyle = `rgba(255,220,90,${0.2 * rk})`;
     for (let i = 0; i < 12; i++) { ctx.rotate(Math.PI / 6); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-58 * rk, -520); ctx.lineTo(58 * rk, -520); ctx.closePath(); ctx.fill(); }
     ctx.restore();

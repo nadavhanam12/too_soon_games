@@ -3,7 +3,7 @@
 //   clerk — loan / steal / trade-in (console and couch get refused; the ring works)
 //   fiancee — on the couch between you and the PC: sneaking and fake listening fail, asking honestly works
 //   pc    — type the password WASTED on a modern desktop's login screen; wrong tries get jokes and an escalating hint
-import { R, W, view, ctx, state, input, pick, rr, txt, wrap, inBtn, sfx, easeO, easeOB, springOut, pop, haptic } from '@tsg/index';
+import { R, W, view, ctx, state, input, keyName, pick, rr, txt, wrap, inBtn, sfx, easeO, easeOB, springOut, pop, haptic } from '@tsg/index';
 import { G, registerStage, stageDone, finishGame, addScore, timeline } from './play';
 import { D, renderWorld } from './drive';
 import { BOSS, CLERK, FIANCEE, PC, UI as LABELS, type TradeItem, type FianceeQuiz } from './content';
@@ -42,7 +42,7 @@ function stepPick(dt: number): void {
   if (UI.pickT >= pickDur()) { const id = UI.opts[UI.pickI]!.id; UI.pickI = -1; UI.onOpt(id); }
 }
 
-function grayWorld(dim = 0.35): void { renderWorld([], true); grayOut(0, -view.top, W, view.H, dim); }
+function grayWorld(dim = 0.35): void { renderWorld([], true); grayOut(view.x0, -view.top, view.fullW, view.H, dim); }
 
 // The picture and the line come first; the options are revealed one by one after a beat (a lone Continue sooner).
 // That staged reveal is only for a scene's first screen, and a tap finishes it at once. Every later screen (a reaction,
@@ -53,17 +53,27 @@ const optAt = (i: number): number => (UI.fast ? FAST_AT + i * FAST_GAP : (UI.opt
 const readyAt = (): number => optAt(UI.opts.length - 1) + (UI.fast ? FAST_PAD : READY_PAD);
 const optsReady = (): boolean => UI.t > readyAt();
 
+// Wide canvas (tablet on its side, desktop): the portrait grows and moves left, the line and the options sit to its
+// right, so the conversation uses the screen instead of a phone column. Offsets are from the column layout.
+const WIDE_MIN = 760;
+const lay = (): { px: number; py: number; ps: number; tx: number; ty: number } =>
+  (view.fullW >= WIDE_MIN ? { px: -200, py: 125, ps: 1.6, tx: 190, ty: -120 } : { px: 0, py: 0, ps: 1, tx: 0, ty: 0 });
+
 function drawDecision(): void {
   grayWorld();
+  const L = lay();
   // entry: the portrait drops in when the scene opens (G.t), and pops a little on every new line (UI.t);
   // the speech panel slides in from the left and the buttons rise one after another
   const drop = easeOB(Math.min(1, G.t / 0.6)), grow = easeOB(Math.min(1, UI.t * 2.5));
+  ctx.save(); ctx.translate(L.px, L.py); ctx.translate(W / 2, 220); ctx.scale(L.ps, L.ps); ctx.translate(-W / 2, -220);   // portrait + name tag
   ctx.save(); ctx.translate(0, (drop - 1) * 420);
   ctx.translate(W / 2, 192); ctx.scale(0.94 + 0.06 * grow, 0.94 + 0.06 * grow); ctx.translate(-W / 2, -192);
   drawPortrait(UI.portrait, 73, 78, 214);   // under the timeline strip
   ctx.restore();
   const tag = easeOB(Math.min(1, Math.max(0, G.t - 0.45) / 0.4));
   if (tag > 0) { ctx.save(); ctx.translate(93, 364); ctx.scale(tag, tag); ctx.translate(-93, -364); rr(40, 352, 106, 24, 4, '#0e0e10', C.pink, 2); ptxt(UI.name, 93, 364, 1, C.pink); ctx.restore(); }
+  ctx.restore();
+  ctx.save(); ctx.translate(L.tx, L.ty);   // speech panel + options
   // speech panel
   const sp = Math.min(1, UI.t / PANEL_IN_S);
   ctx.save(); ctx.globalAlpha = sp; ctx.translate((easeOB(sp) - 1) * 60, 0);
@@ -93,11 +103,12 @@ function drawDecision(): void {
     ctx.restore();
   });
   ctx.globalAlpha = 1;
+  ctx.restore();
   topTimeline();
 }
 
 /** The story timeline on a dark strip along the top edge (gray scenes and the PC). */
-function topTimeline(): void { ctx.fillStyle = 'rgba(14,14,16,.92)'; ctx.fillRect(0, -view.top, W, view.top + TOP_H); ctx.fillStyle = C.pink; ctx.fillRect(0, TOP_H, W, 2); timeline(TOP_H - 24); }
+function topTimeline(): void { ctx.fillStyle = 'rgba(14,14,16,.92)'; ctx.fillRect(view.x0, -view.top, view.fullW, view.top + TOP_H); ctx.fillStyle = C.pink; ctx.fillRect(view.x0, TOP_H, view.fullW, 2); timeline(TOP_H - 24); }
 const TOP_H = 68;   // bottom of that strip (the timeline's line is 24 above it)
 
 function decisionTaps(): void {
@@ -108,7 +119,7 @@ function decisionTaps(): void {
     if (p.key) { if (UI.opts.length === 1) choose(0); return; }
     for (let i = 0; i < UI.opts.length; i++) {
       const y = BTN_Y[UI.opts.length === 1 ? 1 : i]!;
-      if (inBtn(p, W / 2, y, BTN_W, BTN_H, 3)) { choose(i); return; }
+      if (inBtn(p, W / 2 + lay().tx, y + lay().ty, BTN_W, BTN_H, 3)) { choose(i); return; }
     }
     if (UI.opts.length) UI.nopeT = state.t;   // tapped beside the buttons: they twitch
   }
@@ -177,8 +188,8 @@ registerStage('boss', {
 export function wastedOverlay(line: string, sub: string, t: number): void {
   const k = Math.min(1, t * 3);
   ctx.save();
-  ctx.globalAlpha = k; grayOut(0, -view.top, W, view.H, 0.75);
-  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, -view.top, W, view.H);   // the scene's name tag and line sit right under the card's text: push them back
+  ctx.globalAlpha = k; grayOut(view.x0, -view.top, view.fullW, view.H, 0.75);
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);   // the scene's name tag and line sit right under the card's text: push them back
   const sc = 2.6 - 1.6 * easeOB(Math.min(1, t / 0.3));   // slams down from big, dips under its size and settles
   ctx.translate(W / 2, 250); ctx.scale(sc, sc);
   ptxt('WASTED', 0, 0, 8, '#e8e8e8', 'center', '#000');
@@ -289,11 +300,14 @@ function keyRects(): Array<{ k: string; x: number; y: number; w: number }> {
   });
   return out;
 }
+/** The letters the game gives away: one more per wrong try (W, then A, S…; at most 5). They are already typed in
+ *  their slots when a try starts and cannot be deleted (Nadav, 2026-11-17: he should not have to press them). */
+const given = (): string => 'WASTED'.slice(0, Math.min(5, G.wrongPw));
 function typeKey(k: string): void {
   if (PCS.ok >= 0) return;
   PCS.pressK = k; PCS.pressT = state.t;
-  if (PCS.shake > 0) { PCS.shake = 0; PCS.typed = ''; }   // typing over the "wrong" shake: that is the next try
-  if (k === 'DEL') { PCS.typed = PCS.typed.slice(0, -1); sfx.erase?.(); return; }
+  if (PCS.shake > 0) { PCS.shake = 0; PCS.typed = given(); }   // typing over the "wrong" shake: that is the next try
+  if (k === 'DEL') { if (PCS.typed.length > given().length) { PCS.typed = PCS.typed.slice(0, -1); sfx.erase?.(); } return; }
   if (PCS.typed.length >= 6) return;
   PCS.typed += k; PCS.typeT = state.t; sfx.type?.(); haptic(6);
   if (PCS.typed.length === 6) submit();
@@ -324,9 +338,9 @@ function keyAt(x: number, y: number): string | null {
   return best;
 }
 registerStage('pc', {
-  enter() { D.goal = null; PCS.typed = ''; PCS.reply = ''; PCS.close = ''; PCS.shake = 0; PCS.ok = -1; PCS.pressT = PCS.typeT = PCS.okT = -9; },
+  enter() { D.goal = null; PCS.typed = given(); PCS.reply = ''; PCS.close = ''; PCS.shake = 0; PCS.ok = -1; PCS.pressT = PCS.typeT = PCS.okT = -9; },
   step(dt) {
-    if (PCS.shake > 0) { PCS.shake -= dt; if (PCS.shake <= 0) PCS.typed = ''; }
+    if (PCS.shake > 0) { PCS.shake -= dt; if (PCS.shake <= 0) PCS.typed = given(); }
     if (PCS.ok >= 0) { PCS.ok += dt; input.taps.length = 0; if (PCS.ok > 0.7) finishGame(); return; }
     if (G.t < BOOT_S) { input.taps.length = 0; return; }   // still booting
     for (const p of input.taps.splice(0)) {
@@ -360,7 +374,7 @@ registerStage('pc', {
     ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(W / 2, 108, 17, 0, Math.PI * 2); ctx.stroke();
     txt(ok ? PC.ok : PC.title, W / 2, 138, 12, ok ? C.money : '#ffffff', 'center', 800);
     // wrong: a shake that dies away instead of stopping dead
-    const sx = PCS.shake > 0 ? springOut(WRONG_S - PCS.shake, 9, 42, 6) : 0, reveal = Math.min(5, G.wrongPw);   // each wrong try shows one more letter as a ghost, from the very first (W)
+    const sx = PCS.shake > 0 ? springOut(WRONG_S - PCS.shake, 9, 42, 6) : 0, gave = PCS.shake > 0 ? 0 : given().length;   // the given letters sit in their slots in yellow (during the shake the row is still the wrong try)
     for (let i = 0; i < 6; i++) {
       const x = 58 + i * 42 + sx, lit = ok && peak > i * 0.055;
       rr(x, 152, 34, 42, 8, lit ? 'rgba(255,204,0,.25)' : 'rgba(255,255,255,.1)', PCS.shake > 0 ? C.red : lit ? C.yellow : 'rgba(255,255,255,.35)', 1.5);
@@ -369,10 +383,9 @@ registerStage('pc', {
         // a letter pops as it lands; on the peak each one pops again as it lights
         const s = (i === PCS.typed.length - 1 ? pop(state.t - PCS.typeT, 0.12, 0.3) : 1) * (ok ? pop(peak - i * 0.055, 0.16, 0.35) : 1);
         ctx.save(); ctx.translate(x + 17, 174); ctx.scale(s, s);
-        txt(ch, 0, 0, 24, PCS.shake > 0 ? C.red : lit ? '#fff6b0' : '#ffffff', 'center', 800);
+        txt(ch, 0, 0, 24, PCS.shake > 0 ? C.red : lit ? '#fff6b0' : i < gave ? C.yellow : '#ffffff', 'center', 800);
         ctx.restore();
       }
-      else if (i < reveal) txt('WASTED'[i]!, x + 17, 174, 24, 'rgba(255,204,0,.4)', 'center', 800);
       else if (i === PCS.typed.length && Math.sin(performance.now() / 160) > 0) rr(x + 9, 185, 16, 2.5, 1, '#ffffff');
     }
     if (PCS.reply) {
@@ -384,7 +397,8 @@ registerStage('pc', {
     else if (PCS.ok < 0) txt(PC.hint0, W / 2, 218, 12, '#e8e8ee', 'center', 700);
     else txt(PC.okSub, W / 2, 222, 16, C.yellow, 'center', 900);
     // tip under the field: a new one every 3.5 s, fading in
-    if (PCS.ok < 0) {
+    if (PCS.ok < 0 && G.wrongPw > 0) txt(PC.caughtHint, W / 2, 276, 11, C.yellow, 'center', 700);   // the real hint, from the first wrong try on
+    else if (PCS.ok < 0) {
       const ti = Math.floor(G.t / 3.5), ta = Math.min(1, ((G.t / 3.5) % 1) * 6);
       ctx.globalAlpha = ta * 0.8; txt(PC.tips[ti % PC.tips.length]!, W / 2, 276, 10, '#ffffff', 'center', 400); ctx.globalAlpha = 1;
     }
@@ -408,7 +422,7 @@ registerStage('pc', {
   key(e) {
     if (G.t < BOOT_S) return true;   // still booting
     if (e.key === 'Backspace') { typeKey('DEL'); return true; }
-    if (/^[a-zA-Z]$/.test(e.key)) { typeKey(e.key.toUpperCase()); return true; }
+    if (/^[a-z]$/.test(keyName(e))) { typeKey(keyName(e).toUpperCase()); return true; }
     if (e.key === 'Enter' || e.key === ' ') return true;
     return false;
   },

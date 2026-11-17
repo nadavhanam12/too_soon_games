@@ -35,6 +35,9 @@ export const TIMELINE = ['WOKE UP', 'GOT TO WORK', 'GOT THE DAY OFF', 'REACHED T
 /** Short names (max 8 letters) that stay under each reached dot, so the row reads as the story of your day. */
 export const TIMELINE_SHORT = ['WOKE', 'WORK', 'DAY OFF', 'STORE', 'GAME', 'HOME', 'FIANCEE', 'PLAY'];
 
+/** Replaces the commute banner's stick line when the player has a mouse and keys (no stick on screen). */
+export const HOW_KEYS = 'Arrows / WASD to drive. Space to drift.';
+
 export const HINT = { touch: 'Drag the stick to steer · sharp turn = drift', keys: 'Arrows / WASD drive · Space drift · R radio' };
 
 /** The car radio's stations, in the order the button steps through them; `track` is a name in sfx.ts MUSIC.files. */
@@ -185,11 +188,13 @@ export const PC = {
   title: 'ENTER PASSWORD',
   note1: "It's not a phase, mom.",
   note2: 'pw = how the last 13 years felt',
-  // launcher hell: every wrong try gets a different excuse; from the 5th on, the real hint
-  wrong: ['Wrong password.\nReset link sent to an email you made in 2013.', 'Launcher update required.\nUpdating the updater…', 'Please link your account to your other account.', 'Servers busy.\nPosition in queue: 4,000,001.', 'Hint: it\'s on the screen every time you get caught.'],
+  // launcher hell: every wrong try gets a different excuse, the last one repeats (the real hint is caughtHint, always on screen)
+  wrong: ['Wrong password.\nReset link sent to an email you made in 2013.', 'Launcher update required.\nUpdating the updater…', 'Please link your account to your other account.', 'Servers busy.\nPosition in queue: 4,000,001.'],
   // loading-screen tips along the bottom of the monitor, one every few seconds; half of them are real hints
   tips: ['TIP: The password is not "password".', 'TIP: It\'s how the last 13 years felt.', 'TIP: Pressing harder does not help.', 'TIP: You drove past the answer. Letter by letter.', 'TIP: Trailer 3 is not coming.', 'TIP: It was on every wall you drove past.'],
   hint0: '6 letters. You know it.',
+  // stays along the bottom of the monitor from the first wrong try on, in place of the rotating tips (Nadav, 2026-11-17)
+  caughtHint: 'pw = what the screen says when you get caught',
   close: (n: number) => `${n}/6 letters in the right spot.`,
   ok: 'ACCESS GRANTED',
   okSub: 'QUEUE SKIPPED',
