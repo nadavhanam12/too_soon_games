@@ -36,7 +36,7 @@
     "higherIsBetter": true
   },
   "share": {
-    "text": "Nice City 🎮 {result} points. \"{rank}\". Beat me: {url}"
+    "text": "I just played TSG: Nice City and scored {result} points. My rank: \"{rank}\". Think you can beat me? 🎮 {url}"
   },
   "screens": {
     "cutscene": true,

@@ -157,7 +157,9 @@ lower-is-better.
 
 ### 11.5 Share text
 3 variants, ≤ 200 chars before the link, with `{result}` `{rank}` `{url}` (RULES 16), in the audience's share preset
-(SHARE.md). Mark the one that goes into 11.1.
+(SHARE.md). Every variant follows the fixed structure of RULES 16: `I just played <game name> and scored {result}.
+My rank: "{rank}". Think you can beat me? 🎮 {url}` (correct English, or the same order translated); the variants
+differ only in the wording of the result and the question. Mark the one that goes into 11.1.
 
 ### 11.6 Visual brief
 3 colors (background, ink, accent → `themeColor`), the generic character in one sentence (silhouette, clothing, one

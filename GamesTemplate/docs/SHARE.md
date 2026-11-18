@@ -40,7 +40,9 @@ itch; בדומיין שלנו הוא עובד.
 ## טקסט השיתוף
 
 תבנית ב־`game.json.share.text`, עם משתנים: `{result}` (התוצאה במילים של המשחק), `{rank}`,
-`{url}`. עד 200 תווים לפני הקישור. דוגמה (il):
+`{url}`. עד 200 תווים לפני הקישור. המבנה הקבוע (RULES 16, נדב 2026-11-18):
+`I just played <שם המשחק> and scored {result}. My rank: "{rank}". Think you can beat me? 🎮 {url}`
+(Nice City: `... scored {result} points. My rank: ...`). דוגמה ישנה (il), לפני המבנה הזה:
 ```
 חופשה בטוחה ✈️ הצלתי 174 נוסעים ב-{result}. דרגה "{rank}". תנצח אותי? {url}
 ```
