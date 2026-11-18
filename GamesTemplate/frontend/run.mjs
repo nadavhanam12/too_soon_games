@@ -1,5 +1,5 @@
 // Entry for `npm run build` / `npm run serve`. Bundles build.ts with esbuild (so TypeScript runs on
-// plain Node) and executes it. Flags are passed through: --games <file> --out <dir> --serve [--port N]
+// plain Node) and executes it. Flags are passed through: --games <file> --out <dir> --api <url> --serve [--port N]
 import { build } from 'esbuild';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';

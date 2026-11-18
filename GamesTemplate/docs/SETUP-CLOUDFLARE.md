@@ -137,6 +137,36 @@ Workers, Pages ו־Analytics Engine לא הגבילו בשום שלב.
 בלוח. העלות גדלה עם מספר הניקודים המצטבר של המשחק. במשחק עם 100,000 ניקודים ו־20,000 ריצות ביום זה כ־2 מיליארד קריאות ביום,
 כלומר כ־35$ בחודש מעבר ל־25B הכלולים. כשמשחק עובר 50,000 ניקודים: לעבור לדירוג לפי טבלת סכומים לפי טווחי ניקוד (BACKLOG).
 
+## הרשמה (Google, Apple, אימייל; נבנה 2026-11-18)
+
+הקוד מוכן (EVENTS.md, "חשבונות"). ההרשמה באימייל עובדת בלי שום הגדרה (נכנסת לרשימה, לא נשלח מייל). Google ו־Apple
+צריכים client id שרק אתה יכול לפתוח; בלי client id הכפתור של אותו ספק לא מוצג.
+
+### 1. Google (חינם, 10 דקות)
+1. https://console.cloud.google.com → פרויקט חדש "Too Soon Games".
+2. **Google Auth Platform → Branding**: שם האפליקציה Too Soon Games, אימייל תמיכה, הלוגו, דומיין מורשה `toosoongames.app`,
+   קישורים ל־`https://toosoongames.app/privacy/` ו־`/terms/`. **Audience**: External, ואז **Publish app** (מבקשים רק
+   email, אין צורך באימות של Google).
+3. **Clients → Create client → Web application**. Authorized JavaScript origins:
+   `https://toosoongames.app`, `https://www.toosoongames.app`, `http://localhost`, `http://localhost:5180`.
+   לא צריך Redirect URI.
+4. להעתיק את ה־**Client ID** (לא את ה־secret) לשני מקומות: `studio.json` → `googleClientId`, ו־`wrangler.toml` →
+   `GOOGLE_CLIENT_ID`.
+
+### 2. Apple (אופציונלי, 99$ לשנה: Apple Developer Program)
+1. https://developer.apple.com/account → Identifiers → **App ID** חדש עם Sign in with Apple.
+2. Identifiers → **Services ID** (למשל `app.toosoongames.signin`) → Sign in with Apple → Configure: Domain `toosoongames.app`,
+   Return URL `https://toosoongames.app/`.
+3. ה־Services ID הוא ה־client id: `studio.json` → `appleClientId`, `wrangler.toml` → `APPLE_CLIENT_ID`.
+4. כדי שמייל יגיע למי שבחר "Hide My Email": Services → Sign in with Apple for Email Communication → להוסיף את
+   הכתובת שממנה תשלח את מיילי "משחק חדש" כמקור שליחה.
+5. Apple לא עובד ב־localhost; בודקים אותו רק באתר החי.
+
+### 3. עלייה לאוויר
+`/deploy-server` (מריץ את migration 0005 ומעלה את ה־API), ואז build ופריסה של האתר (`/publish-game` או build+deploy של האתר).
+בדיקה מקומית: `npm run dev` ב־worker, ואז הקונפיגורציה `site-local-api` ב־`.claude/launch.json` (האתר על
+`http://localhost:5180` מול ה־API המקומי).
+
 ## חירום
 - **שחזור נתונים:** `wrangler d1 time-travel restore toosoon --timestamp=<ISO>` (7 ימים אחורה בחינמי, 30 ב־Paid).
 - **גיבוי יומי:** משימה מתוזמנת ב־Windows ("TooSoonGames D1 backup", כל יום ב־04:00, או בהדלקה הבאה של המחשב) מריצה את

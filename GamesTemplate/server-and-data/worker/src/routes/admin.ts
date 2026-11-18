@@ -14,6 +14,8 @@ export async function admin(ctx: Ctx, parts: string[]): Promise<Response> {
 
   // GET /v1/admin/games
   if (parts[0] === 'games' && parts.length === 1 && method === 'GET') return listGames(ctx);
+  // GET /v1/admin/emails: the sign-up list (the card on the home page), for "a new game is out" mails
+  if (parts[0] === 'emails' && parts.length === 1 && method === 'GET') return listEmails(ctx);
   if (parts[0] === 'games' && parts[1]) {
     const game = gameSlug(parts[1]);
     const leaf = parts[2];
@@ -43,6 +45,21 @@ function timingSafeEqual(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < x.length; i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
   return diff === 0;
+}
+
+// ---------- sign-ups ----------
+
+/**
+ * Every account that has an email, newest first. `verified` = the address came from Google / Apple; a typed one may
+ * be mistyped or someone else's. Mail only rows with notify = 1, and put each row's unsubscribe link in the mail:
+ * https://api.toosoongames.app/v1/unsubscribe?t=<unsub_token>.
+ */
+async function listEmails(ctx: Ctx): Promise<Response> {
+  const rows = await ctx.env.DB.prepare(
+    `SELECT email, provider, email_verified AS verified, notify, country, created_at, unsub_token FROM accounts
+     WHERE email IS NOT NULL ORDER BY created_at DESC`,
+  ).all();
+  return json({ rows: rows.results || [] });
 }
 
 // ---------- games ----------

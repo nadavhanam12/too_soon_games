@@ -9,11 +9,16 @@ routes = [{ pattern = "api.toosoongames.app", custom_domain = true }]
 
 # Deployed version string, shown by GET /v1/version. /deploy-server bumps it.
 [vars]
-VERSION = "0.1.14"
+VERSION = "0.1.15"
 # Comma-separated origins allowed to call the API. localhost is always allowed in `wrangler dev`.
 ALLOWED_ORIGINS = "https://toosoongames.app,https://www.toosoongames.app,https://toosoon-games.pages.dev"
 # Analytics Engine dataset name (must match the binding below) - used by the admin SQL queries.
 EVENTS_DATASET = "toosoon_events"
+# Sign-up (routes/auth.ts). The client ids are public and must match studio.json (googleClientId, appleClientId);
+# an empty one turns that way in off. Setup: docs/SETUP-CLOUDFLARE.md, "Sign-up".
+PUBLIC_BASE = "https://toosoongames.app"
+GOOGLE_CLIENT_ID = ""
+APPLE_CLIENT_ID = ""
 
 # Secrets (never in this file): `wrangler secret put <NAME>`; locally in .dev.vars
 #   ADMIN_KEY      - protects /admin and /v1/admin/*
@@ -53,6 +58,13 @@ name = "RL_READS"
 type = "ratelimit"
 namespace_id = "1004"
 simple = { limit = 120, period = 60 }
+
+# Sign-up and sign-in calls (a Google / Apple sign-in may fetch the provider's keys).
+[[unsafe.bindings]]
+name = "RL_AUTH"
+type = "ratelimit"
+namespace_id = "1005"
+simple = { limit = 10, period = 60 }
 
 [[unsafe.bindings]]
 name = "RL_ADMIN"

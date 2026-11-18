@@ -96,7 +96,7 @@ games   (game_id PK, name, max_score, min_duration_s, created_at)
   (הניקוד הטוב ביותר), `UPSERT` כשמשתפרים.
 - מספר השחקנים: `COUNT(DISTINCT user_id)` מתוך scores + ספירת `game_start` מ־Analytics Engine.
   נשמר ב־cache.
-- עתיד: טבלת `accounts (user_id, provider, provider_id)` מצמידה חשבון ל־userId קיים בלי לשנות דבר.
+- חשבונות: טבלת `accounts` מצמידה הרשמה ל־userId קיים (EVENTS.md, "חשבונות").
 
 ### אנליטיקה (Analytics Engine)
 

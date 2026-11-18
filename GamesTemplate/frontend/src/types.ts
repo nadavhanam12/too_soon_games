@@ -32,6 +32,9 @@ export interface Studio {
   cfWebAnalyticsToken: string;
   publicBase: string;
   apiBase: string;
+  /** OAuth client ids for the sign-up card (public; the API's wrangler.toml holds the same). Empty = button hidden. */
+  googleClientId?: string;
+  appleClientId?: string;
 }
 
 export interface SiteCtx {

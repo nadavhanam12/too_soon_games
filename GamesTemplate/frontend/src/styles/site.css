@@ -68,6 +68,32 @@ svg{flex:none}
 .net svg{width:20px;height:20px}
 a.net:hover{background:var(--hover)}
 .net-soon{color:var(--muted);opacity:.6;cursor:default}
+/* sign-up card (components/signup.ts): the follow prompt's place on top of the home timeline */
+.su{flex:1;min-width:0}
+.su-ways{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.su-ways:not(:has(:not([hidden]))){display:none}
+.su-google{min-height:44px;color-scheme:normal}
+.su-apple{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:999px;background:#fff;color:#000;font-weight:800;font-size:15px}
+.su-apple svg{width:18px;height:18px;margin-top:-2px}
+.su-mail{display:flex;gap:8px;max-width:440px}
+.su-mail input{flex:1;min-width:0;height:44px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--bg2);color:var(--ink);font:inherit;font-size:16px}
+.su-mail input:focus{outline:2px solid var(--yel);outline-offset:1px;border-color:transparent}
+.su-mail button{flex:none;height:44px;padding:0 20px;border-radius:999px;background:var(--yel);color:var(--yel-ink);font-weight:900;font-size:15px}
+.su-mail button:disabled{opacity:.6}
+.su-msg{margin:8px 0 0;font-size:14px;font-weight:700;color:var(--lime)}
+.su-msg:empty{display:none}
+.su-msg.bad{color:var(--pink)}
+.su-fine{margin:8px 0 0;color:var(--muted);font-size:12px}
+.su-fine a{text-decoration:underline}
+.su-who{margin:2px 0 6px;font-weight:800}
+.su-who b{color:var(--yel);word-break:break-all}
+.su-check{display:flex;align-items:center;gap:8px;min-height:44px;color:var(--soft);font-size:14px;cursor:pointer}
+.su-check input{width:18px;height:18px;accent-color:var(--yel)}
+.su-signout{min-height:44px;color:var(--muted);font-size:13px;font-weight:700;text-decoration:underline}
+.su-follow{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.su-follow>span{color:var(--muted);font-size:12px;font-weight:800}
+.nets-mini{gap:2px}
+.nets-mini .net{min-width:40px;height:40px;padding:0;border:0}
 
 /* ---------- posts ---------- */
 .post{position:relative;display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);transition:background .15s}

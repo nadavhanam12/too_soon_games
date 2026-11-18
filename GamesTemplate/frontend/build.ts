@@ -29,6 +29,9 @@ export async function main(args: string[]): Promise<void> {
   const gamesFile = resolve(here, arg(args, '--games') ?? join(templateRoot, 'games.json'));
   const out = resolve(here, arg(args, '--out') ?? join(templateRoot, 'dist'));
   const studio = JSON.parse(readFileSync(join(templateRoot, 'studio.json'), 'utf8')) as Studio;
+  // --api <url>: a site build that talks to a local API (`wrangler dev`), for testing the sign-up and the boards
+  const apiOverride = arg(args, '--api');
+  if (apiOverride) studio.apiBase = apiOverride;
   const games = (JSON.parse(readFileSync(gamesFile, 'utf8')) as { games: GameEntry[] }).games ?? [];
   validate(games);
   const eventsFile = resolve(here, arg(args, '--events') ?? join(templateRoot, 'events-feed.json'));

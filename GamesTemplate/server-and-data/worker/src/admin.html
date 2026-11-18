@@ -55,6 +55,7 @@ body.is-site section.g,body:not(.is-site) section.s{display:none}
   <button id="refresh" class="ghost">רענן</button>
   <span class="sp"></span>
   <button id="newGame" class="ghost">+ משחק</button>
+  <button id="emails" class="ghost" title="מי שנרשם בכרטיס בעמוד הבית; רק notify=1 מקבלים מייל">הורד נרשמים (CSV)</button>
   <button id="logout" class="ghost">יציאה</button>
 </header>
 <main>
@@ -107,6 +108,17 @@ $('#newGame').onclick=async()=>{
   const maxScore=Number(prompt('ניקוד מקסימלי אפשרי (ניקוד גבוה יותר נדחה):','100000'));
   const minDurationS=Number(prompt('זמן משחק מינימלי בשניות (0 = בלי בדיקה):','5'));
   try{await api('/v1/admin/games/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify({name,maxScore,minDurationS})});await loadGames(id);}catch(e){alert(e.message);}
+};
+$('#emails').onclick=async()=>{
+  try{
+    const {rows}=await api('/v1/admin/emails');
+    const cols=['email','provider','verified','notify','country','created_at','unsub_token'];
+    const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+    const csv=[cols.join(','),...rows.map(r=>cols.map(c=>cell(r[c])).join(','))].join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));
+    a.download='toosoon-signups-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    alert(`${rows.length} נרשמים, ${rows.filter(r=>r.notify).length} מהם רוצים מיילים`);
+  }catch(e){alert(e.message);}
 };
 async function loadGames(select){
   const {games}=await api('/v1/admin/games');

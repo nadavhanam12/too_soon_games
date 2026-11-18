@@ -11,9 +11,15 @@ export interface Env {
   RL_EVENTS: RateLimiter;
   RL_ADMIN: RateLimiter;
   RL_READS: RateLimiter;
+  RL_AUTH: RateLimiter;
   VERSION: string;
   ALLOWED_ORIGINS: string;
   EVENTS_DATASET: string;
+  /** the studio site (the unsubscribe page links back to it) */
+  PUBLIC_BASE: string;
+  /** OAuth client ids (public). Empty = that way in answers 503 provider_off. Same values as studio.json. */
+  GOOGLE_CLIENT_ID?: string;
+  APPLE_CLIENT_ID?: string;
   // secrets
   ADMIN_KEY?: string;
   CF_ACCOUNT_ID?: string;

@@ -4,7 +4,7 @@ import type { SiteCtx } from '../types';
 import { layout } from '../components/layout';
 import { esc, attr } from '../components/html';
 
-const UPDATED = '2026-11-14';
+const UPDATED = '2026-11-18';
 
 function textPage(ctx: SiteCtx, title: string, description: string, path: string, html: string): string {
   return layout(ctx, { title, description, path, bodyClass: 'page-text' }, `<article class="prose card">
@@ -40,30 +40,32 @@ export function aboutPage(ctx: SiteCtx): string {
 
 export function privacyPage(ctx: SiteCtx): string {
   return textPage(ctx, 'Privacy', `What ${ctx.studio.name} stores when you play, and what it never collects.`, '/privacy/', `
-<p class="lead">Short version: no accounts, no email, no phone number, no IP addresses, no advertising trackers. An anonymous random ID, your nickname if you choose one, your scores, and a rough location (country and city) so we can see where a game is played.</p>
+<p class="lead">Short version: you can play without signing up. If you do sign up, we keep your email address to tell you about new games and to keep your scores with you. No phone number, no IP addresses, no advertising trackers. An anonymous random ID, your nickname if you choose one, your scores, and a rough location (country and city) so we can see where a game is played.</p>
 <h2>What we store</h2>
 <ul>
   <li><strong>Anonymous player ID.</strong> When you first open a game, your browser creates a random identifier (a UUID) and keeps it in its local storage and a first-party cookie. It is not linked to your name, email or device identifiers. It lets a leaderboard remember that a score is yours and lets us count players. Clearing your browser data creates a new one.</li>
   <li><strong>Nickname and scores.</strong> If you enter a nickname it is shown publicly on that game's leaderboard next to your score. Nicknames are free text you choose; do not use your real name if you do not want it shown. We may remove offensive nicknames.</li>
   <li><strong>Gameplay events.</strong> Things like "game started", "level 3 completed", "share button tapped", with the time, the game version, your device type (phone, tablet, desktop) and browser language. We use them to see where players get stuck and which share buttons work.</li>
+  <li><strong>If you sign up: your email address.</strong> You can sign up with Google, with Apple, or by typing your email address. From Google or Apple we receive your email address and an account number for our app, nothing else (not your name, photo or contacts). If you use Apple's "Hide My Email", we only see the private relay address. We use your email to tell you when a new game comes out. With Google or Apple it also signs you in on another device, so your scores and leaderboard places stay yours; a typed email does not sign you in anywhere. Every email we send has an unsubscribe link, and you can turn them off on the home page.</li>
   <li><strong>Approximate location.</strong> Our hosting provider (Cloudflare) tells our server the country and city an internet connection belongs to. We store country and city, never the IP address itself.</li>
 </ul>
 <h2>What we do not collect</h2>
-<p>Email addresses, phone numbers, names, precise location, contacts, photos, payment details, or anything typed outside the nickname field. We do not sell or share data with advertisers, and there are currently no ads.</p>
+<p>Phone numbers, names, precise location, contacts, photos, payment details, or anything typed outside the nickname and sign-up fields. We do not sell or share data, email addresses included, with advertisers or anyone else, and there are currently no ads.</p>
 <h2>Cookies</h2>
 <p>One first-party cookie holds the anonymous player ID described above; it is functional, not for advertising. Our hosting provider may set a short-lived security cookie. If we ever add advertising this page will change first.</p>
 <h2>Third parties</h2>
 <ul>
   <li><strong>Cloudflare</strong> hosts the site and the leaderboard server, and provides privacy-first visit statistics (Cloudflare Web Analytics, no cookies). Data is processed on Cloudflare's network, which has locations worldwide.</li>
   <li><strong>Google Fonts</strong> serves the typefaces; your browser requests them from Google.</li>
+  <li><strong>Google and Apple sign-in.</strong> The sign-in buttons on the home page are loaded from Google and Apple for visitors who are not signed in, and the sign-in itself happens on their pages under their privacy policies.</li>
   <li>When you tap a share button, the text and link are handed to the app you pick (WhatsApp, Messages, etc.). What happens there is governed by that app.</li>
 </ul>
 <h2>How long</h2>
-<p>Scores and the anonymous ID are kept for as long as the game is online. Gameplay events are summarized and the raw records are kept for up to 90 days.</p>
+<p>Scores and the anonymous ID are kept for as long as the game is online. Your email address is kept until you ask us to delete your account. Gameplay events are summarized and the raw records are kept for up to 90 days.</p>
 <h2>Your choices</h2>
-<p>Play without a nickname (scores show as "Anonymous"). Clear your browser's site data to reset your anonymous ID. To have a nickname or score removed, write to us with the game name and nickname: ${contactLine(ctx)}. Because the ID is anonymous we cannot look up data by your name.</p>
+<p>Play without a nickname (scores show as "Anonymous"). Clear your browser's site data to reset your anonymous ID. To have a nickname or score removed, write to us with the game name and nickname: ${contactLine(ctx)}. If you signed up, write from that email address and we will delete your account and its email; otherwise, because the ID is anonymous, we cannot look up data by your name.</p>
 <h2>Children</h2>
-<p>The games are made for a general audience and we do not knowingly collect personal data from anyone. There is nothing to sign up for.</p>
+<p>The games are made for a general audience. Signing up is optional and meant for players aged 13 and over; we do not knowingly collect email addresses from younger children.</p>
 <h2>Changes</h2>
 <p>If this policy changes, the date at the bottom of this page moves and material changes are noted on the home page for a while.</p>`);
 }

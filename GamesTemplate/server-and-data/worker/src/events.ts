@@ -22,6 +22,8 @@ export const EVENT_NAMES = [
   // the studio site only (game id "site", docs/EVENTS.md)
   'page_view',
   'game_click',
+  'signup_start',
+  'signup',
 ] as const;
 
 export type EventName = (typeof EVENT_NAMES)[number];

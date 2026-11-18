@@ -7,6 +7,7 @@ import { board } from './routes/board';
 import { postScore } from './routes/scores';
 import { postEvents } from './routes/events';
 import { admin } from './routes/admin';
+import { authApple, authEmail, authGoogle, setNotify, unsubscribe } from './routes/auth';
 
 export default {
   async fetch(req: Request, env: Env, ec: ExecutionContext): Promise<Response> {
@@ -32,6 +33,16 @@ async function route(ctx: ReturnType<typeof makeCtx>): Promise<Response> {
 
   if (parts[1] === 'version' && method === 'GET') return version(ctx);
   if (parts[1] === 'admin') return admin(ctx, parts.slice(2));
+
+  if (parts[1] === 'auth' && method === 'POST') {
+    refuseLocalWrite(ctx);
+    const way = parts.slice(2).join('/');
+    if (way === 'google') return authGoogle(ctx);
+    if (way === 'apple') return authApple(ctx);
+    if (way === 'email') return authEmail(ctx);
+  }
+  if (parts[1] === 'account' && parts.length === 2 && method === 'POST') { refuseLocalWrite(ctx); return setNotify(ctx); }
+  if (parts[1] === 'unsubscribe' && (method === 'GET' || method === 'POST')) return unsubscribe(ctx);
 
   if (parts[1] === 'games' && parts[2]) {
     const game = gameSlug(parts[2]);

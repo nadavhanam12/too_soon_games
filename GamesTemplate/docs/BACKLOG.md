@@ -47,12 +47,17 @@
 | קובץ וקטורי של הלוגו (SVG/AI), אם קיים | favicon ואייקונים חדים | FRONTEND.md |
 | החלטה על דגימת אירועים (אחרי קריאת הקיבולת ב־EVENTS.md) | רשת ביטחון מול מכסת האנליטיקה | EVENTS.md |
 | גישה ל־Gal ו־Or ל־Cloudflare ול־GitHub | עבודת צוות | הצעה 2 למעלה |
+| הרשמה: Google client id, (אופציונלי) Apple | בלי client id אין כפתור Google/Apple באתר החי; ההרשמה באימייל עובדת גם בלעדיהם | SETUP-CLOUDFLARE.md, "הרשמה" |
 | מפתח אדמין חזק יותר לפני שהאתר ציבורי | המפתח הנוכחי קצר; מגן על מחיקת ניקודים וקריאת דאטה | `wrangler secret put ADMIN_KEY` |
 
 ## נפתח בבנייה (2026-11-14, אחרי שהקוד נכתב)
 
 | מה | למה | איפה |
 |---|---|---|
+| **(להשלים אחר כך) שירות שליחת מיילים (2026-11-18)**: הוסר בהחלטה 91, כדי לאסוף מיילים בלי להקים שירות. להחזיר: חשבון Resend (או דומה), אימות הדומיין ב־DNS של Cloudflare, `RESEND_API_KEY` כ־secret, `MAIL_FROM`, ומודול שליחה ב־worker. הגרסה הראשונה (`worker/src/mail.ts`, קריאה אחת ל־`POST https://api.resend.com/emails`) נמחקה לפני commit, אז כותבים אותה מחדש. אם הכתובות יאומתו במייל (קישור חד־פעמי), אימייל מוקלד יוכל גם לחבר חשבון בין מכשירים | בלי שירות שליחה המייל "משחק חדש" נשלח ביד מה־CSV | `worker/src/`, SETUP-CLOUDFLARE.md |
+| **(להשלים אחר כך) המייל "יצא משחק חדש" (2026-11-18)**: נשען על שירות השליחה. שלב ב־`/publish-game` (או כפתור באדמין) ששולח ל־`accounts WHERE notify = 1 AND email IS NOT NULL`, כתובת אחת פעם אחת, עם הכותרת, הקאבר וקישור למשחק, קישור הסרה `https://api.toosoongames.app/v1/unsubscribe?t=<unsub_token>` וכותרות `List-Unsubscribe` + `List-Unsubscribe-Post` (הנתיב קיים). עד אז: CSV מהאדמין ושליחה ביד | זו ההבטחה של כרטיס ההרשמה | `publish-game`, `worker/src/routes/` |
+| **(להשלים אחר כך) "Compete across all our games" (2026-11-18)**: הכרטיס מבטיח את זה, ואין עדיין לוח בין־משחקי. היום החשבון רק שומר את אותו שחקן בכל הלוחות ובכל המכשירים. צריך להחליט איך משווים ניקוד בין משחקים (למשל נקודות לפי מקום בכל לוח) ולבנות לוח בעמוד הבית | ההבטחה בכרטיס | עמוד הבית, `routes/board.ts` |
+| הרשמה: מחיקת חשבון לפי בקשה (היום ב־SQL ידני: `DELETE FROM accounts WHERE email = ?`) | פרטיות: עמוד הפרטיות מבטיח מחיקה | `routes/admin.ts` |
 | ~~`og.png` ו־`cover.png` ל־FallingCEO~~ נסגר: `make-assets.mjs` מייצר לשני המשחקים (חוק 21א). תמונות מצוירות ביד עדיין רצויות | | `other-services/assets/` |
 | תמונות OG ואייקונים כ־PNG לאתר (היום SVG) | WhatsApp/iMessage לא תמיד מציגים SVG | `frontend/src/assets/`, דורש sharp/resvg |
 | סינון כינויים בשרת | עדיין הצעה 1 למעלה | `worker/src/util.ts nick()` |

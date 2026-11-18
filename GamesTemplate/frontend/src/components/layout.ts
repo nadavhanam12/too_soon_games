@@ -2,6 +2,7 @@ import type { SiteCtx } from '../types';
 import { esc, attr, join, shortTime } from './html';
 import { icons } from './icons';
 import { defaultFeatured, gameUrl, studioHandle } from './games';
+import { SIGNUP_JS, signupData } from './signup';
 
 // Timeline layout (DECISIONS 83): left rail, center column, right sidebar on wide screens;
 // icon rail on tablets; top bar, bottom nav and a floating Play button on phones.
@@ -27,7 +28,7 @@ export function layout(ctx: SiteCtx, meta: PageMeta, body: string): string {
     ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "${attr(studio.cfWebAnalyticsToken)}"}'></script>`
     : '';
   const current: NavKey | '' = meta.home ? 'home' : meta.path === '/about/' ? 'about' : '';
-  const data = JSON.stringify({ apiBase: studio.apiBase || '', slugs: ctx.games.map((g) => g.slug) });
+  const data = JSON.stringify({ apiBase: studio.apiBase || '', slugs: ctx.games.map((g) => g.slug), ...signupData(ctx) });
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -141,12 +142,12 @@ function networkHandle(href: string, studioName: string): string {
   return parts.length !== 1 || parts[0]!.includes('.') ? studioName : '@' + parts[0]!.replace(/^@/, '');
 }
 
-/** Compact network buttons (the follow prompt on top of the home timeline). */
-export function netButtons(ctx: SiteCtx): string {
+/** Compact network buttons (under the sign-up card on top of the home timeline). `iconsOnly` drops the "Follow" label. */
+export function netButtons(ctx: SiteCtx, iconsOnly = false): string {
   return networks(ctx)
     .map(({ key, label, href }) =>
       href
-        ? `<a class="net" href="${attr(href)}" target="_blank" rel="noopener" aria-label="${label}" data-network="${key}">${icons[key]}<span>Follow</span></a>`
+        ? `<a class="net" href="${attr(href)}" target="_blank" rel="noopener" aria-label="${label}" data-network="${key}">${icons[key]}${iconsOnly ? '' : '<span>Follow</span>'}</a>`
         : `<span class="net net-soon" role="img" aria-label="${label} (coming soon)" data-network="${key}">${icons[key]}</span>`,
     )
     .join('');
@@ -314,6 +315,7 @@ const CLIENT_JS = `
     // Access-Control-Allow-Credentials, so the browser drops the beacon while sendBeacon still returns true
     fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:body,keepalive:true}).catch(function(){/* counting a visit never breaks the page */});
   };
+${SIGNUP_JS}
   // a visit that came back from a game: ?from=<slug>&via=<button> on the game's own links (overlays.ts, game-chrome.ts),
   // else the game page it came from (same-origin referrer). "<game>:<button>" goes into page_view.from
   var refPath='';try{var ru=document.referrer?new URL(document.referrer):null;if(ru&&ru.host===location.host)refPath=ru.pathname;}catch(e){/* an unparsable referrer counts as none */}
