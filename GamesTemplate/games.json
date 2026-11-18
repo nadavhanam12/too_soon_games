@@ -48,7 +48,7 @@
       "tagline": "21.1 km in Cyprus: halloumi, street cats, 29°C in November, and the baby waiting at the finish.",
       "audience": "us",
       "lang": "en",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "event": {
         "title": "A founder's half marathon, Cyprus",
         "headline": "One of our founders ran a half marathon today.",
@@ -73,7 +73,7 @@
       "tagline": "174 passengers, a hijacked cockpit, a plane going down. How fast can you save the flight?",
       "audience": "us",
       "lang": "en",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "event": {
         "title": "Flydubai flight FZ1073, Dubai to Tel Aviv",
         "headline": "Flydubai FZ1073, Dubai to Tel Aviv.",
@@ -97,7 +97,7 @@
       "tagline": "Icy Tower in reverse: how long can a CEO keep falling before the board meeting catches up?",
       "audience": "us",
       "lang": "en",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "event": {
         "title": "Nvidia CEO resignation, November 2026",
         "headline": "Nvidia's CEO resigns.",
