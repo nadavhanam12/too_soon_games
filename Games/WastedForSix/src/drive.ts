@@ -310,10 +310,11 @@ export function nearHr(): Npc | null {
 
 /** `wait` = seconds the chaser sits still before the chase starts (reaction time after the banner). */
 export function addChaser(kind: ChaserKind, x: number, y: number, grace = 1.2, wait = 0, n = PACK): void {
-  // player 43. On the bumper they do 79–86% of it; further back they speed up to catch up (RUBBER_*). They were
+  // player 43. On the bumper they do 79–81% of it; further back they speed up to catch up (RUBBER_*). They were
   // 31 / 29 / 28 with no catching up: on a phone, with the two-thumb controls, the player lost them in seconds and
-  // never saw them again (Nadav, 2026-11-18: far too easy, it did not feel like a chase).
-  const max = kind === 'shark' ? 37 : kind === 'cop' ? 35 : 34;
+  // never saw them again (Nadav, 2026-11-18: far too easy, it did not feel like a chase). The sharks then had 37, the
+  // fastest of the three, and the last leg with them was too hard (Nadav, 2026-11-18): now 34, like the fiancee.
+  const max = kind === 'shark' ? 34 : kind === 'cop' ? 35 : 34;
   // a pack of PACK: the others start on nearby roads, a little slower, and set off a beat later each, so they come strung out
   for (let k = 0; k < n; k++) {
     const off = k === 0 ? 0 : k % 2 ? 26 : -26, w = wait + k * 0.45;
