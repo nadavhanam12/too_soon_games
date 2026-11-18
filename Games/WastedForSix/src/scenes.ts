@@ -4,6 +4,7 @@
 //   fiancee — on the couch between you and the PC: sneaking and fake listening fail, asking honestly works
 //   pc    — type the password WASTED on a modern desktop's login screen; wrong tries get jokes and an escalating hint
 import { R, W, view, ctx, state, input, keyName, pick, rr, txt, wrap, inBtn, sfx, easeO, easeOB, springOut, pop, haptic, music } from '@tsg/index';
+import { CAPTURE } from './capture';
 import { G, setMomentPeek, registerStage, stageDone, finishGame, addScore, timeline } from './play';
 import { D, renderWorld } from './drive';
 import { BOSS, CLERK, FIANCEE, PC, UI as LABELS, type TradeItem, type FianceeQuiz } from './content';
@@ -78,8 +79,9 @@ function drawDecision(): void {
   else drawBigPortrait(UI.portrait, 0, TOP_H, W);   // phone: the whole painting at the column's width; the speech and the answers sit on its lower part (Nadav, 2026-11-18)
   ctx.restore();
   const tag = easeOB(Math.min(1, Math.max(0, G.t - 0.45) / 0.4));
-  if (tag > 0) { ctx.save(); ctx.translate(93, 364); ctx.scale(tag, tag); ctx.translate(-93, -364); rr(40, 352, 106, 24, 4, '#0e0e10', C.pink, 2); ptxt(UI.name, 93, 364, 1, C.pink); ctx.restore(); }
+  if (tag > 0 && !CAPTURE.noText) { ctx.save(); ctx.translate(93, 364); ctx.scale(tag, tag); ctx.translate(-93, -364); rr(40, 352, 106, 24, 4, '#0e0e10', C.pink, 2); ptxt(UI.name, 93, 364, 1, C.pink); ctx.restore(); }
   ctx.restore();
+  if (CAPTURE.noText) return;   // the painting alone (capture.ts)
   ctx.save(); ctx.translate(L.tx, L.ty);   // speech panel + options
   // speech panel
   const sp = Math.min(1, UI.t / PANEL_IN_S);
@@ -115,7 +117,7 @@ function drawDecision(): void {
 }
 
 /** The story timeline on a dark strip along the top edge (gray scenes and the PC). */
-function topTimeline(): void { ctx.fillStyle = 'rgba(14,14,16,.92)'; ctx.fillRect(view.x0, -view.top, view.fullW, view.top + TOP_H); ctx.fillStyle = C.pink; ctx.fillRect(view.x0, TOP_H, view.fullW, 2); timeline(TOP_H - 24); }
+function topTimeline(): void { if (CAPTURE.noText) return; ctx.fillStyle = 'rgba(14,14,16,.92)'; ctx.fillRect(view.x0, -view.top, view.fullW, view.top + TOP_H); ctx.fillStyle = C.pink; ctx.fillRect(view.x0, TOP_H, view.fullW, 2); timeline(TOP_H - 24); }
 const TOP_H = 68;   // bottom of that strip (the timeline's line is 24 above it)
 
 function decisionTaps(): void {

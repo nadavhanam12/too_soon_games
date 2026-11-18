@@ -110,5 +110,11 @@ export const bot = {
   async pc({ t, peek }, io) { if (peek?.moment?.finale != null) { if (peek.moment.finale > 2.2) await every(t, 0.5, () => io.press(' ')); return; } if (peek?.levelUp != null) { if (peek.levelUp > 1.8) await every(t, 0.5, () => io.press(' ')); return; } if (t < 3.5) return; /* the PC boots for 2.9 s and ignores input (scenes.ts BOOT_S) */ await every(t, 8, async () => { for (const k of 'wasted') await io.press(k); }); }, // once: the game ends 2.2 s later
 };
 
+/** Other routes, laid over `bot` stage by stage (the launch clip recorder: make-videos.mjs --route <name>). */
+export const routes = {
+  loan: { clerk: scene(['1', ' ']) },   // borrow from the loan sharks → Continue: the sharks chase you home
+  sick: { boss: scene(['2', ' ']) },    // fake the 24-hour flu → Continue: clinic, HR minivan; the ring → the fiancée chases
+};
+
 /** Lose on the spot (every stage, including the decision scenes that can't be lost by play). */
 export function forceLose() { window.__lose(); }

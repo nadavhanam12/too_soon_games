@@ -14,6 +14,7 @@ import { C } from './art';
 import { drawSet, setsReady, toScreen } from './mini3d';
 import type { MiniPerson } from './world3d-api';
 import { ptxt } from './pixel';
+import { CAPTURE } from './capture';
 import { drawGo, goPressed } from './button';
 
 export type MiniName = 'cough' | 'line' | 'tiptoe';
@@ -116,6 +117,7 @@ function keyLines(line: string, maxW: number): Part[][] {
 
 /** A comic speech bubble with its tail pointing at (tx, ty). */
 function bubble(s: string, x: number, y: number, size: number, bg: string, fg: string, tx: number, ty: number): void {
+  if (CAPTURE.noText) return;
   ctx.font = `900 ${size}px system-ui, sans-serif`;
   const w = ctx.measureText(s).width + 20, h = size + 14;
   x = clamp(x, w / 2 + 6, W - w / 2 - 6);
@@ -224,6 +226,7 @@ games.cough = {
     if (PZ.bmode === 'warn') sayAt(MINI.cough.bossWarn, PZ.bx, -6.6, 15, '#ffffff', '#111', 10);
     if (PZ.end >= 0) sayAt(PZ.note, PZ.bx, -6.6, 15, '#ffffff', C.red, 10);
     // the meter, and a note on the last cough
+    if (!CAPTURE.noText) {
     const ny = 66;   // clear of the boss's bubble
     rr(16, ny - 26, W - 32, 76, 10, 'rgba(14,14,16,.82)', PZ.bmode === 'look' ? C.yellow : 'rgba(255,255,255,.25)', 2);
     ptxt(MINI.cough.meter, 28, ny - 12, 1, '#b4b4bc', 'left');
@@ -232,12 +235,13 @@ games.cough = {
     // the lungs: three pips that empty with each cough and refill (the last one fills as a ring)
     ptxt(MINI.cough.lungs, 28, ny + 34, 1, '#b4b4bc', 'left');
     for (let i = 0; i < PZ_LUNGS; i++) { const f = clamp(PZ.lungs - i, 0, 1), cx = 96 + i * 22; circ(cx, ny + 34, 8, 'rgba(255,255,255,.12)', '#ffffff', 1.5); if (f >= 1) circ(cx, ny + 34, 6, '#3ddc84'); else if (f > 0) { ctx.strokeStyle = '#3ddc84'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, ny + 34, 5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); ctx.stroke(); } }
+    }
     const na = state.t - PZ.noteT;
-    if (na >= 0 && na < 1.4 && PZ.end < 0) { ctx.save(); ctx.globalAlpha = clamp((1.4 - na) / 0.3, 0, 1); const s = pop(na, 0.2, 0.25); ctx.translate(W / 2, 512); ctx.scale(s, s); txt(PZ.note, 0, 0, 16, PZ.note === MINI.cough.unseen || PZ.note === MINI.cough.nobody ? '#ffffff' : '#3ddc84', 'center', 900); ctx.restore(); }
+    if (na >= 0 && na < 1.4 && PZ.end < 0 && !CAPTURE.noText) { ctx.save(); ctx.globalAlpha = clamp((1.4 - na) / 0.3, 0, 1); const s = pop(na, 0.2, 0.25); ctx.translate(W / 2, 512); ctx.scale(s, s); txt(PZ.note, 0, 0, 16, PZ.note === MINI.cough.unseen || PZ.note === MINI.cough.nobody ? '#ffffff' : '#3ddc84', 'center', 900); ctx.restore(); }
     if (input.touch) {
       touchKey(LEFT_KEY.x, LEFT_KEY.y, LEFT_KEY.r, '◀', pzHeld(-1)); touchKey(RIGHT_KEY.x, RIGHT_KEY.y, RIGHT_KEY.r, '▶', pzHeld(1));
       touchKey(COUGH_KEY.x, COUGH_KEY.y, COUGH_KEY.r, MINI.cough.button, coughing, PZ.lungs >= 1 ? 'rgba(255,204,0,.35)' : 'rgba(120,120,120,.35)');
-    } else ptxt(MINI.cough.keys, W / 2, 600, 1, '#ffffff', 'center', '#000');
+    } else if (!CAPTURE.noText) ptxt(MINI.cough.keys, W / 2, 600, 1, '#ffffff', 'center', '#000');
   },
 };
 
@@ -314,7 +318,7 @@ games.line = {
     ctx.globalAlpha = 1;
     // progress to the door
     const k = clamp(LN.dist / LN_RUN, 0, 1);
-    rr(40, 76, W - 80, 10, 5, 'rgba(14,14,16,.6)'); rr(40, 76, (W - 80) * k, 10, 5, C.yellow); ptxt(MINI.line.counter, W - 40, 64, 1, '#ffffff', 'right', '#000');
+    if (!CAPTURE.noText) rr(40, 76, W - 80, 10, 5, 'rgba(14,14,16,.6)'), rr(40, 76, (W - 80) * k, 10, 5, C.yellow), ptxt(MINI.line.counter, W - 40, 64, 1, '#ffffff', 'right', '#000');
     // big lane keys in the driving controls' glass look; each lights up for a moment when it moves you
     if (input.touch && LN.end < 0) for (const d of [-1, 1] as const) {
       const x = d < 0 ? 70 : W - 70, y = 572, lit = state.t - LN.pressT < 0.18 && LN.pressD === d;
@@ -386,6 +390,6 @@ games.tiptoe = {
     const k = (TP.x - TIP_X0) / (TIP_GOAL - TIP_X0);
     rr(46, 610, 240, 6, 3, 'rgba(255,255,255,.15)'); rr(46, 610, 240 * k, 6, 3, C.yellow); circ(286, 613, 6, C.yellow);
     const look = TP.mode === 'look';
-    if (TP.end < 0) ptxt(look ? 'FREEZE!' : holding() ? 'SHH...' : input.touch ? 'HOLD TO TIPTOE' : 'HOLD SPACE', W / 2, 586, 2, look ? '#ff3b3b' : '#ffffff', 'center', '#000');
+    if (TP.end < 0 && !CAPTURE.noText) ptxt(look ? 'FREEZE!' : holding() ? 'SHH...' : input.touch ? 'HOLD TO TIPTOE' : 'HOLD SPACE', W / 2, 586, 2, look ? '#ff3b3b' : '#ffffff', 'center', '#000');
   },
 };

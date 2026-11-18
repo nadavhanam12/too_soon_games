@@ -4,6 +4,7 @@
 // position across stages. Each stage snapshots G on entry so "retry from this stage" restores it exactly.
 // Fails (fired / out of fuel / caught) go through R.fail → the template's lose screen, headed WASTED.
 import { R, W, view, ctx, state, input, onKeyDown, rr, txt, wrap, clamp, sfx, music, easeO, easeOB, pop, haptic, type Scene } from '@tsg/index';
+import { CAPTURE } from './capture';
 import type { Branch, StoreChoice, TradeItem } from './content';
 import { TIMELINE, TIMELINE_SHORT, RADIO, MISSION_PASSED, PC, UI, ITEM, LEVELUP } from './content';
 import { grayOut } from './pixel';
@@ -165,12 +166,12 @@ const sayQueue: Array<{ text: string; life: number }> = [];
 export function say(text: string, life = 1.8, force = false): void {
   if (DRIVING[G.stage] && G.t < UI_SETTLE_S) { if (force || !sayQueue.length) sayQueue.push({ text, life }); return; }
   if (!force && G.playT - G.sayT < 2.6) return;
-  G.sayT = G.playT; R.say(text, Math.max(life, readS(text)));
+  G.sayT = G.playT; if (!CAPTURE.noText) R.say(text, Math.max(life, readS(text)));   // noText: the timing stays, only the toast is not drawn
 }
 function flushSays(): void {
   if (!sayQueue.length || (DRIVING[G.stage] && G.t < UI_SETTLE_S)) return;
   if (G.playT - G.sayT < 1.4 && G.sayT > 0) return;   // one at a time
-  const q = sayQueue.shift()!; G.sayT = G.playT; R.say(q.text, Math.max(q.life, readS(q.text)));
+  const q = sayQueue.shift()!; G.sayT = G.playT; if (!CAPTURE.noText) R.say(q.text, Math.max(q.life, readS(q.text)));
 }
 
 // ---------- HUD (driving legs only) ----------
@@ -422,6 +423,7 @@ w.__stages = (): StageName[] => ORDER; // the story arc's stages in order (bugch
 w.__graphics = graphicsStats;
 w.__toScreen = (x: number, y: number) => world3d()?.project(x, y) ?? null;   // a city point → screen fraction (one-hand pad checks)
 w.__clean = (on = true) => { DEBUG.clean = on; };   // hide the HUD for a clean capture (play.ts DEBUG)
+w.__noText = (on = true) => { CAPTURE.noText = on; DEBUG.clean = on; };   // no game text over the picture, for the launch clips (capture.ts)
 w.__approach = () => +approachK().toFixed(2);   // the boss buildup's strength on the way to a door (0..1, buildup.ts)
 /** Read-only view for the playthrough bot: the car and the point the GPS arrow aims at. */
 w.__peek = () => ({ car: { x: D.p.x, y: D.p.y, a: D.p.a, v: D.p.v }, gps: D.goal ? gpsTarget(D.goal) : null, control: D.control && worldReady(), mini: DRIVING[G.stage] ? null : miniPeek(), levelUp: levelUpPeek(), vs: vsPeek(), moment: momentPeek() });

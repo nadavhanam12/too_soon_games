@@ -13,6 +13,7 @@ import { C } from './art';
 import { UI } from './content';
 import { carSound, copSiren, heliSound, wallGraze } from './carsound';
 import { ptxt } from './pixel';
+import { CAPTURE } from './capture';
 import { drawFace, type Who } from './portraits';
 
 export const MAX_V = 43;           // player top speed (the scene's 46; eased 2026-11-17)
@@ -754,7 +755,7 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
   }
   for (const n of D.hrs) {
     const s = scr(n.x, n.y, 5); if (s.behind) continue;
-    rr(s.x - 12, s.y - 30, 24, 14, 3, '#c8102e'); ptxt(UI.hrTag,s.x, s.y - 23, 1, '#fff');
+    if (!CAPTURE.noText) { rr(s.x - 12, s.y - 30, 24, 14, 3, '#c8102e'); ptxt(UI.hrTag,s.x, s.y - 23, 1, '#fff'); }
     // "!" grows over the minivan that has you in its circle; full size = it has seen you
     if (D.hrSee > 0 && dist(n, D.p) < HR_R + 4) { const k = easeOB(clamp(D.hrSee / HR_SPOT_S, 0, 1)); ptxt('!', s.x, s.y - 44 - 6 * k, 1 + Math.round(2 * k), C.yellow, 'center', '#000'); }
   }
@@ -775,9 +776,9 @@ export function renderWorld(pending: PlaceId[], showPlayer = true): void {
     ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-7, -9); ctx.lineTo(-2, 0); ctx.lineTo(-7, 9); ctx.closePath(); ctx.stroke(); ctx.fill();
     ctx.restore();
   }
-  if (arrow && D.goal) ptxt(String(Math.round(dist(PLACES[D.goal], D.p))), W / 2, top + view.H * ARROW_LABEL_F, 1, '#ffffff', 'center', '#000');   // the distance, under the arrow
+  if (arrow && D.goal && !CAPTURE.noText) ptxt(String(Math.round(dist(PLACES[D.goal], D.p))), W / 2, top + view.H * ARROW_LABEL_F, 1, '#ffffff', 'center', '#000');   // the distance, under the arrow
   // floating text: pops in with an overshoot, rises fast then slows, fades at the end
-  for (const fl of D.floats) {
+  for (const fl of CAPTURE.noText ? [] : D.floats) {
     const s = scr(fl.x, fl.y, 3), k = easeOB(clamp(fl.t / 0.16, 0, 1));
     if (s.behind) continue;
     ctx.save(); ctx.globalAlpha = easeO(clamp((1.2 - fl.t) / 0.3, 0, 1));
@@ -820,6 +821,7 @@ function chaseAlarm(top: number): void {
 /** Who is after you, big, in the middle of the screen for CALL_S: a tilted band slams in from the left with the
  *  chaser's name in the pixel font, a line under it says what they want. It leaves to the right. */
 export function chaseCall(): void {
+  if (CAPTURE.noText) return;
   const age = D.t - D.alarm - CALL_WAIT_S;
   if (age < 0 || age >= CALL_S) return;
   const inK = easeOB(clamp(age / 0.3, 0, 1)), outK = easeO(clamp((age - (CALL_S - 0.3)) / 0.3, 0, 1));

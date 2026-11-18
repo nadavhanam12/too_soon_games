@@ -2,6 +2,7 @@
 // rises into a turning sunburst, a shine sweeps over it, the header slams in and a line says what it cost you.
 // On the tap it shrinks and flies to its place in the HUD, where it rides along as an icon for the way home.
 import { R, W, view, ctx, txt, wrap, clamp, lerp, easeO, easeOB } from '@tsg/index';
+import { CAPTURE } from './capture';
 import { C } from './art';
 import { ptxt } from './pixel';
 import { sceneImg } from './opening';
@@ -83,7 +84,7 @@ export function itemMoment(t: number, out: number, paid: StoreChoice): void {
   }
   // header: slams in over the top, in the pixel font, on a tilted yellow tag
   const hk = k01(t, 0.4, 0.25);
-  if (hk > 0 && stay > 0) {
+  if (hk > 0 && stay > 0 && !CAPTURE.noText) {
     const e = easeOB(hk), sc = 1 + (1 - e) * 0.8, w = ITEM.head.length * 18 + 22;
     ctx.save(); ctx.globalAlpha = Math.min(1, hk * 3) * stay; ctx.translate(CX, 112); ctx.rotate(-0.045); ctx.scale(sc, sc);
     ctx.fillStyle = '#000'; ctx.fillRect(-w / 2 + 4, -18 + 4, w, 36);
@@ -94,7 +95,7 @@ export function itemMoment(t: number, out: number, paid: StoreChoice): void {
   }
   // what it is, and what it cost you
   const nk = k01(t, 0.6, 0.25);
-  if (nk > 0 && stay > 0) {
+  if (nk > 0 && stay > 0 && !CAPTURE.noText) {
     ctx.globalAlpha = nk * stay;
     const dy = (1 - easeOB(nk)) * 16;
     ptxt(ITEM.name, CX, 456 + dy, 2, '#ffffff', 'center', '#000');
@@ -102,7 +103,7 @@ export function itemMoment(t: number, out: number, paid: StoreChoice): void {
     wrap(ITEM.patch, 11, W - 70, 600).forEach((l, i) => txt(l, CX, 528 + dy + i * 15, 11, '#b4b4bc', 'center', 600));
     ctx.globalAlpha = 1;
   }
-  if (out < 0 && t > ITEM_TAP_S && Math.sin(t * 5) > -0.2) txt(R.strs.tapToContinue, CX, 600, 13, '#cfcfcf', 'center', 700);
+  if (out < 0 && t > ITEM_TAP_S && Math.sin(t * 5) > -0.2 && !CAPTURE.noText) txt(R.strs.tapToContinue, CX, 600, 13, '#cfcfcf', 'center', 700);
 }
 
 /** The case as a small HUD icon, centred on (x, y), scaled by `k` (the pop when the leg starts). */

@@ -6,6 +6,7 @@
 // where it froze when you walked into the store. Caught = WASTED.
 import { R, W, view, ctx, state, input, keyName, pick, rr, txt, wrap, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
 import { DEBUG, UI_IN, G, registerStage, stageDone, fail, addScore, say, hud, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
+import { CAPTURE } from './capture';
 import { D, CALL_S, CALL_WAIT_S, chaseCall, ev, resetWorld, stepWorld, renderWorld, renderControls, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, renderMinimap, MINI, radioY, type ChaserKind } from './drive';
 import { PLACES, CELL, type PlaceId } from './city';
 import { BANNERS, HOW_KEYS, HINT, LINES, PLACE_NAME, BOOST_TEXT, UI, TAUNTS } from './content';
@@ -33,7 +34,7 @@ function stepBeat(dt: number): boolean {
   return true;
 }
 function renderBeat(): void {
-  if (!beat) return;
+  if (!beat || CAPTURE.noText) return;
   const k = clamp(beat.t / beat.dur, 0, 1), x = W / 2, y = 250, inK = easeOB(Math.min(1, beat.t / 0.2));
   ctx.save(); ctx.translate(x, y - 10); ctx.scale(inK, inK); ctx.translate(-x, -(y - 10));   // the card pops in
   rr(x - 80, y - 46, 160, 30, 8, 'rgba(14,14,16,.85)'); ptxt(beat.label, x, y - 31, 2, C.yellow);
@@ -180,7 +181,7 @@ let readEnd = READ_S + READ_FADE_S;
 function startRead(end = READ_S + READ_FADE_S): void { readEnd = end; D.reading = true; D.control = false; }
 function stepRead(): void { if (D.reading && G.t >= readEnd) { D.reading = false; if (!beat && !walk) D.control = true; } }
 function renderRead(): void {
-  if (!D.reading) return;
+  if (!D.reading || CAPTURE.noText) return;
   const a = clamp((readEnd - G.t) / READ_FADE_S, 0, 1);
   ctx.fillStyle = `rgba(0,0,0,${READ_DIM * a})`; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
   chaseCall();

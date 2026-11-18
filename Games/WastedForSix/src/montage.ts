@@ -35,7 +35,10 @@ function box(p: readonly Pt[]): { x: number; y: number; w: number; h: number } {
   const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]), x = Math.min(...xs), y = Math.min(...ys);
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
 }
-const picOf = (who: Face): HTMLImageElement | undefined => (who === 'you' ? sceneImg('cut-driveway') : portraitImg(`${who}-idle` as PortraitId));
+/** Which painting a panel shows: the character's idle one, or `pics[who]` (the launch clips' poster uses the funny ones). */
+type Pics = Partial<Record<Who, PortraitId>>;
+const picId = (who: Who, pics?: Pics): PortraitId => pics?.[who] ?? (`${who}-idle` as PortraitId);
+const picOf = (who: Face, pics?: Pics): HTMLImageElement | undefined => (who === 'you' ? sceneImg('cut-driveway') : portraitImg(picId(who, pics)));
 
 export interface MontageOpts {
   met: readonly Who[];   // the characters you already talked to (you are always there)
@@ -44,6 +47,7 @@ export interface MontageOpts {
   glow?: number;         // 0..1: the yellow frame around the fresh panel
   tagK?: number;         // 0..1: the fresh panel's name tag stamping in
   tags?: boolean;        // name tags on the panels (off for the small copy on the result screen)
+  pics?: Pics;           // another painting per character (default: its idle one)
   pulse?: number;        // seconds, for the logo's breathing (omit for a still picture)
   crack?: number;        // 0..1: cracks spreading over the fresh panel's silhouette (the smash-through entry)
   smash?: number;        // seconds since the fresh character smashed through (shards fly, the picture punches in)
@@ -58,7 +62,7 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
   ctx.fillStyle = INK; ctx.fillRect(x, y, w, h);
   const polys = SLOTS.map((s) => s.poly.map(([px, py]) => [x + px * w, y + py * h] as const));
   SLOTS.forEach((s, i) => {
-    const P = polys[i]!, b = box(P), fresh = s.who === o.fresh, im = picOf(s.who);
+    const P = polys[i]!, b = box(P), fresh = s.who === o.fresh, im = picOf(s.who, o.pics);
     const smashing = fresh && o.smash !== undefined;
     const shown = s.who === 'you' || o.met.includes(s.who as Who), k = smashing ? (o.smash! >= 0 ? 1 : 0) : fresh ? clamp(o.k ?? 1, 0, 1) : 1;
     ctx.save(); trace(P); ctx.clip();
@@ -82,7 +86,7 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
       const ix = Math.min(b.x, Math.max(b.x + b.w - iw, b.x + b.w / 2 - iw * s.fx)), iy = Math.min(b.y, Math.max(b.y + b.h - ih, b.y + b.h / 2 - ih * s.fy));
       ctx.globalAlpha = k; ctx.imageSmoothingEnabled = true;
       ctx.drawImage(im, ix, iy, iw, ih);
-      if (s.who !== 'you') portraitSticker(`${s.who}-idle` as PortraitId, ix, iy, iw);
+      if (s.who !== 'you') portraitSticker(picId(s.who as Who, o.pics), ix, iy, iw);
       ctx.globalAlpha = 1;
     }
     if (smashing && o.smash! < 0) drawCracks(b, s.top, o.crack ?? 0, u);
@@ -213,15 +217,16 @@ export function montagePoster(x: number, y: number, w: number, h: number, met: r
 }
 
 /**
- * The montage as a picture (1080 x 1350): the preview card's art (main.ts __ogPic → og.png). Null while its paintings
- * have not arrived (they are separate files).
+ * The montage as a picture (1080 x 3h; h 450 = 1080 x 1350): the preview card's art (main.ts __ogPic → og.png), and at
+ * h 640 a full 9:16 still for the launch clips (a clean montage: the moment in the game rains confetti over it). Null
+ * while its paintings have not arrived (they are separate files).
  */
-export function montagePicture(met: readonly Who[]): HTMLCanvasElement | null {
-  if (!sceneImg('logo') || !picOf('you') || met.some((m) => !picOf(m))) return null;
-  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350;
+export function montagePicture(met: readonly Who[], h = 450, tags = true, pics?: Pics): HTMLCanvasElement | null {
+  if (!sceneImg('logo') || !picOf('you') || met.some((m) => !picOf(m, pics))) return null;
+  const c = document.createElement('canvas'); c.width = 1080; c.height = h * 3;
   const g = c.getContext('2d');
   if (!g) throw new Error('no 2d context for the share picture');
   g.scale(3, 3);
-  drawOn(g, () => drawMontage(0, 0, 360, 450, { met, tags: true }));
+  drawOn(g, () => drawMontage(0, 0, 360, h, { met, tags, pics }));
   return c;
 }

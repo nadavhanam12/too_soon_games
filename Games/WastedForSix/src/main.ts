@@ -9,7 +9,7 @@ import { comicBackdrop, loadCutArt, loadTitleArt, titleScene } from './opening';
 import { montagePicture } from './montage';
 import { loseArt, resultArt } from './endings';
 import { loadWorld } from './drive';
-import { loadPortraits } from './portraits';
+import { loadPortraits, type PortraitId } from './portraits';
 import './legs'; import './scenes';
 
 const cfg = cfgJson as GameConfig;
@@ -41,7 +41,7 @@ createGame({
 });
 // The preview card's picture: the full montage as a PNG data URL (null until its paintings are in). Read by
 // GamesTemplate/other-services/assets/make-assets.mjs, which puts it on og.png in place of the title screen.
-(window as unknown as Record<string, unknown>).__ogPic = () => { loadPortraits(); loadCutArt(); return montagePicture(['boss', 'clerk', 'fiancee'])?.toDataURL('image/png') ?? null; };
+(window as unknown as Record<string, unknown>).__ogPic = (h?: number, tags?: boolean, pics?: Partial<Record<'boss' | 'clerk' | 'fiancee', PortraitId>>) => { loadPortraits(); loadCutArt(); return montagePicture(['boss', 'clerk', 'fiancee'], h, tags, pics)?.toDataURL('image/png') ?? null; };
 // ?screen=community (or result / lose / board / facts) opens that screen with the full montage, to check the end
 // screens and the share without a run (also on the live site: it does nothing the debug hooks do not). Waits for the
 // paintings.
