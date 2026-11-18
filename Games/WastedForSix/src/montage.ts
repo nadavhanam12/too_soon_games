@@ -45,6 +45,8 @@ export interface MontageOpts {
   tagK?: number;         // 0..1: the fresh panel's name tag stamping in
   tags?: boolean;        // name tags on the panels (off for the small copy on the result screen)
   pulse?: number;        // seconds, for the logo's breathing (omit for a still picture)
+  crack?: number;        // 0..1: cracks spreading over the fresh panel's silhouette (the smash-through entry)
+  smash?: number;        // seconds since the fresh character smashed through (shards fly, the picture punches in)
 }
 
 /** The montage in the box (x, y, w, h) of the current canvas. */
@@ -57,8 +59,12 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
   const polys = SLOTS.map((s) => s.poly.map(([px, py]) => [x + px * w, y + py * h] as const));
   SLOTS.forEach((s, i) => {
     const P = polys[i]!, b = box(P), fresh = s.who === o.fresh, im = picOf(s.who);
-    const shown = s.who === 'you' || o.met.includes(s.who as Who), k = fresh ? clamp(o.k ?? 1, 0, 1) : 1;
+    const smashing = fresh && o.smash !== undefined;
+    const shown = s.who === 'you' || o.met.includes(s.who as Who), k = smashing ? (o.smash! >= 0 ? 1 : 0) : fresh ? clamp(o.k ?? 1, 0, 1) : 1;
     ctx.save(); trace(P); ctx.clip();
+    // the smash-through: the cracked silhouette trembles more and more; after the smash the picture punches in from big
+    if (smashing && o.smash! < 0) ctx.translate(Math.sin((o.crack ?? 0) * 90) * 4 * u * (o.crack ?? 0), Math.cos((o.crack ?? 0) * 70) * 3 * u * (o.crack ?? 0));
+    if (smashing && o.smash! >= 0) { const z = 1 + 0.22 * Math.exp(-o.smash! * 7) * Math.cos(o.smash! * 18); ctx.translate(b.x + b.w / 2, b.y + b.h / 2); ctx.scale(z, z); ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2)); }
     // not met yet (or its picture is still downloading: the portraits are separate files, requested after the first
     // frame): a dark panel with a silhouette and a question mark
     if (!shown || !im || k < 1) {
@@ -79,6 +85,8 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
       if (s.who !== 'you') portraitSticker(`${s.who}-idle` as PortraitId, ix, iy, iw);
       ctx.globalAlpha = 1;
     }
+    if (smashing && o.smash! < 0) drawCracks(b, s.top, o.crack ?? 0, u);
+    if (smashing && o.smash! >= 0 && o.smash! < 0.12) { ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - o.smash! / 0.12)})`; ctx.fillRect(b.x, b.y, b.w, b.h); }
     ctx.restore();
   });
   // gutters between the panels
@@ -98,6 +106,8 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
     if (s.who !== o.fresh || !o.glow || o.glow <= 0) return;
     trace(polys[i]!); ctx.strokeStyle = `rgba(255,204,0,${clamp(o.glow, 0, 1)})`; ctx.lineWidth = (3 + 4 * o.glow) * u; ctx.stroke();
   });
+  // the silhouette's shards fly out over everything after the smash
+  SLOTS.forEach((s, i) => { if (s.who === o.fresh && o.smash !== undefined && o.smash >= 0) drawShards(polys[i]!, s.top, o.smash, u); });
   // name tags: top panels near the top edge, bottom panels near the bottom edge, on the outer side
   if (o.tags) SLOTS.forEach((s, i) => {
     const shown = s.who === 'you' || o.met.includes(s.who as Who), k = s.who === o.fresh ? easeOB(clamp(o.tagK ?? 1, 0, 1)) : 1;
@@ -111,20 +121,58 @@ export function drawMontage(x: number, y: number, w: number, h: number, o: Monta
   ctx.restore();
 }
 
+// ---------- the smash-through entry (Nadav picked it on 2026-11-18 from four) ----------
+/** Where the punch lands: the silhouette's head. */
+const hitPoint = (b: { x: number; y: number; w: number; h: number }, top: boolean, u: number): Pt => [b.x + b.w / 2, b.y + b.h * (top ? 0.38 : 0.62) - 22 * u];
+/** Jagged white cracks from the hit point toward the panel's edges; `c` 0..1 = how far they have run. */
+function drawCracks(b: { x: number; y: number; w: number; h: number }, top: boolean, c: number, u: number): void {
+  if (c <= 0) return;
+  const [hx, hy] = hitPoint(b, top, u), R0 = Math.hypot(b.w, b.h) * 0.6;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 + 0.4 * Math.sin(i * 7.1), len = R0 * c * (0.55 + 0.45 * ((i * 37) % 10) / 10);
+    ctx.beginPath(); ctx.moveTo(hx, hy);
+    for (let j = 1; j <= 5; j++) { const r = (len * j) / 5, wob = Math.sin(i * 3 + j * 2.3) * 0.22; ctx.lineTo(hx + Math.cos(a + wob) * r, hy + Math.sin(a + wob) * r); }
+    ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 4 * u; ctx.stroke();
+    ctx.strokeStyle = 'rgba(235,240,255,.9)'; ctx.lineWidth = 1.6 * u; ctx.stroke();
+  }
+}
+/** The silhouette panel broken into wedges around the hit point; each flies outward, spins and falls. */
+function drawShards(P: readonly Pt[], top: boolean, t: number, u: number): void {
+  const life = 0.85; if (t >= life) return;
+  const b = box(P), [hx, hy] = hitPoint(b, top, u), n = 10;
+  // points around the panel's box, in order
+  const ring: Pt[] = [];
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; ring.push([hx + Math.cos(a) * b.w * 0.75, hy + Math.sin(a) * b.h * 0.75]); }
+  const e = easeO(clamp(t / life, 0, 1));
+  for (let i = 0; i < n; i++) {
+    const p1 = ring[i]!, p2 = ring[(i + 1) % n]!, mx = (p1[0] + p2[0]) / 2 - hx, my = (p1[1] + p2[1]) / 2 - hy, L = Math.hypot(mx, my) || 1;
+    const d = 220 * u * e, dx = (mx / L) * d, dy = (my / L) * d + 420 * u * t * t, rot = (i % 2 ? 1 : -1) * (2 + (i % 3)) * t;
+    const cx = hx + mx * 0.35, cy = hy + my * 0.35;
+    ctx.save(); ctx.globalAlpha = clamp(1 - t / life, 0, 1);
+    ctx.translate(cx + dx, cy + dy); ctx.rotate(rot); ctx.scale(0.9 - 0.3 * e, 0.9 - 0.3 * e); ctx.translate(-cx, -cy);
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.closePath();
+    ctx.fillStyle = '#1d1d24'; ctx.fill(); ctx.strokeStyle = 'rgba(235,240,255,.55)'; ctx.lineWidth = 1.5 * u; ctx.stroke();
+    ctx.restore();
+  }
+}
+
 // ---------- the moment after a conversation ----------
-export const MONTAGE_TAP_S = 1.3;    // taps are swallowed until the new face is in
+export const MONTAGE_TAP_S = 2.4;    // taps are swallowed until the new face is in (and the confetti has burst)
 export const MONTAGE_OUT_S = 0.25;   // fade to black after the tap, then the story goes on
-const IN_S = 0.2, HOLD_S = 0.35, FADE_S = 0.8;
+const IN_S = 0.2;
+export const CRACK_AT = 0.5, SMASH_AT = 1.5;   // the cracks start / the character punches through (scenes.ts plays the hits); ×2 on 2026-11-18 (Nadav: build anticipation)
 /** Full screen. t = seconds since it started, out = seconds since the tap (-1 = not yet), who = the one just met. */
 export function montageMoment(t: number, out: number, who: Who, met: readonly Who[]): void {
-  const land = t - HOLD_S - FADE_S;   // seconds since the picture is fully in
+  const land = t - SMASH_AT;   // seconds since the character smashed through
   ctx.save(); ctx.translate(0, -view.top);
   drawMontage(view.x0, 0, view.fullW, view.H, {
     met, fresh: who, tags: true, pulse: t,
-    k: easeO(clamp((t - HOLD_S) / FADE_S, 0, 1)),
-    glow: land < 0 ? clamp((t - HOLD_S + 0.1) / 0.3, 0, 1) : clamp(1 - land / 0.9, 0, 1),
-    tagK: (land - 0.1) / 0.25,
+    crack: easeO(clamp((t - CRACK_AT) / (SMASH_AT - CRACK_AT), 0, 1)), smash: land,
+    glow: land < 0 ? 0 : clamp(1 - land / 1.2, 0, 1),
+    tagK: (land - 0.3) / 0.25,
   });
+  if (land >= 0) celebrate(who, land);
   if (out < 0 && t > MONTAGE_TAP_S && Math.sin(t * 5) > -0.2) {
     rr(W / 2 - 74, view.H - 44, 148, 24, 12, 'rgba(6,6,8,.85)');
     txt(R.strs.tapToContinue, W / 2, view.H - 32, 13, '#ffffff', 'center', 700);
@@ -133,6 +181,28 @@ export function montageMoment(t: number, out: number, who: Who, met: readonly Wh
   const dark = out >= 0 ? clamp(out / MONTAGE_OUT_S, 0, 1) : 1 - clamp(t / IN_S, 0, 1);
   if (dark > 0) { ctx.fillStyle = `rgba(6,6,8,${dark})`; ctx.fillRect(view.x0, 0, view.fullW, view.H); }
   ctx.restore();
+}
+
+/** Happy particles after the smash (Nadav, 2026-11-18): confetti bursts out of the new panel and rains down, sparkles
+ *  twinkle around it. Drawn from the clock (no state); `land` = seconds since the smash, canvas coordinates of the
+ *  montage moment (0 = top of the canvas). */
+function celebrate(who: Who, land: number): void {
+  if (land > 2.6) return;
+  const wide = view.fullW > view.H, SLOTS = wide ? SLOTS_WIDE : SLOTS_TALL, s = SLOTS.find((q) => q.who === who);
+  if (!s) return;
+  const b = box(s.poly.map(([px, py]) => [view.x0 + px * view.fullW, py * view.H] as const));
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2, cols = [C.yellow, '#ffffff', '#ff6fa8', '#2fd1c8', '#3ddc84'];
+  for (let i = 0; i < 70; i++) {
+    const a = (i / 70) * Math.PI * 2 + Math.sin(i * 3.7) * 0.4, sp = 160 + ((i * 53) % 90) * 3;
+    const x = cx + Math.cos(a) * sp * land * Math.exp(-land * 0.9), y = cy + Math.sin(a) * sp * land * Math.exp(-land * 0.9) + 140 * land * land;
+    ctx.save(); ctx.globalAlpha = clamp(1 - land / 2.6, 0, 1); ctx.translate(x, y); ctx.rotate(land * (4 + (i % 5)) + i);
+    ctx.fillStyle = cols[i % cols.length]!; ctx.fillRect(-4, -2, 8, 4); ctx.restore();
+  }
+  for (let i = 0; i < 12; i++) {   // sparkles around the panel
+    const ph = (land * 1.6 + i / 12) % 1, x = b.x + ((i * 0.618) % 1) * b.w, y = b.y + ((i * 0.37) % 1) * b.h, r = 9 * Math.sin(ph * Math.PI);
+    ctx.save(); ctx.globalAlpha = clamp(1 - land / 2.6, 0, 1); ctx.fillStyle = '#fff6b0'; ctx.translate(x, y);
+    ctx.beginPath(); for (let k = 0; k < 8; k++) { const rr2 = k % 2 ? r * 0.25 : r, aa = (k * Math.PI) / 4; ctx.lineTo(Math.cos(aa) * rr2, Math.sin(aa) * rr2); } ctx.closePath(); ctx.fill(); ctx.restore();
+  }
 }
 
 /** The montage in a white poster frame (the result screen). */

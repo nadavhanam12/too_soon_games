@@ -1,8 +1,7 @@
 // Asphalt and warning yellow (2026-11-17): near-black asphalt, yellow accent with dark ink, white text,
 // red for danger and WASTED, dollar green for money. C.pink in art.ts is the accent's old name (now yellow).
 import { defaultTheme, fillBg, state, txt, type Theme } from '@tsg/index';
-import { comicBackdrop, missionCard, upgradeSticker } from './opening';
-import { D } from './drive';
+import { comicBackdrop, missionCard } from './opening';
 import { cardTimeline } from './play';
 import { wastedBand } from './endings';
 
@@ -14,8 +13,8 @@ const base = defaultTheme({
 export const theme: Theme = {
   ...base,
   // the mission card, and above it the story timeline: the card is the one moment before a leg with time to read it
-  // a leg that opens in a finer look (drive.ts D.look, set by the leg before its banner) says so on its card
-  banner(title, lines, t) { missionCard(title, lines, t); cardTimeline(t); if (D.look > 2 && D.t < 0.5) upgradeSticker(t); },
+  // (the GRAPHICS UPGRADED sticker that was here went on 2026-11-18: the LEVEL UP screen after each conversation says it, levelup.ts)
+  banner(title, lines, t) { missionCard(title, lines, t); cardTimeline(t); },
   // headings are yellow; on the lose screen WASTED is the red pixel word on its black band (endings.ts)
   heading(s, x, y, size = 30, align = 'center') {
     if (state.scene === 'lose') { wastedBand(s, y, state.st); return; }

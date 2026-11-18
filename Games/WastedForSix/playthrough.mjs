@@ -8,11 +8,11 @@ export const arc = {
   start: 'Launch day, 8:30 a.m.: a fan who waited 13 years still has a job and a boss who needs him in today',
   stages: [
     { id: 'commute', beat: 'Drive from home to the office, grabbing cash and the first graffiti letters' },
-    { id: 'boss', beat: 'Face the boss: agreeing is WASTED, so fake the 24-hour flu (or quit)' },
+    { id: 'boss', beat: 'Rehearse a fake cough in the elevator, then face the boss: agreeing is WASTED, so fake the 24-hour flu (or quit)' },
     { id: 'launch', beat: 'Drive to the game store with a forced detour: the doctor for a sick note (HR minivan roams) or the gas station (cops)' },
-    { id: 'clerk', beat: 'Broke at the counter: borrow from loan sharks, grab it and run, or trade in the engagement ring' },
+    { id: 'clerk', beat: 'Cut the midnight line, then, broke at the counter: borrow from loan sharks, grab it and run, or trade in the engagement ring' },
     { id: 'home', beat: 'Chase home with the game: loan sharks, cops or the fiancée on your tail' },
-    { id: 'fiancee', beat: 'The fiancée on the couch wants attention: sneaking and fake listening fail, asking honestly for one hour works' },
+    { id: 'fiancee', beat: 'Tiptoe past the couch; the fiancée wants attention: sneaking and fake listening fail, asking honestly for one hour works' },
     { id: 'pc', beat: 'Type the password on the old PC: WASTED' },
   ],
   end: 'PRESS START: the fan is home, on "sick leave" or unemployed, playing Six',
@@ -65,14 +65,49 @@ const decide = (keys) => async ({ t }, io) => {
   await every(t, gap, () => io.press(keys[i]));
 };
 
+/** The mini game before a conversation (minigames.ts, read through __peek().mini): cough on the green, dodge the
+ *  campers, tiptoe only while she is calm. Title and result cards end by themselves. */
+async function playMini(m, t, io) {
+  if (m.phase === 'intro') { await io.releaseAll(); if (m.t > 0.6) await every(t, 0.5, () => io.press(' ')); return; }   // the START button (Space presses it)
+  if (m.phase !== 'play') { await io.releaseAll(); return; }
+  if (m.name === 'cough') {   // PATIENT ZERO: walk to the nearest coworker without a mask, cough while the boss looks
+    const go = m.dx === null ? 0 : m.dx > 1.2 ? 1 : m.dx < -1.2 ? -1 : 0;
+    await io.hold('ArrowRight', go > 0); await io.hold('ArrowLeft', go < 0);
+    if (go === 0 && m.dx !== null && m.boss === 'look' && m.cd) await io.press(' ');
+    return;
+  }
+  if (m.name === 'line') {
+    if (m.dy === null || m.dy > 260 || !m.blocked.includes(m.lane)) return;
+    const free = [0, 1, 2].filter((l) => !m.blocked.includes(l)).sort((a, b) => Math.abs(a - m.lane) - Math.abs(b - m.lane))[0];
+    if (free !== undefined) await io.press(free < m.lane ? 'ArrowLeft' : 'ArrowRight');
+    return;
+  }
+  if (m.name === 'tiptoe') await io.hold(' ', m.mode === 'calm' && m.mt > 0.35);
+}
+/** A conversation stage: its mini game, then the VS card (it waits for its button: Space), then the decisions; after
+ *  the last Continue, LEVEL UP (its button: Space) and the montage. The decisions' clock starts after the card. */
+const VS_WAIT = 0.4;
+let preT = null, preLast = Infinity;
+const scene = (keys) => { const d = decide(keys); return async (s, io) => {
+  if (s.t < preLast) preT = null; preLast = s.t;
+  const m = s.peek?.mini;
+  if (m) { preT = s.t; return playMini(m, s.t, io); }
+  if (s.peek?.vs != null) { preT = s.t; if (s.peek.vs > 2.5) await every(s.t, 0.5, () => io.press(' ')); return; }
+  if (s.peek?.levelUp != null) { if (s.peek.levelUp > 1.8) await every(s.t, 0.5, () => io.press(' ')); return; }
+  if (s.peek?.moment) { const m = s.peek.moment; if ((m.montage ?? 0) > 2.5 || (m.item ?? 0) > 1.2) await every(s.t, 0.5, () => io.press(' ')); return; }   // the montage, ITEM ACQUIRED: Continue when they take a tap
+  if (preT === null) preT = s.t;
+  const t = s.t - preT - VS_WAIT;
+  if (t >= 0) return d({ ...s, t }, io);
+}; };
+
 export const bot = {
   commute: drive,
-  boss: decide(['3', ' ']),           // quit, Continue
+  boss: scene(['3', ' ']),            // quit, Continue
   launch: drive,
-  clerk: decide(['3', '3', ' ']),     // trade something in → the ring → Continue
+  clerk: scene(['3', '3', ' ']),      // trade something in → the ring → Continue
   home: drive,
-  fiancee: decide(['3', ' ']),        // ask honestly, Continue
-  async pc({ t }, io) { if (t < 3.5) return; /* the PC boots for 2.9 s and ignores input (scenes.ts BOOT_S) */ await every(t, 8, async () => { for (const k of 'wasted') await io.press(k); }); }, // once: the game ends 2.2 s later
+  fiancee: scene(['3', ' ']),         // ask honestly, Continue
+  async pc({ t, peek }, io) { if (peek?.moment?.finale != null) { if (peek.moment.finale > 2.2) await every(t, 0.5, () => io.press(' ')); return; } if (peek?.levelUp != null) { if (peek.levelUp > 1.8) await every(t, 0.5, () => io.press(' ')); return; } if (t < 3.5) return; /* the PC boots for 2.9 s and ignores input (scenes.ts BOOT_S) */ await every(t, 8, async () => { for (const k of 'wasted') await io.press(k); }); }, // once: the game ends 2.2 s later
 };
 
 /** Lose on the spot (every stage, including the decision scenes that can't be lost by play). */

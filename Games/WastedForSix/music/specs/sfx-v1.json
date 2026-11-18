@@ -1,0 +1,83 @@
+{
+  "note": "Sound effects made with ACE-Step (Nadav, 2026-11-18: 'make the sounds with ACE-Step for everything: choosing, the screens'). Stingers, not loops: each is generated at 10 s and the game keeps only its first 0.3-2 s (cut-sfx.py). Same key (F minor / Ab major) and the same 90s G-funk / Rhodes world as the music, so they sit with it.",
+  "defaults": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7.0,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2
+  },
+  "tracks": {
+    "choose": {
+      "label": "בחירת תשובה בדו-שיח",
+      "prompt": "a single short warm Fender Rhodes chord stab in F minor played by a session player, dry, quickly fading, no drums, intimate room, analog tape warmth",
+      "bpm": 92,
+      "key_scale": "F minor",
+      "sfx_len": 0.6
+    },
+    "button": {
+      "label": "כפתור START / CONTINUE",
+      "prompt": "one crisp funky muted electric guitar chord stab with a tight rimshot, very short and dry, late 1990s West Coast funk session, analog warmth",
+      "bpm": 96,
+      "key_scale": "F minor",
+      "sfx_len": 0.35
+    },
+    "vs": {
+      "label": "כרטיס ה-VS של הבוס",
+      "prompt": "dramatic fighting game versus stinger, one huge brass and orchestra hit with a deep timpani boom and a gong swell, cinematic tension, tongue-in-cheek swagger",
+      "bpm": 90,
+      "key_scale": "F minor",
+      "sfx_len": 2.0
+    },
+    "levelup": {
+      "label": "LEVEL UP",
+      "prompt": "triumphant short level up fanfare, bright brass section and a sparkling synth arpeggio rising to a big major chord, celebratory, live horn players, 90s game swagger",
+      "bpm": 120,
+      "key_scale": "Ab major",
+      "sfx_len": 2.0
+    },
+    "smash": {
+      "label": "הדמות שוברת את המונטאז'",
+      "prompt": "a dramatic reveal hit: a deep cinematic boom with a bright reverse cymbal riser into a big Rhodes and brass chord, punchy, exciting",
+      "bpm": 96,
+      "key_scale": "F minor",
+      "sfx_len": 1.6
+    },
+    "item": {
+      "label": "ITEM ACQUIRED",
+      "prompt": "short happy item acquired jingle, sparkling Fender Rhodes and glockenspiel arpeggio rising and landing on a bright chord, playful wink, warm analog production",
+      "bpm": 110,
+      "key_scale": "Ab major",
+      "sfx_len": 1.8
+    },
+    "ministart": {
+      "label": "התחלת מיני-גיים",
+      "prompt": "short punchy arcade start jingle, a funky live drum fill into one tight horn stab, energetic, laid-back swing, analog tape warmth",
+      "bpm": 100,
+      "key_scale": "F minor",
+      "sfx_len": 1.2
+    },
+    "miniwin": {
+      "label": "סיום מיני-גיים",
+      "prompt": "short cheeky victory jingle, slap bass and a horn section riff ending on a bright stab, mischievous grin, live players, late 90s funk",
+      "bpm": 104,
+      "key_scale": "Ab major",
+      "sfx_len": 1.6
+    },
+    "unlock": {
+      "label": "סיסמה נכונה",
+      "prompt": "a satisfying unlock success chime, a lush Fender Rhodes ninth chord with shimmering bells and a soft swell, dreamy relief",
+      "bpm": 80,
+      "key_scale": "F minor",
+      "sfx_len": 1.6
+    },
+    "wasted": {
+      "label": "WASTED / כישלון",
+      "prompt": "comedic sad fail sting, a muted trombone sliding down wah-wah over a low bass note, deadpan, dry, short",
+      "bpm": 80,
+      "key_scale": "F minor",
+      "sfx_len": 1.8
+    }
+  }
+}

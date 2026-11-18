@@ -55,16 +55,39 @@ export interface Frame {
   fx: Fx[];                             // effects to spawn this frame
 }
 
+// ---------- the mini games' sets (Nadav, 2026-11-18: their own screens, at the game's quality) ----------
+// Small separate 3D scenes rendered by the same renderer (lazy/sets3d.ts): an office, the line outside the store, the
+// living room at night. Ground plane x / z, y up; the game hands a snapshot every frame like the city's Frame.
+export type MiniSet = 'office' | 'line' | 'room' | 'desk';   // desk: behind the PC's login screen (scenes.ts pc)
+/** A person on a set: `ry` = facing (0 = toward +z, the camera), `step` = walk phase, `sit` = seated, `lean` = leaning
+ *  back (rad, a reaction), `mask` = wears a face mask, `tent` = a camping tent instead of a person. */
+export interface MiniPerson { id: number; role: 'worker' | 'boss' | 'camper' | 'fiancee' | 'tent'; x: number; z: number; ry: number; step: number; shirt: number; sit?: boolean; lean?: number; mask?: boolean; walk?: number }
+export interface MiniFrame {
+  w: number; h: number; t: number;
+  set: MiniSet;
+  cam: { x: number; y: number; z: number; tx: number; ty: number; tz: number; fov: number };
+  /** The fan (the Blender walker): `crouch` 0..1 (tiptoe), `lean` = forward bend (a cough). */
+  hero?: { x: number; z: number; ry: number; step: number; crouch?: number; lean?: number };   // none = not on this set
+  people: MiniPerson[];
+  /** Cough droplets in the air at (x, y, z), radius r; and the splats they leave on the floor (x, z, radius, opacity). */
+  drops: Array<{ x: number; y: number; z: number; r: number }>;
+  splats: Array<{ x: number; z: number; r: number; o: number }>;
+}
+
 export interface World3D {
   canvas: HTMLCanvasElement;
   render(f: Frame): void;
+  /** Renders a mini game's set into the same canvas (the city is not drawn that frame). */
+  renderMini(m: MiniFrame): void;
+  /** Like project, for the last rendered mini set (x, y, z in its own space). */
+  projectMini(x: number, y: number, z: number): { x: number; y: number };
   /** World point (x, y on the ground, h above it) → canvas fraction (0..1, 0..1) for the last rendered frame. */
   /** `behind` = the point is behind the camera (looks 3 and 4): x and y are then mirrored and not for drawing. */
   project(x: number, y: number, h?: number): { x: number; y: number; behind: boolean };
   stats(): { look: Look; calls: number; triangles: number; textures: number; geometries: number; renderMs: number; walker: boolean; driver: boolean; assets: Record<string, string> };
 }
 
-export interface EnvironmentAssets { facade: string; asphalt: string; pavement: string }
+export interface EnvironmentAssets { facade: string; asphalt: string; pavement: string; cover: string }   // cover: the game case (the TV ad in the living-room set)
 export interface World3DModule { create(city: CityData, assets?: EnvironmentAssets): World3D }
 
 declare global { interface Window { __w6world3d?: World3DModule } }

@@ -2,7 +2,7 @@
 // Everything else is silent here: the template's own kit (button tick/ok, stingers, win, whoosh...) is replaced by
 // no-ops in this game only, so template screens play nothing and other games keep their sounds.
 // Continuous driving sounds are in carsound.ts; music below.
-import { sfx, tone, after, sfxOut, noiseBuffer, type MusicDef } from '@tsg/index';
+import { sfx, tone, after, sfxOut, noiseBuffer, assetUrl, type MusicDef } from '@tsg/index';
 
 // ---- building blocks: everything goes to the template's sfx output (sfxOut), so it shares the master volume ----
 // Pitch / timing jitter uses Math.random, not the seeded rand(): sounds must not shift the gameplay stream.
@@ -105,6 +105,36 @@ const OURS = {
   /** Picking an option in the boss / clerk scene: a click and a low Rhodes note. */
   choose: () => { voice({ f: 1100, d: 0.04, g: 0.04 }); keys(N.C4, 0.3, 0.06, 0.02); },
 
+  // ---- boss buildups + mini games (2026-11-18) ----
+  /** Heartbeat on the approach to a conversation: a low "lub-dub" (k 0..1 = how close). */
+  heart: (k = 1) => { voice({ f: 62, to: 42, d: 0.14, g: 0.12 + 0.12 * k, lp: 300 }); voice({ f: 55, to: 38, d: 0.16, g: 0.08 + 0.1 * k, lp: 260, delay: 0.17 }); },
+  /** The VS card: the portrait slams in: a deep boom, a crunch and a cymbal-ish hiss. */
+  slam: () => { voice({ f: 80, to: 32, d: 0.7, g: 0.28 }); burst({ d: 0.3, g: 0.16, f: 900, kind: 'lowpass', sweep: 150 }); burst({ d: 0.6, g: 0.05, f: 7000, kind: 'highpass', at: 0.01 }); },
+  /** A rubber stamp on the name: a thud and a paper slap. */
+  stamp: () => { voice({ f: 160, to: 90, d: 0.12, g: 0.14 }); burst({ d: 0.06, g: 0.1, f: 1800, q: 0.7 }); },
+  /** ROUND n: a rising F-minor stab with a bell on top. */
+  round: () => { for (const f of [N.F3, N.C4, N.F4, N.Ab4]) keys(f, 0.9, 0.05, 0.02); [N.C5, N.F5, N.C6].forEach((f, i) => voice({ f, d: 0.4, g: 0.035, delay: 0.06 + i * 0.06 })); },
+  /** A fake cough (good = loud and rough): two noisy bursts falling in pitch. */
+  cough: (good = 1) => { burst({ d: 0.16, g: 0.12 + 0.06 * good, f: 900, q: 0.9, sweep: 380 }); voice({ f: 150, to: 95, d: 0.12, g: 0.06 }); burst({ d: 0.13, g: 0.08 + 0.05 * good, f: 750, q: 0.9, delay: 0.2, sweep: 320 }); },
+  /** A weak "ahem" (a missed cough): two soft hums. */
+  ahem: () => { voice({ type: 'triangle', f: 230, d: 0.12, g: 0.04, lp: 900 }); voice({ type: 'triangle', f: 196, d: 0.16, g: 0.035, lp: 900, delay: 0.14 }); },
+  /** Floorboard creak (caught tiptoeing): a slow, rough groan. */
+  creak: () => { voice({ type: 'sawtooth', f: 150, to: 105, d: 0.45, g: 0.05, lp: 800, at: 0.05 }); voice({ type: 'sawtooth', f: 153, to: 101, d: 0.45, g: 0.04, lp: 800, at: 0.05 }); burst({ d: 0.3, g: 0.03, f: 500, q: 3, at: 0.05 }); },
+  /** One soft tiptoe step. */
+  tip: () => { burst({ d: 0.03, g: 0.025, f: jit(1600, 0.1), q: 1.5 }); },
+  /** Switching lanes in the line: a short whoosh. */
+  dodge: () => { burst({ d: 0.12, g: 0.06, f: 900, q: 1.2, at: 0.03, sweep: 2600 }); },
+  /** The elevator arrives: a two-tone ding. */
+  ding: () => { voice({ f: 1318, d: 0.9, g: 0.05 }); voice({ f: 1046, d: 1.1, g: 0.05, delay: 0.22 }); },
+  /** LEVEL UP: a happy run up the Ab-major arpeggio (the tracks' relative major), a held chord and sparkles. */
+  levelUp: () => {
+    [N.Ab3, N.C4, N.Eb4, N.Ab4, N.C5, N.Eb5].forEach((f, i) => keys(f, 0.25, 0.05, i * 0.06));
+    for (const f of [N.Ab3, N.C4, N.Eb4, N.Ab4]) keys(f, 1.3, 0.04, 0.4);
+    [N.C6, N.Eb5 * 2, N.Ab4 * 4].forEach((f, i) => voice({ f, d: 0.35, g: 0.03, delay: 0.45 + i * 0.07 }));
+  },
+  /** The pin lands on the new stop of the axis: a bright click. */
+  levelPin: () => { voice({ f: 1760, d: 0.08, g: 0.05 }); burst({ d: 0.04, g: 0.06, f: 3200, q: 2 }); },
+
   // ---- password (the PC) ----
   /** Mechanical keyboard key: a clack and a low thock, slightly different every press. */
   type: () => { burst({ d: 0.035, g: 0.09, f: jit(3200, 0.1), q: 1.2 }); voice({ f: jit(170, 0.08), to: 120, d: 0.05, g: 0.07 }); },
@@ -122,6 +152,45 @@ const OURS = {
     [N.C5, N.Eb5, N.F5, N.C6].forEach((f, i) => voice({ f, d: 0.3, g: 0.03, delay: 0.3 + i * 0.07 }));
   },
 };
+// ---- sound effects made with ACE-Step (Nadav, 2026-11-18: "use ACE-Step for everything"; he picked candidate 2 of
+// each). Short stingers in the music's key, cut by make-music/cut-sfx.py; which run / candidate / prompt: music/chosen.json
+// (sfx-*). They go through the template's sound output (sfxOut), so mute and the master volume apply. Files load on the
+// first tap (not before the first frame, rule 13א); each sound has a pool of up to three players, so quick repeats overlap.
+const SFX_FILES = ['choose', 'button', 'vs', 'levelup', 'smash', 'item', 'ministart', 'miniwin', 'unlock', 'wasted'] as const;
+type SfxFile = (typeof SFX_FILES)[number];
+const SFX_VOL: Record<SfxFile, number> = { choose: 0.55, button: 0.5, vs: 0.75, levelup: 0.7, smash: 0.8, item: 0.7, ministart: 0.6, miniwin: 0.65, unlock: 0.75, wasted: 0.9 };
+interface Player { el: HTMLAudioElement; gain: GainNode | null }
+const pools = new Map<SfxFile, Player[]>();
+const newPlayer = (name: SfxFile): Player => { const el = new Audio(assetUrl(`assets/audio/sfx-${name}.mp3`)); el.preload = 'auto'; return { el, gain: null }; };
+function preloadSfx(): void { for (const n of SFX_FILES) if (!pools.has(n)) pools.set(n, [newPlayer(n)]); }
+window.addEventListener('pointerdown', preloadSfx, { once: true }); window.addEventListener('keydown', preloadSfx, { once: true });
+function playFile(name: SfxFile): void {
+  preloadSfx();
+  const pool = pools.get(name)!;
+  let p = pool.find((q) => q.el.paused || q.el.ended);
+  if (!p) { if (pool.length < 3) { p = newPlayer(name); pool.push(p); } else p = pool[0]!; }
+  if (!p.gain) {   // wired into the sound output the first time it plays (the audio context exists by then)
+    const out = sfxOut(), c = out.context as AudioContext;   // the template makes a live AudioContext (audio/synth.ts ac()), not an offline one
+    p.gain = c.createGain(); c.createMediaElementSource(p.el).connect(p.gain); p.gain.connect(out);
+  }
+  p.gain.gain.value = SFX_VOL[name];
+  p.el.currentTime = 0;
+  // expected to be refused before the first tap (autoplay rules) or while the file is still arriving: that sound is skipped
+  p.el.play().catch((e: unknown) => { console.debug('sfx', name, e); });
+}
+Object.assign(OURS, {
+  choose: () => playFile('choose'),
+  button: () => playFile('button'),
+  ok: () => playFile('button'),
+  slam: () => playFile('vs'),
+  levelUp: () => playFile('levelup'),
+  smash: () => playFile('smash'),
+  item: () => playFile('item'),
+  ministart: () => playFile('ministart'),
+  miniwin: () => playFile('miniwin'),
+  pwRight: () => playFile('unlock'),
+  wasted: () => playFile('wasted'),
+});
 for (const k of Object.keys(sfx)) delete sfx[k];
 Object.assign(sfx, OURS);
 // debug (CLAUDE.md): __sfx() lists the sounds, __sfx(name) plays one

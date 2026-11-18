@@ -1,0 +1,612 @@
+{
+  "choose": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "בחירת תשובה בדו-שיח",
+    "prompt": "a single short warm Fender Rhodes chord stab in F minor played by a session player, dry, quickly fading, no drums, intimate room, analog tape warmth",
+    "bpm": 92,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "a single short warm Fender Rhodes chord stab in F minor played by a session player, dry, quickly fading, no drums, intimate room, analog tape warmth",
+      "lyrics": "[Instrumental]",
+      "bpm": 92,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/choose-1.wav",
+        "seed": "281072119,1943364411",
+        "metas": {
+          "bpm": 92,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "a single short warm Fender Rhodes chord stab in F minor played by a session player, dry, quickly fading, no drums, intimate room, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/choose-2.wav",
+        "seed": "281072119,1943364411",
+        "metas": {
+          "bpm": 92,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "a single short warm Fender Rhodes chord stab in F minor played by a session player, dry, quickly fading, no drums, intimate room, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "button": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "כפתור START / CONTINUE",
+    "prompt": "one crisp funky muted electric guitar chord stab with a tight rimshot, very short and dry, late 1990s West Coast funk session, analog warmth",
+    "bpm": 96,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "one crisp funky muted electric guitar chord stab with a tight rimshot, very short and dry, late 1990s West Coast funk session, analog warmth",
+      "lyrics": "[Instrumental]",
+      "bpm": 96,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/button-1.wav",
+        "seed": "2264267074,1929740445",
+        "metas": {
+          "bpm": 96,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "one crisp funky muted electric guitar chord stab with a tight rimshot, very short and dry, late 1990s West Coast funk session, analog warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/button-2.wav",
+        "seed": "2264267074,1929740445",
+        "metas": {
+          "bpm": 96,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "one crisp funky muted electric guitar chord stab with a tight rimshot, very short and dry, late 1990s West Coast funk session, analog warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "vs": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "כרטיס ה-VS של הבוס",
+    "prompt": "dramatic fighting game versus stinger, one huge brass and orchestra hit with a deep timpani boom and a gong swell, cinematic tension, tongue-in-cheek swagger",
+    "bpm": 90,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "dramatic fighting game versus stinger, one huge brass and orchestra hit with a deep timpani boom and a gong swell, cinematic tension, tongue-in-cheek swagger",
+      "lyrics": "[Instrumental]",
+      "bpm": 90,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/vs-1.wav",
+        "seed": "3271298681,1389424144",
+        "metas": {
+          "bpm": 90,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "dramatic fighting game versus stinger, one huge brass and orchestra hit with a deep timpani boom and a gong swell, cinematic tension, tongue-in-cheek swagger",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/vs-2.wav",
+        "seed": "3271298681,1389424144",
+        "metas": {
+          "bpm": 90,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "dramatic fighting game versus stinger, one huge brass and orchestra hit with a deep timpani boom and a gong swell, cinematic tension, tongue-in-cheek swagger",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "levelup": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "LEVEL UP",
+    "prompt": "triumphant short level up fanfare, bright brass section and a sparkling synth arpeggio rising to a big major chord, celebratory, live horn players, 90s game swagger",
+    "bpm": 120,
+    "key_scale": "Ab major",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "triumphant short level up fanfare, bright brass section and a sparkling synth arpeggio rising to a big major chord, celebratory, live horn players, 90s game swagger",
+      "lyrics": "[Instrumental]",
+      "bpm": 120,
+      "key_scale": "Ab major",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/levelup-1.wav",
+        "seed": "1522685017,483994916",
+        "metas": {
+          "bpm": 120,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "Ab major",
+          "timesignature": "4",
+          "prompt": "triumphant short level up fanfare, bright brass section and a sparkling synth arpeggio rising to a big major chord, celebratory, live horn players, 90s game swagger",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/levelup-2.wav",
+        "seed": "1522685017,483994916",
+        "metas": {
+          "bpm": 120,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "Ab major",
+          "timesignature": "4",
+          "prompt": "triumphant short level up fanfare, bright brass section and a sparkling synth arpeggio rising to a big major chord, celebratory, live horn players, 90s game swagger",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "smash": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "הדמות שוברת את המונטאז'",
+    "prompt": "a dramatic reveal hit: a deep cinematic boom with a bright reverse cymbal riser into a big Rhodes and brass chord, punchy, exciting",
+    "bpm": 96,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "a dramatic reveal hit: a deep cinematic boom with a bright reverse cymbal riser into a big Rhodes and brass chord, punchy, exciting",
+      "lyrics": "[Instrumental]",
+      "bpm": 96,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/smash-1.wav",
+        "seed": "822778037,878441536",
+        "metas": {
+          "bpm": 96,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "a dramatic reveal hit: a deep cinematic boom with a bright reverse cymbal riser into a big Rhodes and brass chord, punchy, exciting",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/smash-2.wav",
+        "seed": "822778037,878441536",
+        "metas": {
+          "bpm": 96,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "a dramatic reveal hit: a deep cinematic boom with a bright reverse cymbal riser into a big Rhodes and brass chord, punchy, exciting",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "item": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "ITEM ACQUIRED",
+    "prompt": "short happy item acquired jingle, sparkling Fender Rhodes and glockenspiel arpeggio rising and landing on a bright chord, playful wink, warm analog production",
+    "bpm": 110,
+    "key_scale": "Ab major",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "short happy item acquired jingle, sparkling Fender Rhodes and glockenspiel arpeggio rising and landing on a bright chord, playful wink, warm analog production",
+      "lyrics": "[Instrumental]",
+      "bpm": 110,
+      "key_scale": "Ab major",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/item-1.wav",
+        "seed": "423513856,1512270986",
+        "metas": {
+          "bpm": 110,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "Ab major",
+          "timesignature": "4",
+          "prompt": "short happy item acquired jingle, sparkling Fender Rhodes and glockenspiel arpeggio rising and landing on a bright chord, playful wink, warm analog production",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/item-2.wav",
+        "seed": "423513856,1512270986",
+        "metas": {
+          "bpm": 110,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "Ab major",
+          "timesignature": "4",
+          "prompt": "short happy item acquired jingle, sparkling Fender Rhodes and glockenspiel arpeggio rising and landing on a bright chord, playful wink, warm analog production",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "ministart": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "התחלת מיני-גיים",
+    "prompt": "short punchy arcade start jingle, a funky live drum fill into one tight horn stab, energetic, laid-back swing, analog tape warmth",
+    "bpm": 100,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "short punchy arcade start jingle, a funky live drum fill into one tight horn stab, energetic, laid-back swing, analog tape warmth",
+      "lyrics": "[Instrumental]",
+      "bpm": 100,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/ministart-1.wav",
+        "seed": "3118959378,1019359361",
+        "metas": {
+          "bpm": 100,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "short punchy arcade start jingle, a funky live drum fill into one tight horn stab, energetic, laid-back swing, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/ministart-2.wav",
+        "seed": "3118959378,1019359361",
+        "metas": {
+          "bpm": 100,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "short punchy arcade start jingle, a funky live drum fill into one tight horn stab, energetic, laid-back swing, analog tape warmth",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "miniwin": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "סיום מיני-גיים",
+    "prompt": "short cheeky victory jingle, slap bass and a horn section riff ending on a bright stab, mischievous grin, live players, late 90s funk",
+    "bpm": 104,
+    "key_scale": "Ab major",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "short cheeky victory jingle, slap bass and a horn section riff ending on a bright stab, mischievous grin, live players, late 90s funk",
+      "lyrics": "[Instrumental]",
+      "bpm": 104,
+      "key_scale": "Ab major",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/miniwin-1.wav",
+        "seed": "1006390499,340965751",
+        "metas": {
+          "bpm": 104,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "Ab major",
+          "timesignature": "4",
+          "prompt": "short cheeky victory jingle, slap bass and a horn section riff ending on a bright stab, mischievous grin, live players, late 90s funk",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/miniwin-2.wav",
+        "seed": "1006390499,340965751",
+        "metas": {
+          "bpm": 104,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "Ab major",
+          "timesignature": "4",
+          "prompt": "short cheeky victory jingle, slap bass and a horn section riff ending on a bright stab, mischievous grin, live players, late 90s funk",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "unlock": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "סיסמה נכונה",
+    "prompt": "a satisfying unlock success chime, a lush Fender Rhodes ninth chord with shimmering bells and a soft swell, dreamy relief",
+    "bpm": 80,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "a satisfying unlock success chime, a lush Fender Rhodes ninth chord with shimmering bells and a soft swell, dreamy relief",
+      "lyrics": "[Instrumental]",
+      "bpm": 80,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/unlock-1.wav",
+        "seed": "4132507249,458748517",
+        "metas": {
+          "bpm": 80,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "a satisfying unlock success chime, a lush Fender Rhodes ninth chord with shimmering bells and a soft swell, dreamy relief",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/unlock-2.wav",
+        "seed": "4132507249,458748517",
+        "metas": {
+          "bpm": 80,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "a satisfying unlock success chime, a lush Fender Rhodes ninth chord with shimmering bells and a soft swell, dreamy relief",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  },
+  "wasted": {
+    "model": "acestep-v15-xl-sft",
+    "inference_steps": 50,
+    "guidance_scale": 7,
+    "lyrics": "[Instrumental]",
+    "duration": 10,
+    "batch": 2,
+    "label": "WASTED / כישלון",
+    "prompt": "comedic sad fail sting, a muted trombone sliding down wah-wah over a low bass note, deadpan, dry, short",
+    "bpm": 80,
+    "key_scale": "F minor",
+    "request": {
+      "model": "acestep-v15-xl-sft",
+      "prompt": "comedic sad fail sting, a muted trombone sliding down wah-wah over a low bass note, deadpan, dry, short",
+      "lyrics": "[Instrumental]",
+      "bpm": 80,
+      "key_scale": "F minor",
+      "time_signature": "4",
+      "audio_duration": 10,
+      "batch_size": 2,
+      "thinking": true,
+      "use_cot_caption": false,
+      "inference_steps": 50,
+      "guidance_scale": 7,
+      "task_type": "text2music",
+      "vocal_language": "en",
+      "audio_format": "wav"
+    },
+    "results": [
+      {
+        "n": 1,
+        "file": "runs/sfx-v1/raw/wasted-1.wav",
+        "seed": "2991993866,3922025954",
+        "metas": {
+          "bpm": 80,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "comedic sad fail sting, a muted trombone sliding down wah-wah over a low bass note, deadpan, dry, short",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      },
+      {
+        "n": 2,
+        "file": "runs/sfx-v1/raw/wasted-2.wav",
+        "seed": "2991993866,3922025954",
+        "metas": {
+          "bpm": 80,
+          "duration": 10,
+          "genres": "N/A",
+          "keyscale": "F minor",
+          "timesignature": "4",
+          "prompt": "comedic sad fail sting, a muted trombone sliding down wah-wah over a low bass note, deadpan, dry, short",
+          "lyrics": "[Instrumental]"
+        },
+        "dit_model": "acestep-v15-xl-sft"
+      }
+    ]
+  }
+}

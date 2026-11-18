@@ -3,17 +3,20 @@
 // Shared state G carries the branch (sick / quit), the store choice, money, score, found letters and the frozen police
 // position across stages. Each stage snapshots G on entry so "retry from this stage" restores it exactly.
 // Fails (fired / out of fuel / caught) go through R.fail → the template's lose screen, headed WASTED.
-import { R, W, view, ctx, state, input, onKeyDown, rr, txt, clamp, sfx, music, easeO, easeOB, pop, haptic, type Scene } from '@tsg/index';
+import { R, W, view, ctx, state, input, onKeyDown, rr, txt, wrap, clamp, sfx, music, easeO, easeOB, pop, haptic, type Scene } from '@tsg/index';
 import type { Branch, StoreChoice, TradeItem } from './content';
-import { TIMELINE, TIMELINE_SHORT, RADIO, MISSION_PASSED, PC, UI, ITEM } from './content';
+import { TIMELINE, TIMELINE_SHORT, RADIO, MISSION_PASSED, PC, UI, ITEM, LEVELUP } from './content';
 import { grayOut } from './pixel';
-import { D, MAX_V, gpsTarget, worldReady, nearHr, heliPatrol, arrowState, graphicsStats } from './drive';
+import { D, MAX_V, radioY, world3d, gpsTarget, worldReady, nearHr, heliPatrol, arrowState, graphicsStats } from './drive';
 import { PLACES, roadLine, nodeOf, type PlaceId } from './city';
 import { C } from './art';
 import { ptxt } from './pixel';
 import { loadPortraits, type Who } from './portraits';
 import { itemIcon, ITEM_HUD } from './item';
 import './sfx';
+import { resetApproach, approachK, vsPeek } from './buildup';
+import { miniPeek } from './minigames';
+import { levelUpPeek, stopLevelUp } from './levelup';
 
 export type StageName = 'commute' | 'boss' | 'launch' | 'clerk' | 'home' | 'fiancee' | 'pc';
 export interface Stage {
@@ -44,13 +47,12 @@ function nextSong(want?: string): string {
 /** The song of the stage being played (main.ts musicFor, when the play screen comes up). */
 export const stageTrack = (): string => G.track;
 export const LEG_TARGET_S: Partial<Record<StageName, number>> = { commute: 36, launch: 64, home: 62 };   // the old slack over the longer routes (places moved to the corners, 2026-11-17)
-export const OUTRO_S = 1.5;      // "PRESS START" end beat (rule 13ג)
 export const START_MONEY = 60;   // wallet at 8:30 a.m. (the sick branch always has something for the doctor)
 export const FAIL_S = 1.2;       // the caught / fired / out-of-fuel moment before the lose screen (rules 13ג, 13ז)
 const DRIVING: Partial<Record<StageName, true>> = { commute: true, launch: true, home: true };
 const SHOW_S = 2.6;              // how long the wallet and the goal's name stay up after they change (rule 13ט)
 
-interface Snapshot { score: number; money: number; letters: string[]; note: boolean; fuel: number; stars: number; copPos: { x: number; y: number } | null; traded: TradeItem[]; met: Who[] }
+interface Snapshot { gfx: number; score: number; money: number; letters: string[]; note: boolean; fuel: number; stars: number; copPos: { x: number; y: number } | null; traded: TradeItem[]; met: Who[] }
 
 export const G = {
   stage: 'commute' as StageName,
@@ -70,7 +72,6 @@ export const G = {
   t: 0,                           // seconds in the current stage
   playT: 0,
   ended: false,
-  outro: 0,
   failT: 0,                       // seconds left of the fail moment (the lose screen comes when it runs out)
   track: 'drive',                 // the song playing in the current stage (nextSong)
   heard: [] as string[],          // songs heard in this round inside a run (the title's 'theme' is not counted: the launch leg plays it); not reset by a new run or a retry
@@ -82,17 +83,20 @@ export const G = {
   reached: 0,                     // timeline: milestones reached so far (0 = woke up)
   reachT: -9,                     // playT when the last one was reached (its label pops for a moment)
   arrive: -1,                     // seconds into the walk from the car into a building (-1 = not walking): the timeline's arrival moment
+  gfx: 0,                      // graphics level reached: 0 = II … 4 = VI (LEVEL UP sets it as its pin lands, levelup.ts); the corner badge shows it
   ui: 0,                       // counts the decision screens shown (scenes.ts setUI); in __world so the bugcheck sees them change
 };
-const snap = (): Snapshot => ({ score: G.score, money: G.money, letters: [...G.letters], note: G.note, fuel: G.fuel, stars: G.stars, copPos: G.copPos && { ...G.copPos }, traded: [...G.traded], met: [...G.met] });
+const snap = (): Snapshot => ({ gfx: G.gfx, score: G.score, money: G.money, letters: [...G.letters], note: G.note, fuel: G.fuel, stars: G.stars, copPos: G.copPos && { ...G.copPos }, traded: [...G.traded], met: [...G.met] });
 
 const stages: Partial<Record<StageName, Stage>> = {};
-let pendingWin: Parameters<typeof R.win>[0] | null = null;
 let pendingFail: Parameters<typeof R.fail>[0] | null = null;
 export function registerStage(name: StageName, s: Stage): void { stages[name] = s; }
 
 export function setStage(name: StageName): void {
   G.stage = name; G.t = 0; G.hits = 0; G.arrive = -1; G.entry = snap();
+  stopLevelUp();
+  sayQueue.length = 0;
+  resetApproach();   // the music back at its own volume; a conversation's mini game and card duck it again
   R.stageStart(name);
   const song = STAGE_MUSIC[name];
   if (song) setMusic(nextSong(song));   // a stage with no song of its own keeps what is playing
@@ -120,7 +124,7 @@ export function stageDone(): void {
 /** Fail → the lose screen (WASTED). reason picks the lose line (content.LOSE_LINES). */
 export function fail(reason: string): void {
   if (G.ended) return;
-  G.ended = true;
+  G.ended = true; resetApproach();
   R.shake(0.45); sfx.wasted?.(); haptic([70, 40, 140]);
   const run = { score: G.score, durationS: G.playT, stage: G.stage, reason };
   // on the road the fail gets its moment first (a big hit, rule 13ז): everything stops for an instant, a flash, then
@@ -136,20 +140,37 @@ function failMoment(dt: number): void {
   if (G.failT <= 0 && pendingFail) { const r = pendingFail; pendingFail = null; G.failT = 0; R.fail(r); }
 }
 
-/** Start the 1.5 s PRESS START beat, then R.win. */
+/** The run is won: straight to the result screen. The game's ending moment is the password's peak and LEVEL UP VI
+ *  (rule 13ג); the PRESS START beat that came after them was removed on 2026-11-18 (Nadav). */
 export function finishGame(): void {
   if (G.ended) return;
-  G.ended = true; G.outro = OUTRO_S;
-  setMusic('theme'); // PRESS START: back to the opening tune, it carries on into the result screen
-  pendingWin = { score: clamp(Math.round(G.score), 0, R.cfg.score.max), durationS: G.playT, stage: 'pc', reason: G.branch ?? '' };
+  G.ended = true;
+  setMusic('theme');   // back to the opening tune, it carries on into the result screen
+  R.win({ score: clamp(Math.round(G.score), 0, R.cfg.score.max), durationS: G.playT, stage: 'pc', reason: G.branch ?? '' });
 }
 
 export function addScore(n: number): void { G.score = Math.max(0, G.score + n); }
 
-/** Toast with a rate limit so jokes don't pile up; `force` for lines that explain a rule. */
+// ---------- the screen comes in first, then the words (Nadav, 2026-11-18; RULES 13יד) ----------
+// A driving leg's UI enters part by part (UI_IN, seconds after the mission card closes); messages wait until it has
+// settled (UI_SETTLE_S), so a new screen never fills up faster than the player can read it, and every message stays up
+// at least as long as it takes to read (readS).
+export const UI_IN = { hud: 0, controls: 0.35, map: 0.55, radio: 0.75 } as const;
+export const UI_SETTLE_S = 1.6;   // after the leg's read pause (legs.ts READ_S + READ_FADE_S)
+/** Seconds to read a line: 1 s plus a third of a second per word, never under 2 s. */
+export const readS = (s: string): number => Math.max(2, 1 + 0.33 * s.split(/\s+/).length);
+const sayQueue: Array<{ text: string; life: number }> = [];
+/** Toast with a rate limit so jokes don't pile up; `force` for lines that explain a rule. On a driving leg a line said
+ *  while the screen is still coming in waits for it (sayQueue, flushed in playScene.draw). */
 export function say(text: string, life = 1.8, force = false): void {
+  if (DRIVING[G.stage] && G.t < UI_SETTLE_S) { if (force || !sayQueue.length) sayQueue.push({ text, life }); return; }
   if (!force && G.playT - G.sayT < 2.6) return;
-  G.sayT = G.playT; R.say(text, life);
+  G.sayT = G.playT; R.say(text, Math.max(life, readS(text)));
+}
+function flushSays(): void {
+  if (!sayQueue.length || (DRIVING[G.stage] && G.t < UI_SETTLE_S)) return;
+  if (G.playT - G.sayT < 1.4 && G.sayT > 0) return;   // one at a time
+  const q = sayQueue.shift()!; G.sayT = G.playT; R.say(q.text, Math.max(q.life, readS(q.text)));
 }
 
 // ---------- HUD (driving legs only) ----------
@@ -159,8 +180,10 @@ export function say(text: string, life = 1.8, force = false): void {
 const H = { score: 0, last: 0, scoreT: -9, money: -1, moneyT: -9, goal: null as PlaceId | null, goalT: -9, letters: 0, lettersT: -9, t: 0 };
 /** Draws `draw` scaled by s around (x, y). */
 function scaled(x: number, y: number, s: number, draw: () => void): void { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.translate(-x, -y); draw(); ctx.restore(); }
+/** Debug (`__clean(true)`): no HUD, hint or touch controls, for clean captures of the world (mock-ups, store art). */
+export const DEBUG = { clean: false };
 export function hud(goal: PlaceId | null, opts: { fuel?: boolean } = {}): void {
-  if (pendingFail) return;   // the fail moment: nothing but the car (rule 13ג)
+  if (pendingFail || DEBUG.clean) return;   // the fail moment: nothing but the car (rule 13ג)
   const now = state.t, fdt = clamp(now - H.t, 0, 0.1); H.t = now;
   // toasts: above the timeline's plate while the mission card is up (G.t stays 0, the HUD band is still off screen),
   // then down under the band as it drops in
@@ -184,7 +207,7 @@ export function hud(goal: PlaceId | null, opts: { fuel?: boolean } = {}): void {
   const mAge = now - H.moneyT;
   if (mAge < SHOW_S) {
     const k = easeOB(clamp(mAge / 0.2, 0, 1)) * easeO(clamp((SHOW_S - mAge) / 0.25, 0, 1));
-    scaled(34, 15, k * pop(now - Math.max(H.moneyT, D.hudKick.cash), 0.16, 0.25), () => ptxt('$' + Math.round(G.money), 10, 15, 2, C.money, 'left', '#0a2a12'));
+    scaled(WALLET_X + 24, 15, k * pop(now - Math.max(H.moneyT, D.hudKick.cash), 0.16, 0.25), () => ptxt('$' + Math.round(G.money), WALLET_X, 15, 2, C.money, 'left', '#0a2a12'));   // right of the level badge
   }
   scaled(W / 2, 15, pop(now - Math.max(H.scoreT, D.hudKick.can), 0.16, 0.22), () => ptxt(String(Math.round(H.score)).padStart(6, '0'), W / 2, 15, 2, C.ink, 'center', '#000'));
   // the stage's one gauge: fuel until someone chases you, then HEAT (with the wanted stars). A gauge in danger blinks.
@@ -231,6 +254,19 @@ export function hud(goal: PlaceId | null, opts: { fuel?: boolean } = {}): void {
     // leg start: it flies from where the mission card showed it up into its row; the card's name tag fades on the way
     timelineAt(1 - easeO(clamp((G.t - 0.1) / TL_FLY_S, 0, 1)), TL_CARD_Y, { age: 2.35 + G.t });
   }
+}
+
+// ---------- the game level, top-left at every moment of a run (Nadav, 2026-11-18: just the numeral, no label) ----------
+const WALLET_X = 64;   // the wallet sits right of the badge
+let badgeLvl = -1, badgeT = -9;
+/** A small dark plate in the top-left corner with the level's roman numeral; it pops and flashes white when it goes up. */
+function gfxBadge(): void {
+  if (G.gfx !== badgeLvl) { if (badgeLvl >= 0) badgeT = state.t; badgeLvl = G.gfx; }
+  const s = pop(state.t - badgeT, 0.35, 0.45), lit = state.t - badgeT < 1.2;
+  ctx.save(); ctx.translate(31, 15); ctx.scale(s, s);
+  rr(-25, -11, 50, 22, 5, 'rgba(14,14,16,.92)', lit ? '#ffffff' : C.yellow, 1.5);
+  ptxt(LEVELUP.stops[G.gfx] ?? 'II', 0, 0, 2, C.yellow, 'center');
+  ctx.restore();
 }
 
 // ---------- the story timeline: woke up → ... → playing VI ----------
@@ -339,25 +375,7 @@ function star(x: number, y: number, col: string): void {
   ctx.closePath(); ctx.fill();
 }
 
-/** Bottom hint strip for the first seconds of a leg. */
-export function hint(s: string, until = 3.5): void {
-  if (G.t > until || G.ended) return;
-  const a = easeO(Math.min(1, (until - G.t) * 2));
-  const y = view.H - view.top - 292 + (1 - easeOB(Math.min(1, G.t / 0.3))) * 24;   // just above the touch controls, the minimap and the radio button; it rises into place
-  ctx.globalAlpha = a * Math.min(1, G.t / 0.15); rr(16, y, W - 32, 32, 12, 'rgba(14,14,16,.85)'); txt(s, W / 2, y + 16, 13, '#fff', 'center', 900); ctx.globalAlpha = 1;
-}
 
-/** End beat: the TV says PRESS START, every tap is swallowed (rule 13ג). */
-function endBeat(): void {
-  const k = clamp((OUTRO_S - G.outro) / 0.25, 0, 1);
-  ctx.fillStyle = `rgba(0,0,0,${0.75 * k})`; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
-  ctx.globalAlpha = k;
-  rr(40, 200, 280, 180, 12, '#2b2b33', '#555', 3); rr(54, 212, 252, 140, 6, '#0e0e10');
-  if (Math.sin(state.t * 9) > -0.4) ptxt(PC.start, W / 2, 282, 3, C.pink, 'center', '#3a2a00');
-  ptxt(PC.installing, W / 2, 322, 1, '#b4b4bc');
-  ptxt(ITEM.cover, W / 2, 238, 2, '#ffffff');
-  ctx.globalAlpha = 1;
-}
 
 onKeyDown((e) => { if (state.scene !== 'play' || G.ended) return false; return stages[G.stage]?.key?.(e) ?? false; });
 
@@ -366,12 +384,12 @@ export const playScene: Scene = {
     R.toastY = 134;   // under the HUD band, the timeline and its label
     loadPortraits();
     const retry = R.retry;
-    G.ended = false; G.outro = 0; pendingWin = null; pendingFail = null; G.failT = 0;
+    G.ended = false; pendingFail = null; G.failT = 0;
     if (retry?.stage && stages[retry.stage as StageName] && G.entry) {
       Object.assign(G, { ...G.entry, letters: [...G.entry.letters], traded: [...G.entry.traded], met: [...G.entry.met], copPos: G.entry.copPos && { ...G.entry.copPos } });
       setStage(retry.stage as StageName);
     } else {
-      Object.assign(G, { reached: 0, reachT: 0, branch: null, store: null, traded: [], met: [], agreed: false, score: 0, money: START_MONEY, letters: [], note: false, fuel: 1, stars: 0, copPos: null, playT: 0, wrongPw: 0 });
+      Object.assign(G, { gfx: 0, reached: 0, reachT: 0, branch: null, store: null, traded: [], met: [], agreed: false, score: 0, money: START_MONEY, letters: [], note: false, fuel: 1, stars: 0, copPos: null, playT: 0, wrongPw: 0 });
       setStage('commute');
     }
   },
@@ -381,29 +399,32 @@ export const playScene: Scene = {
     if (dt > 0 && !G.ended && !waiting) {
       G.playT += dt; G.t += dt;
       stages[G.stage]!.step(dt);
-    } else if (dt > 0 && G.outro > 0) {
-      input.taps.length = 0;
-      G.outro -= dt;
-      if (G.outro <= 0 && pendingWin) { const w = pendingWin; pendingWin = null; R.win(w); }
+      flushSays();
     } else if (dt > 0 && pendingFail) {
       input.taps.length = 0;
       failMoment(dt);
     }
     stages[G.stage]!.render();
+    if (!DEBUG.clean) gfxBadge();
     if (G.failT > 0) grayOut(view.x0, -view.top, view.fullW, view.H, 0.15 + 0.5 * easeO(clamp((FAIL_S - G.failT) / 0.6, 0, 1)));
-    if (G.outro > 0) endBeat();
   },
 };
 
 // debug hooks specific to this game (docs/CONTRACTS.md lists the template's)
+/** The full-screen moments of a conversation stage (montage, ITEM ACQUIRED: scenes.ts sets it), for the bot's __peek. */
+export let momentPeek = (): Record<string, number> | null => null;
+export function setMomentPeek(f: () => Record<string, number> | null): void { momentPeek = f; }
 const w = window as unknown as Record<string, unknown>;
 w.__stage = (name: StageName, branch?: Branch, store?: StoreChoice) => { if (branch) G.branch = branch; if (store) G.store = store; if (stages[name]) setStage(name); };
 w.__world = () => ({ stage: G.stage, ui: G.ui, exit: D.exit, walker: D.walker && { entry: D.walker.entry ?? 0, phase: D.walker.step }, branch: G.branch, store: G.store, met: G.met.join(','), score: Math.round(G.score), money: G.money, letters: G.letters.join(''), note: G.note, fuel: +G.fuel.toFixed(2), stars: G.stars, heat: +D.heat.toFixed(2), car: { x: Math.round(D.p.x), y: Math.round(D.p.y), v: Math.round(D.p.v) }, goal: D.goal, chasers: D.chasers.map((c) => ({ k: c.kind, d: Math.round(Math.hypot(c.x - D.p.x, c.y - D.p.y)) })), hr: nearHr() ? Math.round(Math.hypot(nearHr()!.x - D.p.x, nearHr()!.y - D.p.y)) : null, npcs: D.npcs.length, peds: D.peds.length, pedsDown: D.peds.filter((q) => q.st !== 'walk').length, maxV: MAX_V });
 w.__met = (...who: Who[]) => { G.met = who; };   // debug: who is in the montage (the end screens, the share picture)
 w.__stages = (): StageName[] => ORDER; // the story arc's stages in order (bugcheck playthrough)
 w.__graphics = graphicsStats;
+w.__toScreen = (x: number, y: number) => world3d()?.project(x, y) ?? null;   // a city point → screen fraction (one-hand pad checks)
+w.__clean = (on = true) => { DEBUG.clean = on; };   // hide the HUD for a clean capture (play.ts DEBUG)
+w.__approach = () => +approachK().toFixed(2);   // the boss buildup's strength on the way to a door (0..1, buildup.ts)
 /** Read-only view for the playthrough bot: the car and the point the GPS arrow aims at. */
-w.__peek = () => ({ car: { x: D.p.x, y: D.p.y, a: D.p.a, v: D.p.v }, gps: D.goal ? gpsTarget(D.goal) : null, control: D.control && worldReady() });
+w.__peek = () => ({ car: { x: D.p.x, y: D.p.y, a: D.p.a, v: D.p.v }, gps: D.goal ? gpsTarget(D.goal) : null, control: D.control && worldReady(), mini: DRIVING[G.stage] ? null : miniPeek(), levelUp: levelUpPeek(), vs: vsPeek(), moment: momentPeek() });
 /** Lose right now (the playthrough's forceLose: tests "retry from the stage" in every stage, even the ones you can't lose). */
 w.__lose = () => fail('cop');
 /** Put the HR minivan right next to the car (spotting test). */

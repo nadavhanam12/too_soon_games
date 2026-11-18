@@ -38,7 +38,7 @@ export const TIMELINE_SHORT = ['WOKE', 'WORK', 'DAY OFF', 'STORE', 'GAME', 'HOME
 /** Replaces the commute banner's how-to line when the player has a mouse and keys (no touch controls on screen). */
 export const HOW_KEYS = 'Arrows / WASD to drive. Space to drift.';
 
-export const HINT = { touch: 'Left thumb: up gas, down brake · right thumb steers', keys: 'Arrows / WASD drive · Space drift · R radio' };
+export const HINT = { touch: 'One thumb on the pad: point where you want to go', keys: 'Arrows / WASD drive · Space drift · R radio' };
 
 /** The car radio's stations, in the order the button steps through them; `track` is a name in sfx.ts MUSIC.files. */
 export const RADIO = [
@@ -59,7 +59,6 @@ export const MISSION_PASSED = { boss: 'MISSION PASSED · EMPLOYMENT −' } as co
 export const UI = {
   beat: { parking: 'PARKING', bribing: 'BRIBING', pumping: 'PUMPING', home: 'HOME!' },
   timeBonus: (n: number) => `+${n} time bonus`,
-  upgrade: ['GRAPHICS', 'UPGRADED'],                           // the sticker on a mission card when the picture steps up (legs 2 and 3)
   yourDay: 'YOUR DAY',                                        // heading over the timeline in its big moments
   gotAsFar: (stop: string) => `YOU GOT AS FAR AS: ${stop}`,   // lose screen, over the timeline
   radio: 'RADIO',
@@ -119,7 +118,7 @@ export const LINES = {
 // ---------- decision scenes (gray freeze-frame + full-color portrait) ----------
 export const BOSS = {
   name: 'THE BOSS',
-  open: ['A day off. For a VIDEO GAME?', 'We\'re a family here. Families don\'t take Thursdays off.', 'Unlimited PTO means unlimited. Not usable.', 'You\'re wasting company time. Standing there.', 'We have a game at home. It\'s called quarterly targets.', 'Launch day? We launch spreadsheets here.'],
+  open: 'Launch day? We launch spreadsheets here.',   // one line per scene (Nadav, 2026-11-18); the pool it came from is in git history
   again: 'Let\'s try that again. Choose wisely.',
   options: { agree: '"Sure, boss. I\'ll stay late."', sick: '*cough* "I think it\'s the 24-hour flu."', quit: '"I quit."' },
   react: {
@@ -146,7 +145,7 @@ export const ITEM = {
 
 export const CLERK = {
   name: 'THE CLERK',
-  open: ['Don\'t waste my time, there are 400 people behind you.', 'Cash, card, or kidney?', 'Sir, this is a game store. Not a support group.', 'Pre-order? In this economy?', 'It\'s 150 gigs. Hope you cleared your weekend. And your drive.'],
+  open: 'Don\'t waste my time, there are 400 people behind you.',   // one line per scene; keeps a "waste" password hint
   broke: 'You have $0.',
   options: { loan: 'Borrow from the guys in the back', steal: 'Grab it and run', tradein: 'Trade something in' },
   react: {
@@ -166,7 +165,7 @@ export const CLERK = {
 export type FianceeQuiz = 'a' | 'b' | 'c';
 export const FIANCEE = {
   name: 'YOUR FIANCEE',   // pixel font: no accents
-  open: ['You\'re home! Sit. I haven\'t seen you all day.', 'There you are. Come here. Tell me about your day.'],
+  open: 'You\'re home! Sit. I haven\'t seen you all day.',
   openRing: 'You\'re home. Good. Where. Is. The ring.',
   options: { sneak: 'Tiptoe past the couch', fake: '"Mm-hm. Totally. Wow."', honest: '"13 years. One hour. Then I\'m all yours."' },
   react: {
@@ -203,6 +202,97 @@ export const PC = {
 };
 
 // ---------- lose screen (heading is always WASTED: a password hint) ----------
+// ---------- boss buildups (Nadav, 2026-11-18: emotional highlights before each conversation) ----------
+// The last stretch of the drive (heartbeat, red edges, a band) and the fighting-game style card before the talk.
+// Pixel font: capitals, digits and : . ! ? - + / ' , * # % ( ) & only.
+export const BUILDUP = {
+  waiting: { boss: 'THE BOSS IS WAITING', clerk: 'THE COUNTER IS CLOSE', fiancee: 'SHE IS STILL AWAKE' },
+  kicker: { boss: 'BOSS FIGHT', clerk: 'BOSS FIGHT', fiancee: 'FINAL BOSS' },
+  round: { boss: 'ROUND 1', clerk: 'ROUND 2', fiancee: 'FINAL ROUND' },
+  /** Two joke stats under the name, then the meter (label + how full, 0..1). */
+  stats: {
+    boss: ['SICK DAYS APPROVED: 0', 'MEETINGS TODAY: 9'],
+    clerk: ['CUSTOMERS IN LINE: 400', 'SMILES TODAY: 0'],
+    fiancee: ['DAYS SINCE DATE NIGHT: 41', 'COUCH CONTROL: 100%'],
+  },
+  meter: { boss: ['PATIENCE', 0.03], clerk: ['STOCK LEFT', 0.06], fiancee: ['MOOD', 0.5] },
+  /** The card's button (it waits for it). */
+  go: { boss: 'FACE THE BOSS', clerk: 'TO THE COUNTER', fiancee: 'FACE HER' },
+} as const;
+
+// ---------- mini games before the conversations (Nadav, 2026-11-18: short, one thumb, like the flight game) ----------
+export const MINI = {
+  cough: {   // PATIENT ZERO (Nadav, 2026-11-18: funnier: cough near the boss and the team to look sick)
+    title: 'PATIENT ZERO',
+    goal: 'GOAL: GET SENT HOME SICK',
+    // [brackets] = a key or a control, drawn in yellow (minigames.ts keyLines)
+    how: 'Walk with the [◀ ▶] keys.\n[COUGH] on your coworkers.\nIt only counts when the boss is looking.',
+    howKeys: '[Left / right] ([A / D]) to walk.\n[Space] to cough on your coworkers.\nIt only counts when the boss is looking.',
+    place: 'THE OFFICE',
+    hit: ['*COUGH*', '*HACK* *HACK*', '*WHEEZE*', '*SPLUTTER*'],
+    react: ['EW!!', 'MY LATTE!', 'IS THAT... COVID?', 'GO HOME!', 'NOT ON MY KEYBOARD!', 'HR!!'],
+    seen: ['The boss saw that.', 'Boss: "...you look awful."', 'The boss takes a step back.'],
+    unseen: 'Gross. But the boss missed it.',
+    nobody: 'Nobody heard that.',
+    bossWarn: 'hm?',
+    bossLook: 'BOSS IS LOOKING',
+    meter: 'BOSS THINKS YOU ARE SICK',
+    eyesOn: 'HE IS LOOKING!',
+    eyesSoon: 'HE IS TURNING...',
+    eyesOff: 'not looking',
+    button: 'COUGH',
+    lungs: 'LUNGS',
+    breath: 'Out of breath! Wait for it...',
+    keys: 'ARROWS WALK · SPACE COUGHS',
+    home: 'GO HOME. NOW.',
+    timeUp: 'Fine. Go home. Disgusting.',
+    verdict: (m: number) => (m >= 1 ? 'Patient zero. The boss is scared of you.' : m >= 0.5 ? 'The boss thinks you look... off.' : 'The team hates you. The boss saw nothing.'),
+  },
+  line: {
+    title: 'CUT THE LINE',
+    goal: 'GOAL: REACH THE COUNTER FIRST',
+    how: 'Tap [◀] or [▶] to move one line over.\nDon\'t bump the campers.',
+    howKeys: '[Left / right] ([A / D]) to move one line over.\nDon\'t bump the campers.',
+    place: 'THE MIDNIGHT LINE',
+    counter: 'COUNTER',
+    passed: ['HEY! NO CUTTING!', 'I\'VE BEEN HERE SINCE TUESDAY!', 'UNBELIEVABLE.', 'SPEEDRUNNER, HUH?', 'THE LINE IS BACK THERE!', 'MOM, HE CUT!', 'REPORTED.', 'RESPECT THE TENT!', 'WOW. JUST WOW.'],
+    bump: ['EXCUSE ME!', 'HEY!', 'BACK OF THE LINE!', 'I CAMPED 3 DAYS!', 'RUDE!'],
+    verdict: (hits: number) => (hits === 0 ? 'Not a single camper touched. Legend.' : hits <= 2 ? 'Some campers hate you now.' : 'The whole line hates you now.'),
+  },
+  tiptoe: {
+    title: 'TIPTOE TO THE PC',
+    goal: 'GOAL: SNEAK TO THE PC',
+    how: '[Hold] the screen to tiptoe behind her.\n[Let go] when she turns around.',
+    howKeys: 'Hold [Space] (or [right]) to tiptoe behind her.\n[Let go] when she turns around.',
+    place: 'THE LIVING ROOM',
+    warn: 'hm?',
+    eyes: '👀 SHE IS LOOKING',
+    caught: ['I SEE YOU.', 'FREEZE.', 'NICE TRY.'],
+    end: 'Where do you think you\'re going?',
+    verdict: (caught: number) => (caught === 0 ? 'Silent as a ninja. She noticed anyway.' : 'The floorboards told on you.'),
+  },
+  /** The result card's score line. */
+  bonus: (n: number) => (n > 0 ? `+${n}` : '+0'),
+  loading: 'LOADING...',
+  start: 'START',
+} as const;
+
+// ---------- the finale after the password (Nadav, 2026-11-18: "a happier moment, it is the end of the game"; finale.ts) ----------
+export const FINALE = { head: 'GAME ON!', line: '13 years. Worth every second.', go: 'CONTINUE' } as const;
+
+// ---------- LEVEL UP (Nadav, 2026-11-18): after each conversation, before the montage, and after the password ----------
+// The graphics climb an axis of five stops, II → VI. Pixel font for the big words (capitals only).
+export const LEVELUP = {
+  head: 'LEVEL UP!',
+  label: 'GAME LEVEL',   // Nadav, 2026-11-18: game level, not graphics
+  stops: ['II', 'III', 'IV', 'V', 'VI'],
+  /** One line per level reached (index = stop: 1 = III … 4 = VI). */
+  /** The upgrades each level brings, one per line with its own UP mark (Nadav, 2026-11-18). Index = stop (1 = III … 4 = VI). */
+  ups: [[], ['Camera behind the car', 'Real shadows', 'Sharper picture'], ['Sunset + neon lights', 'Every single pixel', 'Lit windows at night'], ['Ray-traced feelings', '8K regret'], ['VI. Finally.', '13 years of waiting: over']] as string[][],
+  upTag: 'UP',
+  go: 'CONTINUE',
+} as const;
+
 export const LOSE_LINES: Record<string, string> = {
   fired: 'HR spotted you looking healthy. Mission failed. You\'re fired.',
   fuel: 'Out of gas. This isn\'t a survival game. Apparently it is.',

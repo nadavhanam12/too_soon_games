@@ -3,15 +3,20 @@
 //   clerk — loan / steal / trade-in (console and couch get refused; the ring works)
 //   fiancee — on the couch between you and the PC: sneaking and fake listening fail, asking honestly works
 //   pc    — type the password WASTED on a modern desktop's login screen; wrong tries get jokes and an escalating hint
-import { R, W, view, ctx, state, input, keyName, pick, rr, txt, wrap, inBtn, sfx, easeO, easeOB, springOut, pop, haptic } from '@tsg/index';
-import { G, registerStage, stageDone, finishGame, addScore, timeline } from './play';
+import { R, W, view, ctx, state, input, keyName, pick, rr, txt, wrap, inBtn, sfx, easeO, easeOB, springOut, pop, haptic, music } from '@tsg/index';
+import { G, setMomentPeek, registerStage, stageDone, finishGame, addScore, timeline } from './play';
 import { D, renderWorld } from './drive';
 import { BOSS, CLERK, FIANCEE, PC, UI as LABELS, type TradeItem, type FianceeQuiz } from './content';
 import { C, guy } from './art';
 import { grayOut, ptxt } from './pixel';
-import { drawPortrait, type PortraitId, type Who } from './portraits';
-import { montageMoment, MONTAGE_OUT_S, MONTAGE_TAP_S } from './montage';
+import { drawPortrait, drawBigPortrait, type PortraitId, type Who } from './portraits';
+import { montageMoment, MONTAGE_OUT_S, MONTAGE_TAP_S, CRACK_AT, SMASH_AT } from './montage';
 import { itemMoment, ITEM_OUT_S, ITEM_TAP_S } from './item';
+import { drawSet } from './mini3d';
+import { startFinale, stopFinale, stepFinale, renderFinale, finaleOn, finalePeek } from './finale';
+import { startMini, stepMini, renderMini, keyMini, miniOn, type MiniName } from './minigames';
+import { startVs, stepVs, renderVs, stopVs, vsOn } from './buildup';
+import { startLevelUp, stepLevelUp, renderLevelUp, levelUpOn } from './levelup';
 
 interface Opt { id: string; label: string }
 const UI = {
@@ -60,15 +65,17 @@ const lay = (): { px: number; py: number; ps: number; tx: number; ty: number } =
   (view.fullW >= WIDE_MIN ? { px: -200, py: 125, ps: 1.6, tx: 190, ty: -120 } : { px: 0, py: 0, ps: 1, tx: 0, ty: 0 });
 
 function drawDecision(): void {
-  grayWorld();
   const L = lay();
+  // phone: black around the painting, no road under the answers (Nadav, 2026-11-18); wide: the gray city stays around it
+  if (L.ps > 1) grayWorld(); else { ctx.fillStyle = '#0b0b0d'; ctx.fillRect(view.x0, -view.top, view.fullW, view.H); }
   // entry: the portrait drops in when the scene opens (G.t), and pops a little on every new line (UI.t);
   // the speech panel slides in from the left and the buttons rise one after another
   const drop = easeOB(Math.min(1, G.t / 0.6)), grow = easeOB(Math.min(1, UI.t * 2.5));
   ctx.save(); ctx.translate(L.px, L.py); ctx.translate(W / 2, 220); ctx.scale(L.ps, L.ps); ctx.translate(-W / 2, -220);   // portrait + name tag
   ctx.save(); ctx.translate(0, (drop - 1) * 420);
   ctx.translate(W / 2, 192); ctx.scale(0.94 + 0.06 * grow, 0.94 + 0.06 * grow); ctx.translate(-W / 2, -192);
-  drawPortrait(UI.portrait, 73, 78, 214);   // under the timeline strip
+  if (L.ps > 1) drawPortrait(UI.portrait, 73, 78, 214);   // wide screen: the framed portrait, grown ×1.6 on the left
+  else drawBigPortrait(UI.portrait, 0, TOP_H, W);   // phone: the whole painting at the column's width; the speech and the answers sit on its lower part (Nadav, 2026-11-18)
   ctx.restore();
   const tag = easeOB(Math.min(1, Math.max(0, G.t - 0.45) / 0.4));
   if (tag > 0) { ctx.save(); ctx.translate(93, 364); ctx.scale(tag, tag); ctx.translate(-93, -364); rr(40, 352, 106, 24, 4, '#0e0e10', C.pink, 2); ptxt(UI.name, 93, 364, 1, C.pink); ctx.restore(); }
@@ -134,27 +141,59 @@ const CONTINUE: Opt = { id: 'continue', label: LABELS.continue };
 
 // ---------- the montage moment: a conversation is over, its character fades into the montage (montage.ts) ----------
 const MT = { t: -1, out: -1, who: 'boss' as Who, then: (): void => {} };   // t / out: seconds since it started / since the tap (-1 = not running)
+// LEVEL UP comes first (levelup.ts, Nadav 2026-11-18): the graphics stop each conversation earns (II is the start)
+const LEVEL: Record<Who, number> = { boss: 1, clerk: 2, fiancee: 3 };   // III, IV, V; the password gives VI
 function meet(who: Who, then: () => void): void {
   if (!G.met.includes(who)) G.met.push(who);
-  MT.t = 0; MT.out = -1; MT.who = who; MT.then = then; sfx.letter?.(); haptic(15);
+  startLevelUp(LEVEL[who], () => { MT.t = 0; MT.out = -1; MT.who = who; MT.then = then; });   // the smash's own hits play in stepMontage
 }
-/** One step of the montage moment. True while it is up (the scene under it does nothing). */
+/** LEVEL UP or the montage is up: number keys must not reach the options under them. */
+const busy = (): boolean => MT.t >= 0 || levelUpOn();
+/** One step of LEVEL UP, then the montage moment. True while either is up (the scene under it does nothing). */
 function stepMontage(dt: number): boolean {
+  if (levelUpOn()) { stepLevelUp(dt, input.taps.splice(0)); return true; }
   if (MT.t < 0) return false;
-  MT.t += dt;
+  const was = MT.t; MT.t += dt;
+  // the smash-through's hits (montage.ts draws it): two cracking knocks, then the punch through the glass
+  for (const [i, at] of [CRACK_AT, CRACK_AT + (SMASH_AT - CRACK_AT) / 3, CRACK_AT + (2 * (SMASH_AT - CRACK_AT)) / 3].entries()) if (was < at && MT.t >= at) { sfx.bump?.(0.5 + 0.25 * i); haptic(15 + 10 * i); }   // three knocks, harder each time
+  if (was < SMASH_AT && MT.t >= SMASH_AT) { sfx.smash?.(); R.hitStop(0.08); R.shake(0.4); R.flash(0.25); haptic([50, 30, 80]); }
   const tapped = input.taps.length > 0; input.taps.length = 0;
   if (MT.out >= 0) { MT.out += dt; if (MT.out >= MONTAGE_OUT_S) { MT.t = -1; MT.then(); } }
   else if (tapped && MT.t > MONTAGE_TAP_S) { MT.out = 0; sfx.tick?.(); }
   return true;
 }
-function drawMontageMoment(): void { if (MT.t >= 0) montageMoment(MT.t, MT.out, MT.who, G.met); }
+function drawMontageMoment(): void { if (levelUpOn()) renderLevelUp(); else if (MT.t >= 0) montageMoment(MT.t, MT.out, MT.who, G.met); }
 
-// ---------- boss ----------
+// ---------- before each conversation: its mini game, then the VS card (Nadav, 2026-11-18) ----------
+// minigames.ts / buildup.ts. The conversation's own start (`begin`) runs as the card fades, with the stage clock reset
+// so the portrait drops in as before. Retrying the stage plays them again; the score they gave is in the snapshot.
+let preOn = false;
+const MINI_DUCK = 0.55;   // the drive's music under the mini game (the VS card ducks it further, then lifts it)
+function startPre(mini: MiniName, who: Who, portrait: PortraitId, name: string, begin: () => void): void {
+  preOn = true; stopVs(); music.duck = MINI_DUCK;
+  startMini(mini, () => startVs(who, portrait, name, () => { preOn = false; G.t = 0; begin(); }));
+}
+/** True while the mini game or the card has the input (the scene does nothing else this step). */
+function stepPre(dt: number): boolean {
+  if (miniOn()) { stepMini(dt); return true; }
+  if (vsOn()) { const taps = input.taps.splice(0); if (stepVs(dt, taps)) return true; }
+  return preOn;
+}
+/** Draws the mini game, or the conversation with the card over it. */
+function renderPre(drawScene: () => void): void {
+  if (miniOn()) { renderMini(); return; }
+  if (!preOn) drawScene();
+  renderVs();
+}
+/** Space / Enter must stay taps: they press the buttons of the card (button.ts). */
+const pressKey = (e: KeyboardEvent): boolean => e.key === ' ' || e.key === 'Enter';
+const keyPre = (e: KeyboardEvent): boolean | null => (miniOn() ? keyMini(e) : preOn ? !pressKey(e) : null);
+
 function bossPick(): void {
   const opts: Opt[] = [];
   if (!G.agreed) opts.push({ id: 'agree', label: BOSS.options.agree });
   opts.push({ id: 'sick', label: BOSS.options.sick }, { id: 'quit', label: BOSS.options.quit });
-  setUI({ phase: 'pick', portrait: 'boss-idle', name: BOSS.name, line: G.agreed ? BOSS.again : pick(BOSS.open), sub: '', opts });
+  setUI({ phase: 'pick', portrait: 'boss-idle', name: BOSS.name, line: G.agreed ? BOSS.again : BOSS.open, sub: '', opts });
   UI.onOpt = (id) => {
     if (id === 'agree') {
       setUI({ phase: 'react', portrait: 'boss-agree', line: BOSS.react.agree, opts: [] });
@@ -168,8 +207,9 @@ function bossPick(): void {
   };
 }
 registerStage('boss', {
-  enter() { D.goal = null; firstUI = true; MT.t = -1; bossPick(); },
+  enter() { D.goal = null; firstUI = true; MT.t = -1; startPre('cough', 'boss', 'boss-idle', BOSS.name, bossPick); },
   step(dt) {
+    if (stepPre(dt)) return;
     if (stepMontage(dt)) return;
     UI.t += dt; stepPick(dt);
     if (UI.phase === 'react' && UI.portrait === 'boss-agree' && UI.t > 1.8) { UI.phase = 'wasted'; UI.t = 0; sfx.wasted?.(); }
@@ -177,11 +217,13 @@ registerStage('boss', {
     decisionTaps();
   },
   render() {
-    drawDecision();
-    if (UI.phase === 'wasted') wastedOverlay(BOSS.wasted, BOSS.wastedSub, UI.t);
-    drawMontageMoment();
+    renderPre(() => {
+      drawDecision();
+      if (UI.phase === 'wasted') wastedOverlay(BOSS.wasted, BOSS.wastedSub, UI.t);
+      drawMontageMoment();
+    });
   },
-  key: (e) => (MT.t >= 0 ? false : decisionKey(e)),
+  key: (e) => keyPre(e) ?? (busy() ? false : decisionKey(e)),
 });
 
 /** The in-scene WASTED card (agreeing with the boss). Our own pixel font, a plain word. */
@@ -205,7 +247,7 @@ export function wastedOverlay(line: string, sub: string, t: number): void {
 // ---------- clerk ----------
 function clerkPick(): void {
   setUI({
-    phase: 'pick', portrait: 'clerk-idle', name: CLERK.name, line: pick(CLERK.open), sub: CLERK.broke,
+    phase: 'pick', portrait: 'clerk-idle', name: CLERK.name, line: CLERK.open, sub: CLERK.broke,
     opts: [{ id: 'loan', label: CLERK.options.loan }, { id: 'steal', label: CLERK.options.steal }, { id: 'tradein', label: CLERK.options.tradein }],
   });
   UI.onOpt = (id) => {
@@ -230,11 +272,14 @@ function tradeMenu(line: string): void {
 }
 // The game is yours: first the clerk joins the montage, then the ITEM ACQUIRED moment (item.ts) plays over the scene, a tap sends the case to the HUD and
 // the next stage starts.
-const IT = { t: -1, out: -1 };   // seconds since the moment started / since the tap (-1 = not running)
+const IT = { t: -1, out: -1 };
+// the montage and ITEM ACQUIRED, seconds in, for the playthrough bot (play.ts __peek().moment)
+setMomentPeek((): Record<string, number> | null => (MT.t >= 0 ? { montage: +MT.t.toFixed(1) } : IT.t >= 0 ? { item: +IT.t.toFixed(1) } : finaleOn() ? { finale: finalePeek()! } : null));   // seconds since the moment started / since the tap (-1 = not running)
 function gotItem(): void { IT.t = 0; IT.out = -1; sfx.item?.(); R.flash(0.35); haptic([20, 40, 60]); }
 registerStage('clerk', {
-  enter() { D.goal = null; firstUI = true; MT.t = -1; IT.t = -1; IT.out = -1; clerkPick(); },
+  enter() { D.goal = null; firstUI = true; MT.t = -1; IT.t = -1; IT.out = -1; startPre('line', 'clerk', 'clerk-idle', CLERK.name, clerkPick); },
   step(dt) {
+    if (stepPre(dt)) return;
     if (stepMontage(dt)) return;
     if (IT.t >= 0) {
       IT.t += dt;
@@ -245,8 +290,8 @@ registerStage('clerk', {
     }
     UI.t += dt; stepPick(dt); decisionTaps();
   },
-  render() { drawDecision(); if (IT.t >= 0 && G.store) itemMoment(IT.t, IT.out, G.store); drawMontageMoment(); },
-  key: (e) => (IT.t >= 0 || MT.t >= 0 ? false : decisionKey(e)),
+  render() { renderPre(() => { drawDecision(); if (IT.t >= 0 && G.store) itemMoment(IT.t, IT.out, G.store); drawMontageMoment(); }); },
+  key: (e) => keyPre(e) ?? (IT.t >= 0 || busy() ? false : decisionKey(e)),
 });
 
 // ---------- fiancée ----------
@@ -272,11 +317,12 @@ function fianceePick(line: string, portrait: PortraitId): void {
 registerStage('fiancee', {
   enter() {
     D.goal = null; schemes = []; firstUI = true; MT.t = -1;
-    if (G.store === 'tradein') fianceePick(FIANCEE.openRing, 'fiancee-ring'); else fianceePick(pick(FIANCEE.open), 'fiancee-idle');
+    const ring = G.store === 'tradein';
+    startPre('tiptoe', 'fiancee', ring ? 'fiancee-ring' : 'fiancee-idle', FIANCEE.name, () => { if (ring) fianceePick(FIANCEE.openRing, 'fiancee-ring'); else fianceePick(FIANCEE.open, 'fiancee-idle'); });
   },
-  step(dt) { if (stepMontage(dt)) return; UI.t += dt; stepPick(dt); decisionTaps(); },
-  render() { drawDecision(); drawMontageMoment(); },
-  key: (e) => (MT.t >= 0 ? false : decisionKey(e)),
+  step(dt) { if (stepPre(dt)) return; if (stepMontage(dt)) return; UI.t += dt; stepPick(dt); decisionTaps(); },
+  render() { renderPre(() => { drawDecision(); drawMontageMoment(); }); },
+  key: (e) => keyPre(e) ?? (busy() ? false : decisionKey(e)),
 });
 
 // ---------- pc: the password ----------
@@ -289,7 +335,7 @@ const PEAK_STOP_S = 0.35;         // the game's peak moment: the last letter of 
 const BOOT_LED_S = 0.7, BOOT_LOGO_S = 1.2, BOOT_S = 2.9, LOGIN_IN_S = 0.35;   // ×2 on 2026-11-17 (Nadav)
 // pressK / pressT: the key that was just pressed (it sinks for 0.09 s) · typeT: when the last letter landed (it pops)
 // okT: state.t when the password was right; the peak's zoom and letter lights run on the real clock through the hit-stop
-const PCS = { typed: '', reply: '', close: '', shake: 0, ok: -1, pressK: '', pressT: -9, typeT: -9, okT: -9 };
+const PCS = { typed: '', reply: '', close: '', shake: 0, ok: -1, pressK: '', pressT: -9, typeT: -9, okT: -9, lu: false };   // lu: LEVEL UP VI has started
 function keyRects(): Array<{ k: string; x: number; y: number; w: number }> {
   const out: Array<{ k: string; x: number; y: number; w: number }> = [];
   ROWS.forEach((row, r) => {
@@ -338,10 +384,17 @@ function keyAt(x: number, y: number): string | null {
   return best;
 }
 registerStage('pc', {
-  enter() { D.goal = null; PCS.typed = given(); PCS.reply = ''; PCS.close = ''; PCS.shake = 0; PCS.ok = -1; PCS.pressT = PCS.typeT = PCS.okT = -9; },
+  enter() { stopFinale(); D.goal = null; PCS.typed = given(); PCS.reply = ''; PCS.close = ''; PCS.shake = 0; PCS.ok = -1; PCS.lu = false; PCS.pressT = PCS.typeT = PCS.okT = -9; },
   step(dt) {
     if (PCS.shake > 0) { PCS.shake -= dt; if (PCS.shake <= 0) PCS.typed = given(); }
-    if (PCS.ok >= 0) { PCS.ok += dt; input.taps.length = 0; if (PCS.ok > 0.7) finishGame(); return; }
+    if (PCS.ok >= 0) {
+      // the peak, then LEVEL UP to VI, then the end beat and the result screen
+      const taps = input.taps.splice(0);
+      if (stepFinale(dt, taps) || stepLevelUp(dt, taps)) return;
+      PCS.ok += dt;
+      if (PCS.ok > 0.7 && !PCS.lu) { PCS.lu = true; startFinale(() => startLevelUp(4, finishGame)); }   // the finale, then LEVEL UP VI, then the result
+      return;
+    }
     if (G.t < BOOT_S) { input.taps.length = 0; return; }   // still booting
     for (const p of input.taps.splice(0)) {
       if (p.key) continue;
@@ -350,7 +403,8 @@ registerStage('pc', {
     }
   },
   render() {
-    grayWorld(0.55);
+    // the fan's desk at night behind it (mini3d.ts 'desk' set; Nadav, 2026-11-18): the monitor and the keyboard sit on it
+    if (!drawSet({ set: 'desk', cam: { x: 0, y: 6.4, z: 9.5, tx: 0, ty: 2.4, tz: -1, fov: 58 }, people: [], drops: [], splats: [] })) grayWorld(0.55);
     // entry: the PC drops onto the desk, the keyboard slides up from below
     const pk = easeOB(Math.min(1, G.t / 0.4)), kk = easeOB(Math.min(1, Math.max(0, G.t - BOOT_S) / 0.35));
     const booted = G.t >= BOOT_S, login = booted ? Math.min(1, (G.t - BOOT_S) / LOGIN_IN_S) : 0;
@@ -418,9 +472,12 @@ registerStage('pc', {
     }
     ctx.restore();
     topTimeline();
+    renderFinale();
+    renderLevelUp();
   },
   key(e) {
     if (G.t < BOOT_S) return true;   // still booting
+    if (PCS.ok >= 0) return !pressKey(e);   // already in: only Space / Enter, for LEVEL UP's button
     if (e.key === 'Backspace') { typeKey('DEL'); return true; }
     if (/^[a-z]$/.test(keyName(e))) { typeKey(keyName(e).toUpperCase()); return true; }
     if (e.key === 'Enter' || e.key === ' ') return true;

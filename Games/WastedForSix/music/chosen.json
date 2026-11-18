@@ -78,5 +78,105 @@
     "bpm": 108,
     "key": "A minor",
     "loop": true
+  },
+  "sfx-choose": {
+    "run": "sfx-v1",
+    "candidate": "choose-2",
+    "label": "בחירת תשובה בדו-שיח",
+    "prompt": "a single short warm Fender Rhodes chord stab in F minor played by a session player, dry, quickly fading, no drums, intimate room, analog tape warmth",
+    "seed": "1943364411",
+    "bpm": 92,
+    "key": "F minor",
+    "loop": false
+  },
+  "sfx-button": {
+    "run": "sfx-v1",
+    "candidate": "button-2",
+    "label": "כפתור START / CONTINUE",
+    "prompt": "one crisp funky muted electric guitar chord stab with a tight rimshot, very short and dry, late 1990s West Coast funk session, analog warmth",
+    "seed": "1929740445",
+    "bpm": 96,
+    "key": "F minor",
+    "loop": false
+  },
+  "sfx-vs": {
+    "run": "sfx-v1",
+    "candidate": "vs-2",
+    "label": "כרטיס ה-VS של הבוס",
+    "prompt": "dramatic fighting game versus stinger, one huge brass and orchestra hit with a deep timpani boom and a gong swell, cinematic tension, tongue-in-cheek swagger",
+    "seed": "1389424144",
+    "bpm": 90,
+    "key": "F minor",
+    "loop": false
+  },
+  "sfx-levelup": {
+    "run": "sfx-v1",
+    "candidate": "levelup-2",
+    "label": "LEVEL UP",
+    "prompt": "triumphant short level up fanfare, bright brass section and a sparkling synth arpeggio rising to a big major chord, celebratory, live horn players, 90s game swagger",
+    "seed": "483994916",
+    "bpm": 120,
+    "key": "Ab major",
+    "loop": false
+  },
+  "sfx-smash": {
+    "run": "sfx-v1",
+    "candidate": "smash-2",
+    "label": "הדמות שוברת את המונטאז'",
+    "prompt": "a dramatic reveal hit: a deep cinematic boom with a bright reverse cymbal riser into a big Rhodes and brass chord, punchy, exciting",
+    "seed": "878441536",
+    "bpm": 96,
+    "key": "F minor",
+    "loop": false
+  },
+  "sfx-item": {
+    "run": "sfx-v1",
+    "candidate": "item-2",
+    "label": "ITEM ACQUIRED",
+    "prompt": "short happy item acquired jingle, sparkling Fender Rhodes and glockenspiel arpeggio rising and landing on a bright chord, playful wink, warm analog production",
+    "seed": "1512270986",
+    "bpm": 110,
+    "key": "Ab major",
+    "loop": false
+  },
+  "sfx-ministart": {
+    "run": "sfx-v1",
+    "candidate": "ministart-2",
+    "label": "התחלת מיני-גיים",
+    "prompt": "short punchy arcade start jingle, a funky live drum fill into one tight horn stab, energetic, laid-back swing, analog tape warmth",
+    "seed": "1019359361",
+    "bpm": 100,
+    "key": "F minor",
+    "loop": false
+  },
+  "sfx-miniwin": {
+    "run": "sfx-v1",
+    "candidate": "miniwin-2",
+    "label": "סיום מיני-גיים",
+    "prompt": "short cheeky victory jingle, slap bass and a horn section riff ending on a bright stab, mischievous grin, live players, late 90s funk",
+    "seed": "340965751",
+    "bpm": 104,
+    "key": "Ab major",
+    "loop": false
+  },
+  "sfx-unlock": {
+    "run": "sfx-v1",
+    "candidate": "unlock-2",
+    "label": "סיסמה נכונה",
+    "prompt": "a satisfying unlock success chime, a lush Fender Rhodes ninth chord with shimmering bells and a soft swell, dreamy relief",
+    "seed": "458748517",
+    "bpm": 80,
+    "key": "F minor",
+    "loop": false
+  },
+  "sfx-wasted": {
+    "run": "sfx-v1",
+    "candidate": "wasted-2",
+    "label": "WASTED / כישלון",
+    "prompt": "comedic sad fail sting, a muted trombone sliding down wah-wah over a low bass note, deadpan, dry, short",
+    "seed": "3922025954",
+    "bpm": 80,
+    "key": "F minor",
+    "loop": false
   }
 }

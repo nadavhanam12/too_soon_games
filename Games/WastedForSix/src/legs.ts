@@ -4,12 +4,14 @@
 //   quit: the tank drains; empty = WASTED. The gas station "beat" (no gray scene) fills it and starts a police chase.
 // Leg 3: the store choice picks the chaser (loan sharks / cops / spouse); the quit branch's gas-theft cop resumes from
 // where it froze when you walked into the store. Caught = WASTED.
-import { R, W, view, ctx, state, input, keyName, pick, rr, txt, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
-import { G, registerStage, stageDone, fail, addScore, say, hud, hint, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
-import { D, ev, resetWorld, stepWorld, renderWorld, renderControls, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, renderMinimap, MINI, radioY, type ChaserKind } from './drive';
+import { R, W, view, ctx, state, input, keyName, pick, rr, txt, wrap, clamp, sfx, easeO, easeOB, inBtn, pop, haptic } from '@tsg/index';
+import { DEBUG, UI_IN, G, registerStage, stageDone, fail, addScore, say, hud, LEG_TARGET_S, setPlaceLabels, nextStation, stationName } from './play';
+import { D, CALL_S, CALL_WAIT_S, chaseCall, ev, resetWorld, stepWorld, renderWorld, renderControls, addPickups, addLetters, addHr, addChaser, nearHr, behind, floatText, renderMinimap, MINI, radioY, type ChaserKind } from './drive';
 import { PLACES, CELL, type PlaceId } from './city';
 import { BANNERS, HOW_KEYS, HINT, LINES, PLACE_NAME, BOOST_TEXT, UI, TAUNTS } from './content';
 import { C } from './art';
+import { approach, renderApproach } from './buildup';
+import type { Who } from './portraits';
 import { ptxt } from './pixel';
 
 setPlaceLabels(PLACE_NAME);
@@ -105,7 +107,10 @@ function commonEvents(): void {
   ev.taunt = () => {};
 }
 /** Entry: the touch controls and the minimap rise from the bottom edge when a leg starts. */
-function controlsIn(draw: () => void): void { if (G.failT > 0) return; const k = easeOB(Math.min(1, Math.max(0, G.t - 0.1) / 0.3)); ctx.save(); ctx.translate(0, (1 - k) * 170); draw(); ctx.restore(); }
+/** Entry: one part of the leg's UI rises from the bottom edge `at` s after the leg starts (play.ts UI_IN), with a little
+ *  overshoot; the parts come one after another, so the eye can follow them (RULES 13יד). */
+function uiIn(at: number, draw: () => void): void { if (G.failT > 0 || DEBUG.clean) return; const k = easeOB(Math.min(1, Math.max(0, G.t - at) / 0.35)); if (k <= 0) return; ctx.save(); ctx.translate(0, (1 - k) * 170); ctx.globalAlpha = Math.min(1, k * 2); draw(); ctx.restore(); }
+function legUi(): void { uiIn(UI_IN.controls, renderControls); uiIn(UI_IN.map, renderMinimap); uiIn(UI_IN.radio, renderRadio); }
 // ---------- the car radio: a button above the minimap (and the R key) tunes to the next track ----------
 const RADIO_W = MINI, RADIO_H = 34;
 const radioPos = (): { x: number; y: number } => ({ x: view.x0 + view.fullW - 12 - RADIO_W / 2, y: radioY(RADIO_H) });
@@ -115,8 +120,30 @@ function radioTaps(): void {
 }
 function radioKey(e: KeyboardEvent): boolean { if (keyName(e) !== 'r') return false; nextStation(); return true; }
 /** The button: a note and "RADIO"; for 2 s after a change it shows the station's name instead, and pops. */
+/** Sparks around the radio button so it reads as something to press (Nadav, 2026-11-18): a steady trickle rising off
+ *  its edges (busier until it has been used once), and a burst when it is pressed. Stateless: drawn from the clock. */
+function radioSparks(b: { x: number; y: number }): void {
+  const n = G.radioUsed ? 9 : 16, cols = [C.yellow, '#ffffff', '#ff6fa8'];
+  ctx.save(); ctx.shadowBlur = 8;
+  for (let i = 0; i < n; i++) {
+    const ph = (state.t * 0.9 + i / n) % 1, side = (i * 0.618) % 1;   // where on the edge it starts, spread evenly
+    const up = i % 3 !== 0, ex = b.x - RADIO_W / 2 + side * RADIO_W, ey = b.y + (up ? -RADIO_H / 2 : RADIO_H / 2);
+    const x = ex + Math.sin(ph * 6 + i) * 7 + (side - 0.5) * 30 * ph, y = ey + (up ? -ph * 44 : ph * 14);
+    const r = 5 * (1 - ph * 0.7), col = cols[i % 3]!;
+    ctx.globalAlpha = (1 - ph); ctx.fillStyle = col; ctx.shadowColor = col;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ph * 4 + i); ctx.fillRect(-r / 2, -r / 2, r, r); ctx.restore();   // a little spinning square spark
+  }
+  ctx.restore();
+  const age = state.t - G.radioT;
+  if (age >= 0 && age < 0.6) {
+    const k = easeO(age / 0.6);
+    for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2; ctx.globalAlpha = 1 - k; ctx.fillStyle = cols[i % 3]!; ctx.fillRect(b.x + Math.cos(a) * (40 + 70 * k) - 3, b.y + Math.sin(a) * (16 + 46 * k) - 3, 6, 6); }
+  }
+  ctx.globalAlpha = 1;
+}
 function renderRadio(): void {
   const b = radioPos(), age = state.t - G.radioT, fresh = age < 2;
+  radioSparks(b);
   ctx.save(); ctx.translate(b.x, b.y); const s = pop(age, 0.16, 0.14); ctx.scale(s, s); ctx.translate(-b.x, -b.y);
   if (fresh) {
     rr(b.x - RADIO_W / 2, b.y - RADIO_H / 2, RADIO_W, RADIO_H, 8, 'rgba(14,14,16,.85)', C.yellow, 1.5);
@@ -135,7 +162,33 @@ function renderRadio(): void {
   ctx.restore();
 }
 function tick(dt: number): void { runTimers(dt); crashCd -= dt; noteCd -= dt; nagCd -= dt; radioTaps(); input.taps.length = 0; }
+/** The boss buildup (buildup.ts): who waits behind the leg's last door, and how far away it is. Parked or walking in
+ *  counts as at the door. */
+function buildup(dt: number, who: Who | null, id: PlaceId): void {
+  const pl = PLACES[id];
+  approach(who, beat || walk ? 0 : Math.hypot(pl.x - D.p.x, pl.y - D.p.y), dt);
+}
 const hintFor = (): string => (D.usedKeys || !input.touch ? HINT.keys : HINT.touch);
+
+// ---------- the read pause at the start of a leg (Nadav, 2026-11-18) ----------
+// Texts over the road at the start of a drive hid it while the player was already driving. Now a leg starts with the
+// car held and the screen dimmed (READ_DIM) for READ_S, the hint large in the middle (and on the chase home the "who is
+// after you" band, until it has left); then the dimming fades over READ_FADE_S and the drive begins. The hint is not
+// shown on the road any more.
+const READ_S = 1.0, READ_FADE_S = 0.5, READ_DIM = 0.55;
+let readEnd = READ_S + READ_FADE_S;
+function startRead(end = READ_S + READ_FADE_S): void { readEnd = end; D.reading = true; D.control = false; }
+function stepRead(): void { if (D.reading && G.t >= readEnd) { D.reading = false; if (!beat && !walk) D.control = true; } }
+function renderRead(): void {
+  if (!D.reading) return;
+  const a = clamp((readEnd - G.t) / READ_FADE_S, 0, 1);
+  ctx.fillStyle = `rgba(0,0,0,${READ_DIM * a})`; ctx.fillRect(view.x0, -view.top, view.fullW, view.H);
+  chaseCall();
+  const s = hintFor(), lines = wrap(s, 17, W - 70, 900), k = easeOB(clamp(G.t / 0.3, 0, 1));
+  ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, 306); ctx.scale(k, k);   // between the chase band (ends ~280) and the radio
+  lines.forEach((l, i) => txt(l, 0, (i - (lines.length - 1) / 2) * 24, 17, '#ffffff', 'center', 900));
+  ctx.restore();
+}
 
 // ---------- leg 1: the commute ----------
 registerStage('commute', {
@@ -146,17 +199,17 @@ registerStage('commute', {
     const a = PLACES.home, b = PLACES.office;
     addPickups(14, 'cash', Math.min(a.x, b.x) - 30, Math.min(a.y, b.y) - 30, Math.max(a.x, b.x) + 30, Math.max(a.y, b.y) + 30);
     addLetters('WA', a, b);
-    commonEvents();
+    commonEvents(); startRead();
     ev.arrive = (id) => { if (id === 'office') arriveEnd('office', UI.beat.parking, 0, () => say(LINES.arriveOffice[0]!, 1.6, true)); };
     R.banner(BANNERS.commute[0], input.touch ? [...BANNERS.commute[1]] : [BANNERS.commute[1][0], HOW_KEYS, ...BANNERS.commute[1].slice(2)]);   // no touch controls with a mouse: the how-to line names the keys
   },
   step(dt) {
-    tick(dt);
+    tick(dt); stepRead(); buildup(dt, 'boss', 'office');
     if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: false });
     if (G.t > 6 && G.t % 11 < dt) say(pick(LINES.commute));
   },
-  render() { renderWorld(['office']); renderBeat(); hud('office'); controlsIn(() => { renderControls(); renderMinimap(); renderRadio(); }); hint(hintFor()); },
+  render() { renderWorld(['office']); renderApproach(!walk); renderBeat(); hud('office'); legUi(); renderRead(); },
   key: radioKey,
 });
 
@@ -173,7 +226,7 @@ registerStage('launch', {
     D.goal = detourId();
     addPickups(10, 'can', Math.min(a.x, b.x, dt.x) - 30, Math.min(a.y, b.y, dt.y) - 30, Math.max(a.x, b.x, dt.x) + 30, Math.max(a.y, b.y, dt.y) + 30);
     addLetters('ST', a, dt);
-    commonEvents();
+    commonEvents(); startRead();
     if (G.branch === 'sick') {
       G.note = false;
       addHr({ x: dt.x - 100, y: dt.y + 60 });   // starts beyond the clinic, away from the way in, and roams toward you
@@ -210,7 +263,7 @@ registerStage('launch', {
     R.banner(b2[0], [...b2[1]]);
   },
   step(dt) {
-    tick(dt);
+    tick(dt); stepRead(); buildup(dt, detourDone ? 'clerk' : null, 'store');
     if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: true });
     // driving past the store before the detour stop
@@ -227,8 +280,8 @@ registerStage('launch', {
     }
   },
   render() {
-    renderWorld(detourDone ? ['store'] : [detourId()]); renderBeat();
-    hud(D.goal, { fuel: G.branch === 'quit' }); controlsIn(() => { renderControls(); renderMinimap(); renderRadio(); }); hint(hintFor());
+    renderWorld(detourDone ? ['store'] : [detourId()]); renderApproach(!walk); renderBeat();
+    hud(D.goal, { fuel: G.branch === 'quit' }); legUi(); renderRead();
   },
   key: radioKey,
 });
@@ -249,9 +302,10 @@ registerStage('home', {
     commonEvents();
     const kind: ChaserKind = G.store === 'loan' ? 'shark' : G.store === 'steal' ? 'cop' : 'spouse';
     G.stars = (G.store === 'steal' ? 1 : 0) + (G.branch === 'quit' ? 1 : 0);
-    const sp = behind(90); addChaser(kind, sp.x, sp.y, 0.6, 2);   // was 125 u back and 3 s still: gone before the chase began
+    startRead(CALL_WAIT_S + CALL_S);   // the chase home: the pause lasts until the "who is after you" band has left
+    const sp = behind(90); addChaser(kind, sp.x, sp.y, 0.6, 2 + readEnd);   // was 125 u back and 3 s still: gone before the chase began
     if (G.branch === 'quit') { // the gas-theft cop resumes where it froze, but never right on your bumper
-      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 2, 1);   // one car, not a second pack: three chasers at most
+      const cp = G.copPos, c = cp && Math.hypot(cp.x - D.p.x, cp.y - D.p.y) > 100 ? cp : behind(160); addChaser('cop', c.x, c.y, 0.6, 2 + readEnd, 1);   // one car, not a second pack: three chasers at most
     }
     ev.caught = (k) => fail(k);
     ev.taunt = (k, x, y) => { if (k === 'spouse') floatText(pick(TAUNTS.spouse), x, y - 26, '#d9b3ff'); else if (k === 'shark') floatText(pick(TAUNTS.shark), x, y - 26, C.yellow); };
@@ -260,10 +314,10 @@ registerStage('home', {
     R.banner(BANNERS.home[0], [BANNERS.home[1][0], intro, ...BANNERS.home[1].slice(1)]);   // the mission line stays first (missionCard draws it as the headline)
   },
   step(dt) {
-    tick(dt);
+    tick(dt); stepRead(); buildup(dt, 'fiancee', 'home');
     if (stepBeat(dt) || stepWalk(dt)) { stepWorld(dt, { chasersOn: false }); return; }
     stepWorld(dt, { chasersOn: true });
   },
-  render() { renderWorld(['home']); renderBeat(); hud('home'); controlsIn(() => { renderControls(); renderMinimap(); renderRadio(); }); hint(hintFor()); void txt; },
+  render() { renderWorld(['home']); renderApproach(!walk); renderBeat(); hud('home'); legUi(); renderRead(); void txt; },
   key: radioKey,
 });

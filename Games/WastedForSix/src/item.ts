@@ -34,7 +34,8 @@ function shinyCase(im: HTMLImageElement, shine: number): HTMLCanvasElement {
 }
 
 /** The case, centred on (0, 0) at height h, with the game's name on its band. */
-function drawCase(h: number, shine: number, withName: boolean): void {
+/** The case at the origin, h tall, its shine at `shine`, the name on its band (also the finale's, finale.ts). */
+export function drawCase(h: number, shine: number, withName: boolean): void {
   const im = sceneImg('item-six');
   if (!im) return; // the painting is a separate file and may still be on its way: the moment plays without it
   const w = (h * im.naturalWidth) / im.naturalHeight, s = w / 480;

@@ -12,7 +12,8 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { MatKey, Prim } from '../city';
-import type { CarKind, CityData, EnvironmentAssets, Frame, Look, World3D } from '../world3d-api';
+import type { CarKind, CityData, EnvironmentAssets, Frame, Look, MiniFrame, World3D } from '../world3d-api';
+import { makeSets } from './sets3d';
 
 const SIGN_FONT = '900 64px Rubik, system-ui, sans-serif';
 // ---------- the behind-the-car looks (3 and 4) ----------
@@ -643,7 +644,18 @@ skyTop.set(0.25, 0.5, 0.95).lerp(SKY_EVE[0]!, d); skyMid.set(0.55, 0.75, 1).lerp
     return { x: (v3.x + 1) / 2, y: (1 - v3.y) / 2, behind: v3.z > 1 };
   }
 
-  return { canvas, render, project, stats: () => ({ look, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
+  // the mini games' sets (sets3d.ts) share this renderer; built only when a mini game first shows one
+  let sets: ReturnType<typeof makeSets> | null = null;
+  function renderMini(m: MiniFrame): void {
+    sets ??= makeSets(renderer, touchFirst, assets?.cover);
+    const exposure = renderer.toneMappingExposure;
+    sets.render(m);
+    renderer.toneMappingExposure = exposure;   // the city's look keeps its own exposure
+    size = { w: 0, h: 0 };                     // the set resized the renderer: the city's next frame sizes it back
+  }
+  const projectMini = (x: number, y: number, z: number): { x: number; y: number } => (sets ? sets.project(x, y, z) : { x: 0.5, y: 0.5 });
+
+  return { canvas, render, renderMini, projectMini, project, stats: () => ({ look, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
     textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, renderMs: +renderMs.toFixed(2),
     walker: lastWalker, driver: lastDriver, assets: { ...assetState } }) };
 }

@@ -71,3 +71,20 @@ export function drawPortrait(id: PortraitId, x: number, y: number, w: number): v
     txt('…', x + w / 2, y + h * 0.38, 28, '#9b7fd1', 'center', 900);
   }
 }
+
+/** The portrait as big as the width allows, whole (Nadav, 2026-11-18: the boss as big as possible, and never cut off at
+ *  the bottom: the speech panel and the answers sit ON the painting's lower part instead). Drawn at (x, y), w wide,
+ *  its own height (3:4); a soft dark fade at its bottom edge. The silhouette while the file is still downloading. */
+export function drawBigPortrait(id: PortraitId, x: number, y: number, w: number): void {
+  const im = imgs[id], h = (w * 4) / 3;
+  if (im && ready.has(id)) {
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(im, x, y, w, h);
+    portraitSticker(id, x, y, w);
+  } else {
+    rr(x, y, w, h, 0, '#2a2a2e');
+    ctx.fillStyle = '#24183a'; ctx.beginPath(); ctx.arc(x + w / 2, y + h * 0.4, w * 0.14, 0, Math.PI * 2); ctx.fill();
+    txt('…', x + w / 2, y + h * 0.4, 28, '#9b7fd1', 'center', 900);
+  }
+  const g = ctx.createLinearGradient(0, y + h - 50, 0, y + h); g.addColorStop(0, 'rgba(14,14,16,0)'); g.addColorStop(1, 'rgba(14,14,16,1)');
+  ctx.fillStyle = g; ctx.fillRect(x, y + h - 50, w, 50);
+}
