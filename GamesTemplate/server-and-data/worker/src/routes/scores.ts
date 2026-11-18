@@ -1,5 +1,5 @@
 import type { Ctx } from '../env';
-import { HttpError, getGame, rankOf, int, json, nick as parseNick, optInt, rateLimit, readJson, shortText, userId as parseUserId } from '../util';
+import { HttpError, getGame, int, json, nick as parseNick, optInt, rateLimit, readJson, shortText, userId as parseUserId } from '../util';
 
 interface Body { userId?: unknown; nick?: unknown; score?: unknown; durationS?: unknown; stage?: unknown; version?: unknown }
 
@@ -59,5 +59,7 @@ export async function postScore(ctx: Ctx, game: string): Promise<Response> {
   await ctx.env.DB.batch(stmts);
 
   const total = g.scores_n + (prev ? 0 : 1);
-  return json({ rank: await rankOf(ctx, game, best, true), total, best, improved });
+  // the one rank COUNT of a run (reads every score above `best`); the board screen shows this number, not a count of its own
+  const above = await ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM scores WHERE game_id = ? AND score > ?').bind(game, best).first<{ n: number }>();
+  return json({ rank: (above?.n ?? 0) + 1, total, best, improved });
 }

@@ -1,16 +1,18 @@
 import type { Ctx } from '../env';
-import { cached, getGame, int, json, rankOf, userId as parseUserId } from '../util';
+import { cached, getGame, int, json, userId as parseUserId } from '../util';
 
 interface Row { user_id: string; nick: string | null; score: number }
 
 /**
- * GET /v1/games/:game/board?limit=20&userId=<uuid>
+ * GET /v1/games/:game/board?limit=10&userId=<uuid>
  * → { top: [{rank, nick, score, isYou}], you: {rank, score, nick} | null, total }
- * The top list is edge-cached 10s per (game, limit); the player's own row is a point read, and the rank is cached per
- * score (util.rankOf). Rate-limited per IP (RL_READS, index.ts).
+ * Only the top list, edge-cached 10 s per (game, limit): no D1 read per request. `you` is the player's row when it is
+ * in that list, else null. A rank outside the list is never counted here: the game shows the rank its score post
+ * returned (POST scores), so a run costs one rank COUNT, not two. The rank COUNT is what overloads D1 under load
+ * (load test 2026-11-18, SETUP-CLOUDFLARE.md). Rate-limited per IP (RL_READS, index.ts).
  */
 export async function board(ctx: Ctx, game: string): Promise<Response> {
-  const limit = int(ctx.url.searchParams.get('limit') ?? 20, 'limit', 1, 50);
+  const limit = int(ctx.url.searchParams.get('limit') ?? 10, 'limit', 1, 50);
   const uidRaw = ctx.url.searchParams.get('userId');
   const uid = uidRaw ? parseUserId(uidRaw) : null;
 
@@ -24,19 +26,10 @@ export async function board(ctx: Ctx, game: string): Promise<Response> {
     };
   });
   const data = (await topRes.json()) as { top: { rank: number; nick: string | null; score: number; userId: string }[]; total: number };
-
-  let you: { rank: number; score: number; nick: string | null } | null = null;
-  if (uid) {
-    const mine = await ctx.env.DB.prepare('SELECT nick, score FROM scores WHERE game_id = ? AND user_id = ?').bind(game, uid).first<Row>();
-    if (mine) {
-      // in the top list: its rank (same cache age as the list, so the two never disagree); else the per-score cache
-      const inTop = data.top.find((r) => r.userId === uid);
-      you = { rank: inTop ? inTop.rank : await rankOf(ctx, game, mine.score), score: mine.score, nick: mine.nick };
-    }
-  }
+  const mine = uid ? data.top.find((r) => r.userId === uid) : undefined;
   return json({
     top: data.top.map(({ userId, ...r }) => ({ ...r, isYou: uid !== null && userId === uid })),
-    you,
+    you: mine ? { rank: mine.rank, score: mine.score, nick: mine.nick } : null,
     total: data.total,
   }, 200, { 'cache-control': 'no-store' });
 }

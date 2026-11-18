@@ -45,6 +45,7 @@ Run when `wrangler.toml` still has the placeholder `database_id = "00000000-..."
 |---|---|---|
 | backup | `bash ../backup/export.sh` → `../backup/backups/toosoon-<stamp>-remote.sql` | warn and continue only if the DB does not exist yet; otherwise stop |
 | typecheck | `npm run typecheck` | stop |
+| local smoke | when `wrangler dev` answers on :8787: local migrations, then `node test/smoke.mjs http://127.0.0.1:8787` (skipped with a warning otherwise) | stop |
 | version | bump patch of `VERSION` in `wrangler.toml` (the deployed `/v1/version`) | — |
 | migrations | `npm run migrate:remote` (applies only new files in `migrations/`) | stop; nothing was deployed yet |
 | deploy | `npm run deploy` | stop; see rollback |

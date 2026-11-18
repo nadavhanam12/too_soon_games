@@ -82,6 +82,16 @@ fi
 step "typecheck"
 npm run -s typecheck || fail "typecheck failed"
 
+# the same smoke test as after the deploy, first against the local API (wrangler dev on :8787) when it is running, so a
+# broken change stops here instead of reaching production and needing a rollback
+step "local smoke"
+if curl -s -m 3 -o /dev/null http://127.0.0.1:8787/v1/version; then
+  npm run -s migrate:local >/dev/null || fail "local migrations failed"
+  node test/smoke.mjs http://127.0.0.1:8787 || fail "local smoke test failed - not deploying"
+else
+  warn "no local API on :8787 (npm run dev) - skipping the local smoke test"
+fi
+
 step "version"
 CUR="$(grep -E '^VERSION = ' wrangler.toml | sed -E 's/.*"([^"]+)".*/\1/')"
 IFS=. read -r MA MI PA <<<"$CUR"; NEW="$MA.$MI.$((PA+1))"

@@ -17,7 +17,10 @@ if (!adminKey) { console.error('no ADMIN_KEY (env or .dev.vars)'); process.exit(
 const game = `smoke-${Date.now().toString(36)}`;
 const user = randomUUID();
 const user2 = randomUUID();
-const origin = 'http://localhost:5173';
+// The live API refuses writes from a localhost page (util.refuseLocalWrite, decision 82), so against a deployed API the
+// smoke test calls as the site does. Its throwaway games are deleted at the end; their few AE events stay under smoke-*.
+const isLocalBase = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base);
+const origin = isLocalBase ? 'http://localhost:5173' : 'https://toosoongames.app';
 let failed = 0;
 
 async function call(method, path, body, headers = {}) {
@@ -41,7 +44,7 @@ console.log(`smoke → ${base}  game=${game}`);
 
 let r = await call('GET', '/v1/version');
 check('version', r.status === 200 && typeof r.data.version === 'string', JSON.stringify(r.data));
-check('cors header for localhost origin', r.headers.get('access-control-allow-origin') === origin);
+check('cors header for the calling origin', r.headers.get('access-control-allow-origin') === origin);
 
 r = await call('OPTIONS', `/v1/games/${game}/scores`);
 check('preflight 204', r.status === 204);
@@ -94,6 +97,8 @@ check('nick with link → 400', r.status === 400, JSON.stringify(r.data));
 r = await call('GET', `/v1/games/${game}/board?limit=10&userId=${user}`);
 check('board: 2 rows, you = rank 2', r.status === 200 && r.data.total === 2 && r.data.top.length === 2 && r.data.you?.rank === 2 && r.data.top[1].isYou === true, JSON.stringify(r.data));
 check('board: nick kept (דני)', r.data.top?.[1]?.nick === 'דני');
+r = await call('GET', `/v1/games/${game}/board?limit=1&userId=${user}`);
+check('board: outside the list → you is null (no rank COUNT)', r.status === 200 && r.data.top.length === 1 && r.data.you === null, JSON.stringify(r.data));
 check('board: no userId leaked', r.data.top.every((x) => !('userId' in x)));
 
 r = await call('GET', `/v1/admin/games`, undefined, adm);

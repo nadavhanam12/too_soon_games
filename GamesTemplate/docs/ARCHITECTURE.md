@@ -70,7 +70,7 @@ server-and-data/
 | שיטה | נתיב | גוף / פרמטרים | מחזיר |
 |---|---|---|---|
 | POST | `/v1/games/:game/scores` | `{userId, nick?, score, durationS, stage?, version}` | `{rank, total}` |
-| GET | `/v1/games/:game/board?limit=20&userId=` | | `{top:[{nick,score,isYou}], you:{rank,score}?, total}` |
+| GET | `/v1/games/:game/board?limit=10&userId=` | | `{top:[{rank,nick,score,isYou}], you:{rank,score,nick}?, total}`; `you` רק כשהשחקן ברשימה. בלי ספירת דירוג (החלטה 89) |
 | POST | `/v1/games/:game/events` | `[{name, ts, props}]` עד 50 | `204` |
 | GET | `/v1/games/:game/count` | | `{players}` (cache 60s) |
 | GET | `/v1/games/:game/stats?days=7` | header `x-admin-key` | סיכומים יומיים |
@@ -80,7 +80,7 @@ server-and-data/
 
 - CORS: רק הדומיין שלנו (ו־localhost בפיתוח).
 - Rate limit: 60 בקשות לדקה ל־IP ל־`scores`, 600 ל־`events`, 120 ל־`board` ו־`count` יחד. (Workers Rate Limiting binding, חינמי.)
-- הדירוג (`COUNT(*) WHERE score > ?`) נשמר במטמון 10 שניות לכל ניקוד (`util.rankOf`); שליחת ניקוד מחשבת מחדש ומעדכנת את המטמון.
+- הדירוג (`COUNT(*) WHERE score > ?`) נספר פעם אחת לריצה, בשליחת הניקוד. הלוח מחזיר רק את ה־top מהמטמון, והמשחק מציג את הדירוג שקיבל בשליחה (החלטה 89).
 - אירועים נשלחים מהלקוח באצווה כל 5 שניות או 10 אירועים, ועם `sendBeacon` ביציאה.
 - הלקוח לעולם לא נתקע על השרת: כל כישלון נבלע, המשחק ממשיך, לידרבורד מציג "לא זמין כרגע".
 

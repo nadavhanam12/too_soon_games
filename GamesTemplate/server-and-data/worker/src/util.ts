@@ -206,26 +206,6 @@ export async function cached(ctx: Ctx, key: string, ttlS: number, build: () => P
   return res;
 }
 
-/**
- * A player's rank for a score: 1 + the scores above it. The COUNT reads every row above, so on a big board it is the
- * most expensive query we run (D1 reads are billed and not covered by the Workers spending limit). The answer depends
- * only on (game, score), so it is edge-cached 10 s per score, like the top list: repeated board views, and many players
- * on the same score, cost one read. A board view can lag a new score above it by up to 10 s.
- * fresh: always count, and store the answer (POST scores: the rank shown right after a run is exact, and the board
- * that follows shows the same number).
- */
-export async function rankOf(ctx: Ctx, game: string, score: number, fresh = false): Promise<number> {
-  const cacheKey = new Request(new URL(`/__cache/rank/${game}/${score}`, ctx.url.origin).toString());
-  if (!fresh) {
-    const hit = await caches.default.match(cacheKey);
-    if (hit) return ((await hit.json()) as { rank: number }).rank;
-  }
-  const above = await ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM scores WHERE game_id = ? AND score > ?').bind(game, score).first<{ n: number }>();
-  const rank = (above?.n ?? 0) + 1;
-  ctx.waitUntil(caches.default.put(cacheKey, json({ rank }, 200, { 'cache-control': 'public, max-age=10' })));
-  return rank;
-}
-
 export async function rateLimit(rl: { limit(o: { key: string }): Promise<{ success: boolean }> } | undefined, key: string): Promise<void> {
   if (!rl) return; // binding missing locally → no limit
   const { success } = await rl.limit({ key });
