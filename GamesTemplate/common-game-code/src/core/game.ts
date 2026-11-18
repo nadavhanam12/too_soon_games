@@ -48,7 +48,7 @@ export function createGame(def: GameDef): void {
   const theme = def.theme || defaultTheme();
   Object.assign(R, {
     cfg, content: def.content, theme, strs: strings(cfg.lang), hooks: def.hooks || {},
-    run: null, retry: null, challenge: null, players: null, best: getBest(cfg.slug), playTime: 0, lastSubmit: null,
+    run: null, retry: null, challenge: null, players: null, best: getBest(cfg.slug), playTime: 0, lastSubmit: null, submitting: null,
     fail: (r: Partial<RunResult>) => finish({ won: false, ...r }),
     win: (r: Partial<RunResult>) => finish({ won: true, ...r }),
     toastY: 70,

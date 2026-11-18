@@ -54,7 +54,7 @@ function submit(nick: string | null): void {
   if (nick) { setNick(nick); track('nick_submit'); } else track('nick_skip');
   nickOverlay.hide();
   sfx.ok?.();
-  void api.score(R.cfg.slug, { userId: userId(), nick, score: run.score, durationS: Math.round(run.durationS), stage: run.stage, version: R.cfg.version })
-    .then((r) => { if (r) R.lastSubmit = { rank: r.rank, total: r.total }; });
+  R.submitting = api.score(R.cfg.slug, { userId: userId(), nick, score: run.score, durationS: Math.round(run.durationS), stage: run.stage, version: R.cfg.version })
+    .then((r) => { if (r) R.lastSubmit = { rank: r.rank, total: r.total, best: r.best }; });
   go(nextAfterResult());
 }

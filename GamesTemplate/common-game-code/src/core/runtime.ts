@@ -59,7 +59,10 @@ export interface Runtime {
   players: number | null;
   best: number;
   playTime: number;                               // seconds in the play scene this run
-  lastSubmit: { rank: number; total: number } | null;
+  /** the last score post's answer: rank of the player's best, the board size, that best. null until it lands or when it failed */
+  lastSubmit: { rank: number; total: number; best: number } | null;
+  /** the last score post, so the board can wait for it (it shows the rank this post returned) */
+  submitting: Promise<unknown> | null;
   fail(r: Partial<RunResult>): void;              // → lose (or result when the game has no stages)
   win(r: Partial<RunResult>): void;               // → result
   say(text: string, life?: number): void;         // small toast

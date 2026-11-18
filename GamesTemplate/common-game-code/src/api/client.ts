@@ -47,7 +47,7 @@ export interface ScoreResult { rank: number; total: number; best: number; improv
 
 export const api = {
   count: (slug: string) => call<{ players: number; plays?: number; playsPublic?: number }>('GET', `/v1/games/${slug}/count`),
-  board: (slug: string, userId: string, limit = 20) => call<Board>('GET', `/v1/games/${slug}/board?limit=${limit}&userId=${encodeURIComponent(userId)}`),
+  board: (slug: string, userId: string, limit = 10) => call<Board>('GET', `/v1/games/${slug}/board?limit=${limit}&userId=${encodeURIComponent(userId)}`),
   score: (slug: string, body: { userId: string; nick?: string | null; score: number; durationS: number; stage?: string; version: string }) =>
     call<ScoreResult>('POST', `/v1/games/${slug}/scores`, body),
   events: (slug: string, body: unknown) => call<Record<string, never>>('POST', `/v1/games/${slug}/events`, body),
