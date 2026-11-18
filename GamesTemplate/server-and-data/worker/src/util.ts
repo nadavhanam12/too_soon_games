@@ -64,11 +64,23 @@ export function shortText(v: unknown, name: string, max: number): string | null 
   return Array.from(clean).slice(0, max).join('');
 }
 
-/** Nickname: 1-16 visible characters, no URLs. Returns null when empty → shown as anonymous. */
+// Nicknames show on a public leaderboard. Slurs and the crudest words are refused; the check runs on a folded copy
+// (lower case, look-alike digits mapped to letters, everything but letters removed) so "N 1 g-g" is caught too.
+// A refused nickname does not lose the score: it is saved without a name (shown as anonymous), the same as no name.
+const BLOCKED = ['nigger', 'nigga', 'faggot', 'retard', 'kike', 'chink', 'tranny', 'cunt', 'whore', 'hitler', 'nazi', 'heil', 'kkk', 'pedo'];
+const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i' };
+
+export function blockedNick(n: string): boolean {
+  const folded = n.toLowerCase().replace(/[013457@$!]/g, (c) => LEET[c] ?? c).replace(/[^a-z]/g, '');
+  return BLOCKED.some((w) => folded.includes(w));
+}
+
+/** Nickname: 1-16 visible characters, no URLs. Returns null when empty or blocked → shown as anonymous. */
 export function nick(v: unknown): string | null {
   const n = shortText(v, 'nick', 16);
   if (!n) return null;
   if (/https?:|www\./i.test(n)) throw new HttpError(400, 'nick may not contain links', 'bad_nick');
+  if (blockedNick(n)) return null;
   return n;
 }
 
@@ -147,11 +159,38 @@ export function withCors(res: Response, ctx: Ctx): Response {
 // ---------- games registry ----------
 
 export async function getGame(env: Env, gameId: string): Promise<GameRow> {
-  const row = await env.DB.prepare('SELECT game_id, name, max_score, min_duration_s FROM games WHERE game_id = ?')
+  const row = await env.DB.prepare('SELECT game_id, name, max_score, min_duration_s, scores_n, max_score_per_s FROM games WHERE game_id = ?')
     .bind(gameId)
     .first<GameRow>();
   if (!row) throw new HttpError(404, 'unknown game', 'unknown_game');
   return row;
+}
+
+/**
+ * Is this a registered game? The events route asks on every batch, so the answer comes from a list of game ids kept in
+ * this isolate's memory, refreshed every 5 minutes, instead of a D1 read per batch. An id missing from the list (a game
+ * published a moment ago, or junk) is checked with one D1 point read. Events must keep flowing when D1 is slow or out
+ * of its daily quota: that is the day the numbers matter most.
+ */
+let knownGames: { ids: Set<string>; at: number } | null = null;
+const KNOWN_TTL_MS = 5 * 60_000;
+
+export async function isKnownGame(env: Env, gameId: string): Promise<boolean> {
+  try {
+    if (!knownGames || Date.now() - knownGames.at > KNOWN_TTL_MS) {
+      const rows = await env.DB.prepare('SELECT game_id FROM games').all<{ game_id: string }>();
+      knownGames = { ids: new Set(rows.results.map((r) => r.game_id)), at: Date.now() };
+    }
+    if (knownGames.ids.has(gameId)) return true;
+    const row = await env.DB.prepare('SELECT 1 AS ok FROM games WHERE game_id = ?').bind(gameId).first();
+    if (row) knownGames.ids.add(gameId);
+    return row !== null;
+  } catch (e) {
+    // D1 down or over quota (expected on a traffic spike on the free plan): accept the event (the list was checked first),
+    // since a dropped event cannot be recovered and a stray slug only adds rows to AE
+    console.error('known games check failed', e);
+    return true;
+  }
 }
 
 // ---------- edge cache for cheap GETs ----------
@@ -165,6 +204,26 @@ export async function cached(ctx: Ctx, key: string, ttlS: number, build: () => P
   const res = json(data, 200, { 'cache-control': `public, max-age=${ttlS}` });
   ctx.waitUntil(cache.put(cacheKey, res.clone()));
   return res;
+}
+
+/**
+ * A player's rank for a score: 1 + the scores above it. The COUNT reads every row above, so on a big board it is the
+ * most expensive query we run (D1 reads are billed and not covered by the Workers spending limit). The answer depends
+ * only on (game, score), so it is edge-cached 10 s per score, like the top list: repeated board views, and many players
+ * on the same score, cost one read. A board view can lag a new score above it by up to 10 s.
+ * fresh: always count, and store the answer (POST scores: the rank shown right after a run is exact, and the board
+ * that follows shows the same number).
+ */
+export async function rankOf(ctx: Ctx, game: string, score: number, fresh = false): Promise<number> {
+  const cacheKey = new Request(new URL(`/__cache/rank/${game}/${score}`, ctx.url.origin).toString());
+  if (!fresh) {
+    const hit = await caches.default.match(cacheKey);
+    if (hit) return ((await hit.json()) as { rank: number }).rank;
+  }
+  const above = await ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM scores WHERE game_id = ? AND score > ?').bind(game, score).first<{ n: number }>();
+  const rank = (above?.n ?? 0) + 1;
+  ctx.waitUntil(caches.default.put(cacheKey, json({ rank }, 200, { 'cache-control': 'public, max-age=10' })));
+  return rank;
 }
 
 export async function rateLimit(rl: { limit(o: { key: string }): Promise<{ success: boolean }> } | undefined, key: string): Promise<void> {

@@ -37,6 +37,7 @@ jq_() { node -e "const j=JSON.parse(require('fs').readFileSync(process.argv[1],'
 [ -f "$GAME_JSON" ] || fail "no $GAME_JSON"
 SLUG="$(jq_ "$GAME_JSON" slug)"; TITLE="$(jq_ "$GAME_JSON" title)"
 MAX="$(jq_ "$GAME_JSON" score.max)"; MIN_D="$(jq_ "$GAME_JSON" score.minDurationS)"; MIN_D="${MIN_D:-0}"
+PER_S="$(jq_ "$GAME_JSON" score.maxPerS)"   # optional: score per second of play the API accepts at most
 [ -n "$SLUG" ] && [ -n "$TITLE" ] && [ -n "$MAX" ] || fail "game.json needs slug, title, score.max"
 PUBLIC_BASE="$(jq_ "$STUDIO" publicBase 2>/dev/null || true)"; API_BASE="$(jq_ "$STUDIO" apiBase 2>/dev/null || true)"
 echo "[publish] $GAME_ID → /$SLUG/  (\"$TITLE\")  dry-run=$DRY"
@@ -88,7 +89,7 @@ elif [ -z "$API_BASE" ]; then
 else
   [ -f "$DEVVARS" ] || fail "$DEVVARS missing (needed for x-admin-key)"
   KEY="$(grep -E '^ADMIN_KEY=' "$DEVVARS" | head -1 | cut -d= -f2- | tr -d '\r')"
-  BODY="$(node -e "console.log(JSON.stringify({name:process.argv[1],maxScore:Number(process.argv[2]),minDurationS:Number(process.argv[3])}))" "$TITLE" "$MAX" "$MIN_D")"
+  BODY="$(node -e "const [n,m,d,r]=process.argv.slice(1);console.log(JSON.stringify({name:n,maxScore:Number(m),minDurationS:Number(d),maxScorePerS:r?Number(r):null}))" "$TITLE" "$MAX" "$MIN_D" "$PER_S")"
   CODE="$(curl -s -o /tmp/publish-api.json -w '%{http_code}' -X PUT "$API_BASE/v1/admin/games/$SLUG" -H "x-admin-key: $KEY" -H 'content-type: application/json' -d "$BODY" || true)"
   [ "$CODE" = "200" ] || fail "API registration returned $CODE: $(cat /tmp/publish-api.json 2>/dev/null)"
   echo "  registered $SLUG (max $MAX, min ${MIN_D}s)"

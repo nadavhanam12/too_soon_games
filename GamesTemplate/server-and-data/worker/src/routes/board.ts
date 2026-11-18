@@ -1,12 +1,13 @@
 import type { Ctx } from '../env';
-import { cached, getGame, int, json, userId as parseUserId } from '../util';
+import { cached, getGame, int, json, rankOf, userId as parseUserId } from '../util';
 
 interface Row { user_id: string; nick: string | null; score: number }
 
 /**
  * GET /v1/games/:game/board?limit=20&userId=<uuid>
  * → { top: [{rank, nick, score, isYou}], you: {rank, score, nick} | null, total }
- * The top list is edge-cached 10s per (game, limit); the player's own row is a cheap extra query.
+ * The top list is edge-cached 10s per (game, limit); the player's own row is a point read, and the rank is cached per
+ * score (util.rankOf). Rate-limited per IP (RL_READS, index.ts).
  */
 export async function board(ctx: Ctx, game: string): Promise<Response> {
   const limit = int(ctx.url.searchParams.get('limit') ?? 20, 'limit', 1, 50);
@@ -14,15 +15,12 @@ export async function board(ctx: Ctx, game: string): Promise<Response> {
   const uid = uidRaw ? parseUserId(uidRaw) : null;
 
   const topRes = await cached(ctx, `/board/${game}/${limit}`, 10, async () => {
-    await getGame(ctx.env, game);
-    const [top, total] = await Promise.all([
-      ctx.env.DB.prepare('SELECT user_id, nick, score FROM scores WHERE game_id = ? ORDER BY score DESC, updated_at ASC LIMIT ?')
-        .bind(game, limit).all<Row>(),
-      ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM scores WHERE game_id = ?').bind(game).first<{ n: number }>(),
-    ]);
+    const g = await getGame(ctx.env, game);
+    const top = await ctx.env.DB.prepare('SELECT user_id, nick, score FROM scores WHERE game_id = ? ORDER BY score DESC, updated_at ASC LIMIT ?')
+      .bind(game, limit).all<Row>();
     return {
       top: (top.results || []).map((r, i) => ({ rank: i + 1, nick: r.nick, score: r.score, userId: r.user_id })),
-      total: total?.n ?? 0,
+      total: g.scores_n,
     };
   });
   const data = (await topRes.json()) as { top: { rank: number; nick: string | null; score: number; userId: string }[]; total: number };
@@ -31,8 +29,9 @@ export async function board(ctx: Ctx, game: string): Promise<Response> {
   if (uid) {
     const mine = await ctx.env.DB.prepare('SELECT nick, score FROM scores WHERE game_id = ? AND user_id = ?').bind(game, uid).first<Row>();
     if (mine) {
-      const above = await ctx.env.DB.prepare('SELECT COUNT(*) AS n FROM scores WHERE game_id = ? AND score > ?').bind(game, mine.score).first<{ n: number }>();
-      you = { rank: (above?.n ?? 0) + 1, score: mine.score, nick: mine.nick };
+      // in the top list: its rank (same cache age as the list, so the two never disagree); else the per-score cache
+      const inTop = data.top.find((r) => r.userId === uid);
+      you = { rank: inTop ? inTop.rank : await rankOf(ctx, game, mine.score), score: mine.score, nick: mine.nick };
     }
   }
   return json({

@@ -126,5 +126,26 @@ check('admin page served', r.status === 200 && typeof r.data === 'string' && r.d
 r = await call('GET', '/nope');
 check('404 json', r.status === 404 && r.data.error === 'not_found');
 
+// a second throwaway game: score-per-second cap, blocked nickname, the stored score total (migrations/0004)
+const game2 = `${game}-b`;
+r = await call('PUT', `/v1/admin/games/${game2}`, { name: 'Smoke B', maxScore: 1000, minDurationS: 0, maxScorePerS: 10 }, adm);
+check('admin: register game with maxScorePerS', r.status === 200 && r.data.game.max_score_per_s === 10, JSON.stringify(r.data));
+r = await call('POST', `/v1/games/${game2}/scores`, { userId: user, score: 500, durationS: 20, version: '0.0.1' });
+check('score above maxPerS × duration → 422', r.status === 422 && r.data.error === 'score_rate', JSON.stringify(r.data));
+r = await call('POST', `/v1/games/${game2}/scores`, { userId: user, nick: 'N1gg3r', score: 150, durationS: 20, version: '0.0.1' });
+check('blocked nick: score kept, total 1', r.status === 200 && r.data.total === 1 && r.data.rank === 1, JSON.stringify(r.data));
+r = await call('POST', `/v1/games/${game2}/scores`, { userId: user, score: 180, durationS: 20, version: '0.0.1' });
+check('better score of the same player: total stays 1', r.status === 200 && r.data.total === 1, JSON.stringify(r.data));
+r = await call('POST', `/v1/games/${game2}/scores`, { userId: user2, nick: 'Dana', score: 100, durationS: 20, version: '0.0.1' });
+check('second player: total 2, rank 2', r.status === 200 && r.data.total === 2 && r.data.rank === 2, JSON.stringify(r.data));
+r = await call('GET', `/v1/games/${game2}/board?limit=10`);
+check('board: blocked nick shown as anonymous', r.status === 200 && r.data.top[0].nick === null && r.data.total === 2, JSON.stringify(r.data));
+r = await call('POST', `/v1/games/${game2}/events`, { userId: user, version: '0.0.1', events: [{ name: 'game_start', ts: Date.now(), sessionId: 's2' }] });
+check('events for a game registered seconds ago → 204', r.status === 204, JSON.stringify(r.data));
+r = await call('POST', `/v1/games/never-registered-x/events`, { userId: user, version: '0.0.1', events: [{ name: 'game_start', ts: Date.now(), sessionId: 's2' }] });
+check('events for an unknown game → 404', r.status === 404, JSON.stringify(r.data));
+r = await call('DELETE', `/v1/admin/games/${game2}`, undefined, adm);
+check('admin: delete game B', r.status === 200, JSON.stringify(r.data));
+
 console.log(failed ? `\n${failed} FAILED` : '\nall passed');
 process.exit(failed ? 1 : 0);

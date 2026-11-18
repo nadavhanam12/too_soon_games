@@ -45,6 +45,15 @@ type = "ratelimit"
 namespace_id = "1002"
 simple = { limit = 600, period = 60 }
 
+# Leaderboard and player-count reads. A normal visit makes a handful (the home page: one count per game and a board;
+# a game: a count, and a board per run). The cap stops a loop or a script from running up D1 reads, which the Workers
+# spending limit does not cover.
+[[unsafe.bindings]]
+name = "RL_READS"
+type = "ratelimit"
+namespace_id = "1004"
+simple = { limit = 120, period = 60 }
+
 [[unsafe.bindings]]
 name = "RL_ADMIN"
 type = "ratelimit"

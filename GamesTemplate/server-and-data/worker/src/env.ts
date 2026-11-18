@@ -10,6 +10,7 @@ export interface Env {
   RL_SCORES: RateLimiter;
   RL_EVENTS: RateLimiter;
   RL_ADMIN: RateLimiter;
+  RL_READS: RateLimiter;
   VERSION: string;
   ALLOWED_ORIGINS: string;
   EVENTS_DATASET: string;
@@ -40,4 +41,8 @@ export interface GameRow {
   name: string;
   max_score: number;
   min_duration_s: number;
+  /** score rows of this game (migrations/0004), so the total is never a COUNT over the table */
+  scores_n: number;
+  /** optional cap on score per second of play; null = no check */
+  max_score_per_s: number | null;
 }

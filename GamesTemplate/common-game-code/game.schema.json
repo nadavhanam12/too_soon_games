@@ -19,7 +19,7 @@
     },
     "score": {
       "type": "object", "required": ["label", "max", "minDurationS", "higherIsBetter"], "additionalProperties": false,
-      "properties": { "label": { "type": "string" }, "max": { "type": "integer", "minimum": 1 }, "minDurationS": { "type": "integer", "minimum": 0 }, "higherIsBetter": { "type": "boolean" } }
+      "properties": { "label": { "type": "string" }, "max": { "type": "integer", "minimum": 1 }, "minDurationS": { "type": "integer", "minimum": 0 }, "maxPerS": { "type": "number", "exclusiveMinimum": 0, "description": "Optional. The API refuses a score above maxPerS x play seconds. Set it a good margin above the best honest run." }, "higherIsBetter": { "type": "boolean" } }
     },
     "share": { "type": "object", "required": ["text"], "additionalProperties": false, "properties": { "text": { "type": "string", "pattern": "\\{url\\}" } } },
     "screens": {

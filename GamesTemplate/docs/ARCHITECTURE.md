@@ -79,7 +79,8 @@ server-and-data/
 | GET | `/v1/version` | | `{version, deployedAt}` |
 
 - CORS: רק הדומיין שלנו (ו־localhost בפיתוח).
-- Rate limit: 60 בקשות לדקה ל־IP ל־`scores`, 600 ל־`events`. (Workers Rate Limiting binding, חינמי.)
+- Rate limit: 60 בקשות לדקה ל־IP ל־`scores`, 600 ל־`events`, 120 ל־`board` ו־`count` יחד. (Workers Rate Limiting binding, חינמי.)
+- הדירוג (`COUNT(*) WHERE score > ?`) נשמר במטמון 10 שניות לכל ניקוד (`util.rankOf`); שליחת ניקוד מחשבת מחדש ומעדכנת את המטמון.
 - אירועים נשלחים מהלקוח באצווה כל 5 שניות או 10 אירועים, ועם `sendBeacon` ביציאה.
 - הלקוח לעולם לא נתקע על השרת: כל כישלון נבלע, המשחק ממשיך, לידרבורד מציג "לא זמין כרגע".
 
@@ -107,14 +108,17 @@ games   (game_id PK, name, max_score, min_duration_s, created_at)
 ### עומס
 
 - Workers מתרחב אופקית, אין מה להגדיר.
-- D1 הוא מסד יחיד; כתיבה של אלפי ניקודים בשנייה תאט אך לא תיפול. קריאות הלידרבורד לא
-  מגיעות אליו בכלל (cache 10 שניות).
-- אירועים לא נוגעים ב־D1.
-- מסלול חינמי: 100K בקשות Worker ביום ≈ 10,000 שחקנים ביום. מעבר לזה Paid.
+- D1 הוא מסד יחיד; כתיבה של אלפי ניקודים בשנייה תאט אך לא תיפול. ה־top של הלוח נקרא מ־cache (10 שניות), אבל הדירוג
+  של השחקן עצמו (`COUNT(*) WHERE score > ?`) נקרא בכל שליחת ניקוד ובכל צפייה, ועולה עם מספר הניקודים של המשחק.
+  סך הניקודים נשמר ב־`games.scores_n` (מיגרציה 0004) ולא נספר.
+- אירועים: בדיקת המשחק מול רשימה בזיכרון (`util.isKnownGame`), לא מול D1, כך שאירועים ממשיכים להגיע כש־D1 מחוץ למכסה.
+  כתיבות D1 של האירועים (users, players, plays) רצות ברקע ונכשלות בלי להפיל את הבקשה.
+- האתר: `_routes.json` מריץ את ה־Worker של Pages רק על עמודים, לא על קבצים סטטיים (שלא נספרים במכסה).
+- המסלול: Workers Paid (החלטה 87). גבולות וקיבולת בשיא: `SETUP-CLOUDFLARE.md`. בחינמי היה הגבול כ־2,000 שחקנים ביום.
 
 ### גיבוי ושחזור
 
-- **Time Travel:** D1 שומר 30 יום. שחזור: `wrangler d1 time-travel restore DB --timestamp=...`.
+- **Time Travel:** D1 שומר 7 ימים בחינמי, 30 ב־Paid. שחזור: `wrangler d1 time-travel restore DB --timestamp=...`.
 - **ייצוא מקומי:** `backup/export.sh` מריץ `wrangler d1 export` ושומר `backups/YYYY-MM-DD.sql`
   (לא ב־git). רץ אוטומטית בתחילת `/deploy-server`.
 - **עדכון גרסה לא נוגע בנתונים.** migrations הן תוספות בלבד (`ALTER TABLE ADD`, טבלה חדשה);

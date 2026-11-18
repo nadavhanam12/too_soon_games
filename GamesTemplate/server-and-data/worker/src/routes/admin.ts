@@ -57,20 +57,24 @@ async function listGames(ctx: Ctx): Promise<Response> {
   return json({ games: rows.results || [] });
 }
 
-interface GameBody { name?: unknown; maxScore?: unknown; minDurationS?: unknown }
+interface GameBody { name?: unknown; maxScore?: unknown; minDurationS?: unknown; maxScorePerS?: unknown }
 
-/** PUT /v1/admin/games/:game { name, maxScore, minDurationS } — called by /publish-game. Idempotent. */
+/** PUT /v1/admin/games/:game { name, maxScore, minDurationS, maxScorePerS? } — called by /publish-game. Idempotent. */
 async function upsertGame(ctx: Ctx, game: string): Promise<Response> {
   const b = await readJson<GameBody>(ctx.req, 4096);
   const name = shortText(b.name, 'name', 80);
   if (!name) throw new HttpError(400, 'name required', 'bad_name');
   const maxScore = int(b.maxScore, 'maxScore', 1, 2_000_000_000);
   const minDurationS = int(b.minDurationS ?? 0, 'minDurationS', 0, 86_400);
+  const r = b.maxScorePerS;
+  if (r !== undefined && r !== null && !(typeof r === 'number' && Number.isFinite(r) && r > 0)) throw new HttpError(400, 'bad maxScorePerS', 'bad_maxScorePerS');
+  const maxScorePerS = typeof r === 'number' ? r : null;
   await ctx.env.DB.prepare(
-    `INSERT INTO games (game_id, name, max_score, min_duration_s, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)
-     ON CONFLICT(game_id) DO UPDATE SET name = excluded.name, max_score = excluded.max_score, min_duration_s = excluded.min_duration_s, updated_at = excluded.updated_at`,
-  ).bind(game, name, maxScore, minDurationS, ctx.now).run();
-  return json({ ok: true, game: { game_id: game, name, max_score: maxScore, min_duration_s: minDurationS } });
+    `INSERT INTO games (game_id, name, max_score, min_duration_s, max_score_per_s, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)
+     ON CONFLICT(game_id) DO UPDATE SET name = excluded.name, max_score = excluded.max_score, min_duration_s = excluded.min_duration_s,
+       max_score_per_s = excluded.max_score_per_s, updated_at = excluded.updated_at`,
+  ).bind(game, name, maxScore, minDurationS, maxScorePerS, ctx.now).run();
+  return json({ ok: true, game: { game_id: game, name, max_score: maxScore, min_duration_s: minDurationS, max_score_per_s: maxScorePerS } });
 }
 
 /** DELETE /v1/admin/games/:game — removes the game with its players and scores (the smoke test's throwaway game, a
@@ -101,9 +105,13 @@ async function adminBoard(ctx: Ctx, game: string): Promise<Response> {
 }
 
 async function deleteScore(ctx: Ctx, game: string, uid: string): Promise<Response> {
-  const r = await ctx.env.DB.prepare('DELETE FROM scores WHERE game_id = ? AND user_id = ?').bind(game, uid).run();
+  const [r] = await ctx.env.DB.batch([
+    ctx.env.DB.prepare('DELETE FROM scores WHERE game_id = ? AND user_id = ?').bind(game, uid),
+    // keep games.scores_n (migrations/0004) equal to the row count: subtract what the delete removed
+    ctx.env.DB.prepare('UPDATE games SET scores_n = (SELECT COUNT(*) FROM scores WHERE game_id = ?1) WHERE game_id = ?1').bind(game),
+  ]);
   await bustBoard(ctx, game);
-  return json({ ok: true, deleted: r.meta.changes ?? 0 });
+  return json({ ok: true, deleted: r?.meta.changes ?? 0 });
 }
 
 // ---------- stats (D1 + Analytics Engine) ----------

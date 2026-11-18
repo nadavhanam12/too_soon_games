@@ -1,6 +1,6 @@
 import type { Ctx } from '../env';
 import { channelLabel, isEventName, writeEvent, type IncomingEvent } from '../analytics';
-import { HttpError, getGame, noContent, rateLimit, readJson, shortText, userId as parseUserId } from '../util';
+import { HttpError, isKnownGame, noContent, rateLimit, readJson, shortText, userId as parseUserId } from '../util';
 
 interface Body { userId?: unknown; version?: unknown; lang?: unknown; ch?: unknown; origin?: unknown; events?: unknown }
 interface RawEvent { name?: unknown; ts?: unknown; sessionId?: unknown; props?: unknown }
@@ -10,7 +10,8 @@ const MAX_BATCH = 50;
 /**
  * POST /v1/games/:game/events  { userId, version, lang?, ch?, origin?, events: [{name, ts, sessionId, props?}] }  → 204
  * ch/origin: the visit's channel and the share chain's origin (docs/EVENTS.md), written on every event.
- * Every event goes to Analytics Engine. Two cheap D1 side effects:
+ * Every event goes to Analytics Engine. The game is checked against an in-memory list (util.isKnownGame), not D1, so
+ * events still arrive when D1 is out of quota. Two cheap D1 side effects, in the background:
  *   session_start → upsert users (country/city/device/lang/last_seen)
  *   game_start    → INSERT OR IGNORE players (the "N players" counter)
  * Unknown event names are dropped (not an error) so an old client never breaks.
@@ -25,7 +26,7 @@ export async function postEvents(ctx: Ctx, game: string): Promise<Response> {
   const origin = channelLabel(b.origin) || ch;
   if (!Array.isArray(b.events) || b.events.length === 0) throw new HttpError(400, 'events must be a non-empty array', 'bad_events');
   if (b.events.length > MAX_BATCH) throw new HttpError(400, `at most ${MAX_BATCH} events per batch`, 'batch_too_big');
-  await getGame(ctx.env, game);
+  if (!(await isKnownGame(ctx.env, game))) throw new HttpError(404, 'unknown game', 'unknown_game');
 
   let sawSessionStart = false;
   let sawGameStart = false;

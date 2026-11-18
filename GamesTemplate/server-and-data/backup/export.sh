@@ -12,7 +12,8 @@ MODE="--remote"; [ "${1:-}" = "--local" ] && MODE="--local"
 STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
 FILE="$OUT/toosoon-$STAMP${MODE/--/-}.sql"
 cd "$WORKER"
-npx wrangler d1 export toosoon $MODE --output "$FILE"
+# the pinned wrangler, called through node: under Task Scheduler, npx ended the run with a Ctrl-C exit before the lines below
+node node_modules/wrangler/bin/wrangler.js d1 export toosoon $MODE --output "$FILE"
 echo "backup written: $FILE ($(wc -c <"$FILE") bytes)"
 # keep the last 30 files
 ls -1t "$OUT"/toosoon-*.sql 2>/dev/null | tail -n +31 | xargs -r rm -f
