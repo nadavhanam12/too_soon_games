@@ -3,6 +3,8 @@
 // cover image.
 //   node make-videos.mjs <GameId> [--seed N] [--tries N] [--skip-build] [--reuse]
 //     --seed    use exactly this seed (no tries)
+//     --clip    encode only this clip (hook | arc | challenge), e.g. to review one before the others
+//     --full    capture every frame of the run (to pick "clips" windows in captions.json, then --reuse)
 //     --reuse   keep the captured frames from the last run (same seed) and only redo captions, end card and encoding,
 //               e.g. after editing launch/videos/captions.json
 // Out: Games/<GameId>/launch/videos/{hook,arc,challenge}.mp4, email.gif, cover.png, captions.json, videos.json
@@ -200,9 +202,22 @@ function plan() {
     challenge: [clamp(E - 9, END)],
   };
 }
+// A long story run (Nice City: 170 s) is not served by the fixed windows above (they land on its tutorial and on
+// transition screens): captions.json may set "clips": { hook | arc | challenge: [[from, to], ...] } in game seconds,
+// picked from a --full capture. Frames outside the windows of a capture are missing, so a --reuse with new windows
+// needs a capture that covers them (--full covers all).
+const capClips = (() => {
+  const f = join(OUT, 'captions.json');
+  return existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')).clips : undefined;
+})();
 const clips = plan();
+if (capClips) for (const [name, segs] of Object.entries(capClips)) {
+  if (!(name in clips)) throw new Error(`captions.json clips: unknown clip "${name}" (hook, arc, challenge)`);
+  if (!Array.isArray(segs) || !segs.length || segs.some((g) => !Array.isArray(g) || g.length !== 2 || !(g[0] < g[1]))) throw new Error(`captions.json clips.${name}: expected [[from, to], ...] with from < to`);
+  clips[name] = segs.map(([a, b]) => clamp(a, b));
+}
 // two frames of slack on each side: the encoder rounds segment edges to whole frames
-const want = (t) => Object.values(clips).some((segs) => segs.some(([a, b]) => t >= a - 2 / FPS && t < b + 2 / FPS));
+const want = (t) => flag('--full') || Object.values(clips).some((segs) => segs.some(([a, b]) => t >= a - 2 / FPS && t < b + 2 / FPS));
 const frameName = (t) => `${String(Math.round(t * FPS)).padStart(6, '0')}.jpg`;
 
 // ---------- pass 2: replay and grab the frames ----------
@@ -213,21 +228,36 @@ if (!flag('--reuse')) {
   // Sound: the game's synth (sfx + sequencer music) schedules on AudioContext.currentTime. Here the context is an
   // offline one whose clock is the game clock (__audioT, moved by playRun's step), so every sound lands on the frame
   // that caused it, and the whole run renders to one WAV after the replay. Only synth sound is captured: music that a
-  // game plays from files (new Audio) is counted and reported below, not mixed in.
+  // game plays from files (music.files, each with its src) is laid in below, not mixed in here, EXCEPT files the game routes
+  // through Web Audio (createMediaElementSource, e.g. Nice City's sound effects): an offline context cannot take a
+  // media element, so each play() of such an element decodes its file into the offline context and starts it at the
+  // game time of the play() call, through the gain chain the game built.
   await ctx.addInitScript((seconds) => {
     const RATE = 44100;
-    window.__audioT = 0; window.__fileAudio = [];
+    window.__audioT = 0;
+    const routed = new Map(), decoded = new Map(), pending = [];
     class GameClockContext extends OfflineAudioContext {
       constructor() { super(1, Math.ceil(seconds * RATE), RATE); window.__audioCtx = this; }
       get currentTime() { return window.__audioT; }
       get state() { return 'running'; }
       resume() { return Promise.resolve(); }
+      createMediaElementSource(el) { const g = this.createGain(); routed.set(el, g); return g; }
     }
     window.AudioContext = GameClockContext; window.webkitAudioContext = GameClockContext;
-    const RealAudio = window.Audio;
-    window.Audio = function (...a) { window.__fileAudio.push(String(a[0] || '')); return new RealAudio(...a); };
+    const realPlay = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      const g = routed.get(this);
+      // looped elements are music.files: the template routes them through Web Audio too (RULES 13ד), but they are laid
+      // into music.wav from the files below, so taking them here would put the music into sfx.wav a second time
+      if (!g || this.loop) return realPlay.call(this);
+      const c = g.context, at = c.currentTime, url = this.currentSrc || this.src;
+      if (!decoded.has(url)) decoded.set(url, fetch(url).then((r) => r.arrayBuffer()).then((b) => c.decodeAudioData(b)));
+      pending.push(decoded.get(url).then((buf) => { const s = c.createBufferSource(); s.buffer = buf; s.connect(g); s.start(at); }));
+      return Promise.resolve();
+    };
     window.__renderAudio = async () => {
       const c = window.__audioCtx; if (!c) return null;
+      await Promise.all(pending); // every routed file is decoded and scheduled before the render starts
       const d = (await c.startRendering()).getChannelData(0);
       const pcm = new Int16Array(d.length);
       for (let i = 0; i < d.length; i++) pcm[i] = Math.max(-1, Math.min(1, d[i])) * 32767;
@@ -242,11 +272,11 @@ if (!flag('--reuse')) {
   if (!size) throw new Error('canvas#c not found');
   if (size[0] !== W || size[1] !== H) log(`note: the canvas is ${size[0]}x${size[1]}, scaled to ${W}x${H}`);
   let n = 0; const t0 = Date.now();
-  const modes = [], heard = {}; // file music: when each track was on (game time) and how loud the game played it
+  const modes = [], heard = {}, srcs = {}; // file music: when each track was on (game time) and how loud the game played it
   const replay = await playRun(page, async (t, snap) => {
     if (snap.music) {
       if (!modes.length || modes[modes.length - 1].mode !== snap.music.mode) modes.push({ t, mode: snap.music.mode });
-      for (const [k, f] of Object.entries(snap.music.files)) heard[k] = Math.max(heard[k] || 0, f.volume);
+      for (const [k, f] of Object.entries(snap.music.files)) { heard[k] = Math.max(heard[k] || 0, f.volume); srcs[k] = f.src; }
     }
     if (!want(t)) return;
     const url = await page.evaluate(() => document.querySelector('canvas#c').toDataURL('image/jpeg', 0.92));
@@ -255,7 +285,6 @@ if (!flag('--reuse')) {
   });
   await page.waitForTimeout(250); // the music sequencer schedules on a 90 ms timer: let it reach the end of the run
   const audio = await page.evaluate(() => window.__renderAudio());
-  const fileAudio = await page.evaluate(() => window.__fileAudio);
   await ctx.close();
   if (!audio) throw new Error('the game made no sound during the run (no AudioContext was created): the clips would be silent');
   const pcm = Buffer.from(audio.pcm, 'base64'), head = Buffer.alloc(44);
@@ -263,20 +292,23 @@ if (!flag('--reuse')) {
   head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22); head.writeUInt32LE(audio.rate, 24); head.writeUInt32LE(audio.rate * 2, 28);
   head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34); head.write('data', 36); head.writeUInt32LE(pcm.length, 40);
   writeFileSync(join(WORK, 'synth.wav'), Buffer.concat([head, pcm]));
-  // audio.wav = the run's whole sound. The synth part is mostly kick and bass under 200 Hz, which a phone speaker
-  // cannot play (a clip of synth alone sounded silent there): its bass is cut and everything above 1.2 kHz lifted.
-  // Music a game plays from files (music.files) is not in the offline context, so it is laid in here from the files
-  // themselves: each track over the game seconds its mode was on, at the volume the game reached, with the game's
-  // own fade speed (1.2 per second), every track starting from its beginning as the game does after a pause.
+  // Two stems, so a clip can play the music throughout and let the game's sound effects in only where they help
+  // (Nadav, 2026-11-18: engine, bumps, typing and pickups got in the way). sfx.wav = the offline context (synth sounds,
+  // car sounds, file effects routed through Web Audio); its bass is cut and everything above 1.2 kHz lifted, since it
+  // is mostly under 200 Hz and a phone speaker cannot play that (a clip of synth alone sounded silent there).
+  // music.wav = music a game plays from files (music.files), laid in from the files themselves: each track over the
+  // game seconds its mode was on, at the volume the game reached, with the game's own fade speed (1.2 per second),
+  // every track starting from its beginning as the game does after a pause. A game whose music is the synth sequencer
+  // has no music.wav: its music is inside sfx.wav, so there the effects cannot be left out (stems.json says so).
   const SYNTH_EQ = 'highpass=f=180,bass=g=-8:f=250,treble=g=9:f=1200';
+  ff(['-i', join(WORK, 'synth.wav'), '-af', SYNTH_EQ, '-ac', '1', '-ar', String(audio.rate), join(WORK, 'sfx.wav')], 'sfx stem');
   const keys = Object.keys(heard);
-  if (keys.length !== fileAudio.length) throw new Error(`the game made ${fileAudio.length} audio elements but reports ${keys.length} music tracks: cannot tell which file is which track`);
-  const ins = ['-i', join(WORK, 'synth.wav')], parts = [`[0:a]${SYNTH_EQ}[syn]`], mix = ['[syn]'];
+  const ins = ['-f', 'lavfi', '-t', String(timeline.duration), '-i', `anullsrc=r=${audio.rate}:cl=mono`], parts = [], mix = ['[0:a]'];
   modes.forEach((m, i) => {
     const k = keys.indexOf(m.mode); if (k < 0) return; // 'off', or a synth-sequencer mode
     const vol = heard[m.mode];
     if (!vol) throw new Error(`music track "${m.mode}" never played during the capture (the browser refused it, or the file is missing): the clip would lack the game's music`);
-    const file = join(DIST, decodeURIComponent(new URL(fileAudio[k], base).pathname));
+    const file = join(DIST, decodeURIComponent(new URL(srcs[m.mode], base).pathname));
     if (!existsSync(file)) throw new Error(`music file not found: ${file}`);
     const len = (modes[i + 1]?.t ?? timeline.duration) - m.t + vol / 1.2, fade = (vol / 1.2).toFixed(3);
     ins.push('-stream_loop', '-1', '-i', file);
@@ -284,7 +316,9 @@ if (!flag('--reuse')) {
     parts.push(`[${n}:a]atrim=0:${len.toFixed(3)},asetpts=PTS-STARTPTS,aresample=${audio.rate},pan=mono|c0=0.5*c0+0.5*c1,volume=${vol},afade=t=in:d=${fade},afade=t=out:st=${(len - vol / 1.2).toFixed(3)}:d=${fade},adelay=${Math.round(m.t * 1000)}[m${n}]`);
     mix.push(`[m${n}]`);
   });
-  ff([...ins, '-filter_complex', `${parts.join(';')};${mix.join('')}amix=inputs=${mix.length}:normalize=0:duration=first[out]`, '-map', '[out]', '-ac', '1', '-ar', String(audio.rate), join(WORK, 'audio.wav')], 'run audio');
+  if (mix.length > 1) ff([...ins, '-filter_complex', `${parts.join(';')};${mix.join('')}amix=inputs=${mix.length}:normalize=0:duration=first[out]`, '-map', '[out]', '-ac', '1', '-ar', String(audio.rate), join(WORK, 'music.wav')], 'music stem');
+  else rmSync(join(WORK, 'music.wav'), { force: true });
+  writeFileSync(join(WORK, 'stems.json'), JSON.stringify({ musicFromFiles: mix.length > 1 }) + '\n');
   if (mix.length > 1) log(`music from files: ${modes.filter((m) => keys.includes(m.mode)).map((m) => `${m.mode} from ${m.t.toFixed(1)} s`).join(', ')}`);
   if (Math.abs(replay.end.t - timeline.end.t) > 1e-3) throw new Error(`the replay ended at ${replay.end.t} s, pass 1 at ${timeline.end.t} s: the run is not deterministic (a bot that reads the wall clock or Math.random?)`);
   writeFileSync(tlFile, JSON.stringify(timeline, null, 2));
@@ -344,7 +378,11 @@ async function renderPng(html, file, opaque) {
 const capPng = {};
 for (const k of ['hook', 'arc', 'challenge']) {
   capPng[k] = join(WORK, `cap-${k}.png`);
-  await renderPng(shell(`<div class="cap"><span>${esc(captions[k])}</span></div>`, false), capPng[k], false);
+  // captions.json "captionTop": { <clip>: css px from the top of the 360x640 frame } moves a caption off the game's
+  // faces (Nice City's portraits sit right under the default 100)
+  const top = captions.captionTop?.[k];
+  if (top !== undefined && !(top >= 0 && top <= VH - 60)) throw new Error(`captions.json captionTop.${k}: ${top} is outside 0..${VH - 60}`);
+  await renderPng(shell(`<div class="cap"${top !== undefined ? ` style="top:${top}px"` : ''}><span>${esc(captions[k])}</span></div>`, false), capPng[k], false);
 }
 const cardPng = join(WORK, 'endcard.png');
 await renderPng(shell(`<div class="glow"></div><div class="card">${logo ? `<img src="${logo}" alt="">` : ''}<h1>${esc(captions.endTitle)}</h1>
@@ -352,9 +390,24 @@ await renderPng(shell(`<div class="glow"></div><div class="card">${logo ? `<img 
 
 // ---------- encode ----------
 const made = [];
-const wav = join(WORK, 'audio.wav');
-if (!existsSync(wav)) { console.error('--reuse: the last capture has no sound (launch/.work/videos/audio.wav): rerun without --reuse, with --seed ' + SEED); process.exit(1); }
+const sfxWav = join(WORK, 'sfx.wav'), musicWav = join(WORK, 'music.wav'), stemsFile = join(WORK, 'stems.json');
+if (!existsSync(stemsFile)) { console.error('--reuse: the last capture has no sound stems (launch/.work/videos/stems.json): rerun without --reuse, with --seed ' + SEED); process.exit(1); }
+const stems = JSON.parse(readFileSync(stemsFile, 'utf8'));
+// captions.json "sfx": { <clip>: [[from, to, gain?], ...] } in game seconds = where the game's sound effects are heard
+// (gain 0..1, default 1: e.g. a siren that should sit under the music); outside
+// them the clip has music only. Leaving a clip out = no effects in it. Without file music the effects carry the
+// music too, so they stay on everywhere.
+const sfxWin = captions.sfx || {};
+for (const [name, w] of Object.entries(sfxWin)) {
+  if (!(name in clips)) throw new Error(`captions.json sfx: unknown clip "${name}"`);
+  if (!Array.isArray(w) || w.some((g) => !Array.isArray(g) || g.length < 2 || g.length > 3 || !(g[0] < g[1]) || (g.length === 3 && !(g[2] > 0 && g[2] <= 1)))) throw new Error(`captions.json sfx.${name}: expected [[from, to, gain?], ...] with from < to and 0 < gain <= 1`);
+}
+if (!stems.musicFromFiles && Object.keys(sfxWin).length) log('note: this game plays its music through the synth, so the sound effects cannot be separated: captions.json "sfx" is ignored');
+const RAMP = 0.06; // seconds an effects window takes to open and close (no click)
+const onlyClip = opt('--clip');
+if (onlyClip && !(onlyClip in clips)) { console.error(`--clip: unknown clip "${onlyClip}" (hook, arc, challenge)`); process.exit(2); }
 for (const [name, segs] of Object.entries(clips)) {
+  if (onlyClip && name !== onlyClip) continue; // one clip at a time, for review (the others keep their last version)
   const dir = join(WORK, `seq-${name}`); rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
   let i = 0;
   for (const [a, b] of segs) {
@@ -367,20 +420,27 @@ for (const [name, segs] of Object.entries(clips)) {
   const out = join(OUT, `${name}.mp4`);
   // sound: the same seconds of the run as the frames, short fades at each cut (a hard cut clicks), a longer fade into
   // the end card, which is silent. A compressor brings the music up toward the loud one-shot effects, and loudnorm
-  // sets the level the feeds expect (-14 LUFS). The run's sound itself (audio.wav) is built after the capture.
+  // sets the level the feeds expect (-14 LUFS). The run's sound itself (music.wav + sfx.wav) is built after the capture.
   const cuts = segs.map(([a, b], k) => {
     const s = Math.round(a * FPS) / FPS, len = Math.round(b * FPS) / FPS - s, out = k === segs.length - 1 ? 0.4 : 0.04;
-    return `[3:a]atrim=${s}:${s + len},asetpts=PTS-STARTPTS,afade=t=in:d=0.03,afade=t=out:st=${(len - out).toFixed(3)}:d=${out}[s${k}]`;
+    const trim = (inp) => `${inp}atrim=${s}:${s + len},asetpts=PTS-STARTPTS`;
+    const fades = `afade=t=in:d=0.03,afade=t=out:st=${(len - out).toFixed(3)}:d=${out}`;
+    if (!stems.musicFromFiles) return `${trim('[3:a]')},${fades}[s${k}]`;
+    // the effects' gain inside this segment: 1 in each window, ramping over RAMP at its edges, 0 elsewhere
+    const open = (sfxWin[name] || []).map(([x, y, g = 1]) => [x - s, y - s, g]).filter(([x, y]) => y > 0 && x < len);
+    const gain = open.length ? open.map(([x, y, g]) => `${g}*max(0,min(1,min((t-(${x.toFixed(3)}))/${RAMP},(${y.toFixed(3)}-t)/${RAMP})))`).join('+') : '0';
+    return `${trim('[3:a]')}[mu${k}];${trim('[5:a]')},volume='min(1,${gain})':eval=frame[fx${k}];[mu${k}][fx${k}]amix=inputs=2:normalize=0,${fades}[s${k}]`;
   });
   ff(['-framerate', String(FPS), '-i', join(dir, '%05d.jpg'), '-i', capPng[name], '-loop', '1', '-framerate', String(FPS), '-t', String(CARD_S), '-i', cardPng,
-    '-i', wav, '-f', 'lavfi', '-t', String(CARD_S), '-i', 'anullsrc=r=44100:cl=mono',
+    '-i', stems.musicFromFiles ? musicWav : sfxWav, '-f', 'lavfi', '-t', String(CARD_S), '-i', 'anullsrc=r=44100:cl=mono',
+    ...(stems.musicFromFiles ? ['-i', sfxWav] : []),
     '-filter_complex',
     `[0:v]scale=${W}:${H}:flags=lanczos,setsar=1[g];[g][1:v]overlay=0:0,format=yuv420p[a];` +
     `[2:v]scale=${W}:${H},setsar=1,format=yuv420p,fade=t=in:st=0:d=0.25[c];[a][c]concat=n=2:v=1:a=0[v];` +
     `${cuts.join(';')};${segs.map((_, k) => `[s${k}]`).join('')}[4:a]concat=n=${segs.length + 1}:v=0:a=1,acompressor=threshold=-28dB:ratio=6:attack=5:release=150:makeup=10,loudnorm=I=-14:TP=-1:LRA=7,aresample=44100[au]`,
     '-map', '[v]', '-map', '[au]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(FPS),
     '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-movflags', '+faststart', out], name);
-  made.push({ name, file: `${name}.mp4`, seconds: +(i / FPS + CARD_S).toFixed(1), caption: captions[name], segments: segs.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]) });
+  made.push({ name, file: `${name}.mp4`, seconds: +(i / FPS + CARD_S).toFixed(1), caption: captions[name], sfx: stems.musicFromFiles ? (sfxWin[name] || []) : 'always', segments: segs.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]) });
   log(`${name}.mp4  ${(i / FPS + CARD_S).toFixed(1)} s  ${(statSync(out).size / 1e6).toFixed(1)} MB`);
 }
 

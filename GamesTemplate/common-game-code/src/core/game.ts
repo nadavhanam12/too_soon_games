@@ -108,7 +108,7 @@ export function createGame(def: GameDef): void {
   w.__state = () => ({ scene: state.scene, st: state.st, playTime: R.playTime, run: R.run, best: R.best, players: R.players, H: view.H, fullW: view.fullW, top: view.top, scale: view.scale, banner: !!banner, inTransition: inTransition(), S: { ...S } });
   w.__scenes = () => Object.keys(scenes);
   w.__fit = fit;
-  w.__music = () => ({ mode: music.mode, on: music.on, files: Object.fromEntries(Object.entries(music.tracks).map(([k, a]) => [k, { paused: a!.paused, volume: +a!.volume.toFixed(2), missing: !!a!.dataset.missing }])) });
+  w.__music = () => ({ mode: music.mode, on: music.on, ctx: Object.values(music.gains)[0]?.context.state ?? null, files: Object.fromEntries(Object.entries(music.tracks).map(([k, a]) => [k, { paused: a!.paused, volume: +(music.level[k as keyof typeof music.level] ?? 0).toFixed(2), missing: !!a!.dataset.missing, src: a!.currentSrc || a!.src }])) });
 
   def.onReady?.();
   const hash = location.hash.slice(1);

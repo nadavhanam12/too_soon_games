@@ -120,6 +120,20 @@
         "C:/Users/PC/Desktop/Projects/too_soon_games/GamesTemplate/.local-site"
       ],
       "port": 5197
+    },
+    {
+      "name": "fallingceo-dev-5188",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "GamesTemplate/common-game-code/build.mjs",
+        "dev",
+        "FallingCEO"
+      ],
+      "env": {
+        "PORT": "5188"
+      },
+      "port": 5188,
+      "url": "http://127.0.0.1:5188"
     }
   ]
 }

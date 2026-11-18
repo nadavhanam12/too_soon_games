@@ -16,8 +16,15 @@ export function ac(): AudioContext {
   NOISE = b;
   return AC;
 }
+// The AudioContext starts suspended until a user gesture, and only some events count as one: on a touch screen
+// `pointerdown` does not (Chrome counts pointerup, touchend, click, keydown). The old one-time resume() on pointerdown
+// failed on phones and never retried, so music and sfx stayed silent until something else woke the context (Nadav,
+// 2026-11-18: on the phone the music started only in the car). Every gesture now wakes it while it is not running,
+// which also brings it back after iOS interrupts it (a call, the app in the background).
+const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
 export function unlockAudio(): void {
-  window.addEventListener('pointerdown', () => { try { ac().resume(); } catch { /* ignore */ } }, { once: true });
+  const wake = (): void => { const c = ac(); if (c.state !== 'running') void c.resume(); };
+  for (const e of GESTURES) window.addEventListener(e, wake, { capture: true, passive: true });
 }
 // Pitch jitter for sounds. Math.random, not the seeded rand(): the music sequencer calls this on real-time timers,
 // which would shift the gameplay stream and break same-seed runs (DECISIONS 69).
@@ -115,6 +122,9 @@ export interface MusicDef {
 }
 const TRACK_VOL: Record<string, number> = { calm: 0.32, play: 0.38, win: 0.4 };
 const NAMED_TRACK_VOL = 0.36;
+// Looped files play through Web Audio: element -> GainNode -> destination, and every fade moves the gain. iOS Safari
+// ignores HTMLMediaElement.volume (it always stays 1), so fading `volume` left the old song playing at full loudness
+// next to the new one on iPhones (Nadav, 2026-11-18: double music when the car leg starts), and ducking did nothing.
 // Crossfade between looped files. It was ~0.3 s in four audible steps (volume moved 0.12 every 100 ms), which
 // sounded like a cut (Nadav, 2026-11-18: the change between songs must be smoother). Now 1.6 s in 32 steps.
 const MUSIC_FADE_S = 1.6;
@@ -123,25 +133,34 @@ const DEFAULT_MUSIC: MusicDef = { bpm: 126, prog: [[57, [57, 60, 64, 67]], [53, 
 
 export const music = {
   on: true, mode: 'off' as MusicMode, def: DEFAULT_MUSIC, step: 0, next: 0, timer: 0 as number, bus: null as GainNode | null,
-  tracks: {} as Partial<Record<TrackName, HTMLAudioElement>>, unlocked: false, ttimer: 0 as number,
+  tracks: {} as Partial<Record<TrackName, HTMLAudioElement>>, ttimer: 0 as number,
+  /** Each file track's loudness 0..1 (its GainNode follows it; the element's own volume stays 1). */
+  level: {} as Partial<Record<TrackName, number>>,
+  gains: {} as Partial<Record<TrackName, GainNode>>,
   /** 0..1 multiplier on the file tracks' loudness: a game ducks the music under a tense moment (fades at the usual rate). */
   duck: 1,
   hz: (n: number) => 440 * Math.pow(2, (n - 69) / 12),
   configure(def: Partial<MusicDef>) {
     this.def = { ...DEFAULT_MUSIC, ...def };
     if (!def.files) return;
-    // looped files: created now (preload), played after the first gesture, crossfaded by a 50 ms ticker
+    // looped files: created now (preload), played once the AudioContext runs, crossfaded by a 50 ms ticker
     for (const k of Object.keys(def.files) as TrackName[]) {
       const src = def.files[k]; if (!src) continue;
-      const a = new Audio(assetUrl(src)); a.loop = true; a.preload = 'auto'; a.volume = 0;
+      const a = new Audio(assetUrl(src)); a.loop = true; a.preload = 'auto';
       a.addEventListener('error', () => { a.dataset.missing = '1'; });
-      this.tracks[k] = a;
+      this.tracks[k] = a; this.level[k] = 0;
     }
-    const unlock = () => { this.unlocked = true; };
-    window.addEventListener('pointerdown', unlock, { once: true }); window.addEventListener('keydown', unlock, { once: true });
     if (!this.ttimer) this.ttimer = window.setInterval(() => this.trackTick(0.05), 50);
   },
   hasFiles(): boolean { return Object.keys(this.tracks).length > 0; },
+  /** The track's GainNode, made on first use (once the AudioContext runs). */
+  gain(k: TrackName): GainNode {
+    const have = this.gains[k]; if (have) return have;
+    const c = ac(), g = c.createGain(); g.gain.value = 0;
+    c.createMediaElementSource(this.tracks[k]!).connect(g); g.connect(c.destination);
+    this.gains[k] = g;
+    return g;
+  },
   set(mode: MusicMode) {
     if (mode === this.mode) return;
     // a typo in a track name would otherwise just fade everything to silence
@@ -151,17 +170,20 @@ export const music = {
     if (mode === 'off') this.stop(); else this.start();
   },
   trackTick(dt: number) {
-    if (!this.unlocked) return;
+    // the files play through the AudioContext: until a gesture wakes it (unlockAudio) they would play unheard
+    if (AC?.state !== 'running') return;
     const want: MusicMode = this.on ? this.mode : 'off';
     for (const k of Object.keys(this.tracks) as TrackName[]) {
       const a = this.tracks[k]!; if (a.dataset.missing) continue;
       const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) * Math.max(0, Math.min(1, this.duck)) : 0;
-      if (target > 0 && a.paused) { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { /* blocked: retried next tick */ }); }
+      if (target > 0 && a.paused) { this.gain(k); a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { /* blocked: retried next tick */ }); }
       // a full fade (silence to the track's own loudness, or back) takes MUSIC_FADE_S, in small steps
       const rate = ((this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) / MUSIC_FADE_S) * dt;
-      const v = a.volume + Math.max(-rate, Math.min(rate, target - a.volume));
-      a.volume = Math.max(0, Math.min(1, v));
-      if (target === 0 && a.volume < 0.005 && !a.paused) a.pause();
+      const cur = this.level[k] ?? 0;
+      const v = Math.max(0, Math.min(1, cur + Math.max(-rate, Math.min(rate, target - cur))));
+      this.level[k] = v;
+      if (v !== cur || target > 0) this.gain(k).gain.value = v;
+      if (target === 0 && v < 0.005 && !a.paused) a.pause();
     }
   },
   start() {
