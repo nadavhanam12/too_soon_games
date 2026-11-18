@@ -46,22 +46,59 @@ and `research.md`: `hook` (the punchline, under 50 chars: it must read in the fi
 To change captions or the end card only, edit the file and rerun with `--reuse` (seconds, no replay).
 The run comes from the game's bot in `playthrough.mjs`; a game without a bot gets a seeded autopilot, and pass 1
 keeps the longest of `--tries` seeds. A short run (under ~15 s) makes three similar clips: say so, and suggest a bot.
-**Clip rules (Nadav, 2026-11-18; apply to every clip):**
-- **One clip at a time.** Build it with `--clip <name>`, show it, and go on to the next only after approval.
-- **Story montage, not one stretch of play.** With `--full`, capture the whole run, look at a contact sheet of it,
-  and pick `clips` windows (game seconds) in `captions.json`: a short shot of each driving / graphics stage in order
-  (look 1, then 2, then 3), the fun mini-games between them, and end on excitement and tension (a chase, then the win).
-  Shots of 1.2-2 s each; 15 s at most including the 3 s end card. No black or transition frames.
-- **Captions tell the story, one per beat**: the clip's caption is a sequence `[{ "text", "shot" }]`, each a short
-  line on the shot it starts on, sliding out as the next slides in (Nice City hook: "Waited 13 years for the new game.
-  Boss: no day off." → "Play sick." → "Cut the line." → "Get the new game before everyone." → "Dodge the cops." →
-  "Dodge your fiancée. She wants to talk. Now." → "Play first!" → the end card). Give each at least ~1.5 s, more for
-  a long line. The first starts low and slides up after 1 s (`CAP_*` in make-videos; `captionTop` / `captionEndTop`).
-- **One music track, unbroken** from the first frame through the end card (`music`, default: the run's longest).
-- **Game sound effects only where they matter** (`sfx`: `[[from, to, gain?]]` in game seconds; music only elsewhere):
-  a cough, a siren under THE POLICE, the win. Never engine, bumps, typing or pickups for their own sake. Find where
-  they sit from the levels of `launch/.work/videos/sfx.wav`.
-- The end card animates in and ends with "Follow us" and every network in `studio.json`.
+**Clip rules** (from Nadav's reviews of the Nice City hook, 2026-11-18; they apply to every clip):
+
+*Working with Nadav*
+- One clip at a time: build it with `--clip <name>`, show it, and go on to the next only after approval.
+- For a script he dictates, first say back what you understood (a shot table with captions and sound) and ask only
+  what is unclear. For a frame that matters most (the end card), show 3 designs side by side and let him pick.
+- Before showing a build: a contact sheet every 0.5 s (no black, transition or half-faded frames, captions placed
+  well), loudness every 0.25 s (music steady, no spikes, no clipping), and the length.
+
+*Story and shots*
+- A story montage, not one stretch of play: open on the premise (the characters + logo, the wait), the conflict
+  (the boss), then every graphics look in order (a second of look 1, of look 2, a longer action beat in look 3), the
+  fun mini-games and escapes, a quiet beat before the payoff, and the call to action. ~20-25 s is fine for a story
+  (15 s for a punchier clip), the 3 s end card included.
+- Shots of 1-2 s; a key story frame 2 s (poster, the boss); an action beat 1.5 s (longer drags).
+- **No game text in a clip unless Nadav asks for it** (2026-11-18: it clashes with our captions and confuses):
+  no HUD, toasts, hints, chase bands, beat cards, speech bubbles, answer options, name tags or item labels. Capture
+  with the game's draw-only switch for it (Nice City: `"pageInit": "__noText()"` in captions.json, `src/capture.ts`);
+  a game without one gets one before its clips are made. The exceptions are the payoff screens the script is built on
+  (Nice City: the PC's password screen and GAME ON), and text painted into the art itself ("13 YEARS").
+- Every shot reads clean. No game UI that confuses (answer options, prompts) unless it is the joke: clear it with
+  `paint-over.py` (the clean art painted back where the game draws it, below what must stay, e.g. the top bar and a
+  sticker over a real-brand detail) and use it as an `image` shot. No particles or confetti over a hero frame: use
+  the game's own clean drawing (`--still <file> "<page expression>"`, Nice City `__ogPic(640)`). A moment the game
+  shows too briefly is frozen (`hold`), never shown half-built. A character's big moment shows its action (the
+  fiancée turning to look, not only the player tiptoeing).
+- Branches the main run does not take come from a second capture (`--run <name> --route <name> --full`, routes in
+  the game's `playthrough.mjs`; a shot `[from, to, { "run": "<name>" }]`).
+
+*Captions*
+- One short line per beat, in the second person, a joke on the shot under it; they slide out and in
+  (`[{ "text", "shot", "top"? }]`). The first states the premise ("You waited 13 years for this game."), one line says
+  what it is without the brand's name ("A parody game for the launch of VI"), the last is the call to action
+  ("Just for playing first" / "Play first, before everyone."), not a line on the end card.
+- Place each caption off the faces and the thing that matters: below a face, under the item, just under the game's
+  top bar (`CAP_END` 96) by default. A caption with its own `top` stays put (no rise; never on the opening still).
+- Clear the caption when the screen itself is the payoff (the empty password): `{ "text": "", "shot": n }`.
+
+*Sound*
+- One music track, unbroken from the first frame through the end card, levelled on its own: nothing in the mix
+  lowers it under an effect. Lower it only on purpose for the quiet beat (`musicDuck`), then back to full.
+- Game effects only where they tell the story (`sfx` windows: a cough, a siren under the police), never engine,
+  bumps, typing, pickups or an item jingle for their own sake. Find them in the levels of `.work/videos/sfx.wav`.
+- A joke sound on the payoff (`stings`): original only (`make-stings.py`; never a real OS or brand sound). Offer 3-4.
+- The ending follows one pattern (Nadav, both Nice City clips): the music dips over the quiet beat (Nice City: the PC
+  booting and the empty password, frozen), the joke sound on it (retro-error), then the music back to full for the
+  win (ACCESS GRANTED, GAME ON) and the end card. No game effects from the quiet beat on (no unlock, no fanfare).
+
+*End card*
+- Built from the game's art files (title painting + logo), never a frame of the run (it carries the title screen's
+  effects). Studio icon top left; PLAY NOW as the game's own start button (pill, glow, breathing, sparks); the link
+  and Follow us with every network in `studio.json`, coloured (Nice City: the logo's pink and teal neon), never plain
+  white on black; darken only the band behind them. `endCard: { "painting", "logo" }`.
 
 Show the three MP4s, the GIF and the cover. When approving, ask which clips may be used in paid ads: our games parody real
 people, and paid ads must not show real faces or names (playbook slide 11). Record the answer in the stage note.
