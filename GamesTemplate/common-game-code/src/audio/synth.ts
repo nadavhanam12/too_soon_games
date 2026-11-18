@@ -124,6 +124,8 @@ const DEFAULT_MUSIC: MusicDef = { bpm: 126, prog: [[57, [57, 60, 64, 67]], [53, 
 export const music = {
   on: true, mode: 'off' as MusicMode, def: DEFAULT_MUSIC, step: 0, next: 0, timer: 0 as number, bus: null as GainNode | null,
   tracks: {} as Partial<Record<TrackName, HTMLAudioElement>>, unlocked: false, ttimer: 0 as number,
+  /** 0..1 multiplier on the file tracks' loudness: a game ducks the music under a tense moment (fades at the usual rate). */
+  duck: 1,
   hz: (n: number) => 440 * Math.pow(2, (n - 69) / 12),
   configure(def: Partial<MusicDef>) {
     this.def = { ...DEFAULT_MUSIC, ...def };
@@ -153,7 +155,7 @@ export const music = {
     const want: MusicMode = this.on ? this.mode : 'off';
     for (const k of Object.keys(this.tracks) as TrackName[]) {
       const a = this.tracks[k]!; if (a.dataset.missing) continue;
-      const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) : 0;
+      const target = k === want ? (this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) * Math.max(0, Math.min(1, this.duck)) : 0;
       if (target > 0 && a.paused) { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { /* blocked: retried next tick */ }); }
       // a full fade (silence to the track's own loudness, or back) takes MUSIC_FADE_S, in small steps
       const rate = ((this.def.volume?.[k] ?? TRACK_VOL[k] ?? NAMED_TRACK_VOL) / MUSIC_FADE_S) * dt;
