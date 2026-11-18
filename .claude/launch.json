@@ -134,6 +134,36 @@
       },
       "port": 5188,
       "url": "http://127.0.0.1:5188"
+    },
+    {
+      "name": "admin-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5199",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "C:/Users/PC/AppData/Local/Temp/claude/7996e4489548f8df/d7119fbf-925a-45ec-bb45-84f3bdb73455/scratchpad/admin-preview"
+      ],
+      "port": 5199
+    },
+    {
+      "name": "site-local-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "GamesTemplate/frontend/run.mjs",
+        "--out",
+        "C:/Users/PC/AppData/Local/Temp/claude/24f0285018b46ca0/82eeb5b4-b7ac-4644-b052-912f8a057dbe/scratchpad/site-local",
+        "--api",
+        "http://127.0.0.1:8787",
+        "--serve",
+        "--port",
+        "5180"
+      ],
+      "port": 5180,
+      "url": "http://localhost:5180"
     }
   ]
 }
