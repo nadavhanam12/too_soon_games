@@ -3,26 +3,39 @@
   "createdAt": "2026-11-18T12:13:17.548Z",
   "stages": {
     "videos": {
-      "status": "ready",
-      "at": "2026-11-18T12:13:17.548Z"
+      "status": "approved",
+      "at": "2026-11-18T15:59:43.795Z",
+      "note": "hook + arc approved by Nadav; challenge dropped; no paid ads (research yellow)"
     },
     "copy": {
-      "status": "pending"
+      "status": "approved",
+      "at": "2026-11-18T16:06:01.148Z",
+      "note": "Nadav approved 2026-11-18"
     },
     "press-kit": {
-      "status": "pending"
+      "status": "approved",
+      "at": "2026-11-18T16:25:29.791Z",
+      "note": "Nadav approved 2026-11-18"
     },
     "journalists": {
-      "status": "pending"
+      "status": "approved",
+      "at": "2026-11-18T16:34:19.198Z",
+      "note": "Nadav approved 2026-11-18"
     },
     "emails": {
-      "status": "pending"
+      "status": "approved",
+      "at": "2026-11-18T17:24:19.512Z",
+      "note": "Nadav approved"
     },
     "creators": {
-      "status": "pending"
+      "status": "approved",
+      "at": "2026-11-18T18:09:20.037Z",
+      "note": "Nadav approved"
     },
     "paid-prep": {
-      "status": "pending"
+      "status": "skipped",
+      "at": "2026-11-18T18:09:20.082Z",
+      "note": "no paid: research verdict yellow (real brand)"
     },
     "t0-check": {
       "status": "pending"
@@ -44,6 +57,15 @@
     },
     "summary": {
       "status": "pending"
+    },
+    "communities": {
+      "status": "ready",
+      "at": "2026-11-18T17:34:34.606Z",
+      "note": "3 Reddit posts ready; HOLD: studio Reddit account not warmed up (Nadav 2026-11-19), post only after 3-4 weeks / 100+ karma; r/GTA6 only with mod OK"
+    },
+    "post-communities": {
+      "status": "pending"
     }
-  }
+  },
+  "t0": "2026-11-18T19:32:12.164Z"
 }
