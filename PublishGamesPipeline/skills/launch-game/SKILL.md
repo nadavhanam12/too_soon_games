@@ -1,6 +1,6 @@
 ---
 name: launch-game
-description: Run the Too Soon Games marketing pipeline for a finished game, stage by stage with the user's approval after each - videos, post copy, press kit, journalists, emails, creators, paid prep, then (only after explicit approval) the T0 check, social posts, emails, creator messages and a paused paid campaign, then gates and summary. Use for /launch-game <GameId>, "launch the game", "start marketing", "תריץ את פייפליין השיווק", "שיווק למשחק", "תכין סרטונים ופוסטים".
+description: Run the Too Soon Games marketing pipeline for a finished game, stage by stage with the user's approval after each - videos, post copy, Reddit posts, press kit, journalists, emails, creators, paid prep, then (only after explicit approval) the T0 check, social posts, Reddit posts, emails, creator messages and a paused paid campaign, then gates and summary. Use for /launch-game <GameId>, "launch the game", "start marketing", "תריץ את פייפליין השיווק", "שיווק למשחק", "תכין סרטונים ופוסטים".
 ---
 
 # /launch-game <GameId> [--dry-run] [--from <stage>] [--only <stage>]
@@ -46,6 +46,23 @@ and `research.md`: `hook` (the punchline, under 50 chars: it must read in the fi
 To change captions or the end card only, edit the file and rerun with `--reuse` (seconds, no replay).
 The run comes from the game's bot in `playthrough.mjs`; a game without a bot gets a seeded autopilot, and pass 1
 keeps the longest of `--tries` seeds. A short run (under ~15 s) makes three similar clips: say so, and suggest a bot.
+**Clip rules (Nadav, 2026-11-18; apply to every clip):**
+- **One clip at a time.** Build it with `--clip <name>`, show it, and go on to the next only after approval.
+- **Story montage, not one stretch of play.** With `--full`, capture the whole run, look at a contact sheet of it,
+  and pick `clips` windows (game seconds) in `captions.json`: a short shot of each driving / graphics stage in order
+  (look 1, then 2, then 3), the fun mini-games between them, and end on excitement and tension (a chase, then the win).
+  Shots of 1.2-2 s each; 15 s at most including the 3 s end card. No black or transition frames.
+- **Captions tell the story, one per beat**: the clip's caption is a sequence `[{ "text", "shot" }]`, each a short
+  line on the shot it starts on, sliding out as the next slides in (Nice City hook: "Waited 13 years for the new game.
+  Boss: no day off." → "Play sick." → "Cut the line." → "Get the new game before everyone." → "Dodge the cops." →
+  "Dodge your fiancée. She wants to talk. Now." → "Play first!" → the end card). Give each at least ~1.5 s, more for
+  a long line. The first starts low and slides up after 1 s (`CAP_*` in make-videos; `captionTop` / `captionEndTop`).
+- **One music track, unbroken** from the first frame through the end card (`music`, default: the run's longest).
+- **Game sound effects only where they matter** (`sfx`: `[[from, to, gain?]]` in game seconds; music only elsewhere):
+  a cough, a siren under THE POLICE, the win. Never engine, bumps, typing or pickups for their own sake. Find where
+  they sit from the levels of `launch/.work/videos/sfx.wav`.
+- The end card animates in and ends with "Follow us" and every network in `studio.json`.
+
 Show the three MP4s, the GIF and the cover. When approving, ask which clips may be used in paid ads: our games parody real
 people, and paid ads must not show real faces or names (playbook slide 11). Record the answer in the stage note.
 
@@ -57,6 +74,20 @@ post per network the user posts on, each naming the clip it goes with. Follow th
 `node PublishGamesPipeline/stages/copy/build-copy.mjs <GameId>`: it adds a tracked link per network
 (`utm_medium=social`, `utm_source=<network>`), checks each network's limits and writes `launch/copy.md`. On problems,
 fix `copy.json` and rerun. Show `copy.md` in chat (the posts as text, not a file card).
+
+### communities
+Reddit, one post per subreddit (guide and rules: `PublishGamesPipeline/profile/reddit.md`). Pick 2-4 subs that fit the
+game: r/WebGames (a link post, the title starts with the game's name, no site name) almost always; r/IndieGaming or
+r/indiegames with a clip; r/playmygame only for the month's strongest game; the event's own sub only if its moderators
+said yes in modmail (record their answer in `modOk`; ask the user whether they asked). Write
+`Games/<GameId>/launch/communities.json` in English (shape in the header of
+`PublishGamesPipeline/stages/communities/communities.mjs`): a title per sub written like a person, no question in it, and
+a first comment that starts "I made this." with what it is and one specific question (reuse `copy.final.json` and
+`PublishGamesPipeline/profile/comments.md`). Then `node PublishGamesPipeline/stages/communities/communities.mjs <GameId>`:
+it checks each sub's rules and adds a tracked link (`utm_medium=community`, `utm_source=reddit`, `utm_content=<sub>`).
+Show `communities.md` as text. If the studio's Reddit account is not warmed up yet (`profile/reddit.md`: 3-4 weeks and
+100+ karma), say so: the posts are ready, but posting now risks the account. Hacker News, Product Hunt, Indie Hackers
+and uneed are not per game (their guides in `profile/`); do not draft posts for them here.
 
 ### press-kit
 `node PublishGamesPipeline/stages/press-kit/make-press-kit.mjs <GameId>`: screenshots (title, gameplay, result),
@@ -114,6 +145,14 @@ caption) and the upload page. For a by-hand network, open the upload page in the
 and presses publish, then record it with `--mark-posted <network> <post url>`. The first post sets T0. TikTok and
 Instagram: the profile links to the studio site, never to one game (`copy.final.json` → `posts.<network>.profileLink`,
 tagged per network so the admin counts each one apart; the site passes the tags on to the game the visitor opens).
+
+### post-communities (distribution: list every Reddit post and wait for an explicit yes)
+`node PublishGamesPipeline/stages/communities/communities.mjs <GameId> --next` gives the one post that is due: at least
+3 hours after our last Reddit post (any game), and skipping a sub whose frequency rule (r/IndieGaming every 14 days,
+r/playmygame every 30, counted across games) is not met yet. Open the submit page in the browser pane for the user, who
+posts and adds the first comment, then record it with `--mark-posted <sub> <post url>`. Run `--next` again for the next
+one; when it says to wait, tell the user when. Remind them to answer every comment in the first 2-3 hours. Never post or
+vote from a script, and never ask anyone for upvotes.
 
 ### send-emails, send-creators (distribution: list every recipient and wait for an explicit yes)
 `node PublishGamesPipeline/stages/send/send.mjs <GameId> pitches|creators --next` gives today's batch (daily limit in

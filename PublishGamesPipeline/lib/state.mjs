@@ -15,6 +15,7 @@ export const REPO = resolve(HERE, '..', '..');
 export const STAGES = [
   { id: 'videos', kind: 'prepare' },
   { id: 'copy', kind: 'prepare' },
+  { id: 'communities', kind: 'prepare' },
   { id: 'press-kit', kind: 'prepare' },
   { id: 'journalists', kind: 'prepare' },
   { id: 'emails', kind: 'prepare' },
@@ -22,6 +23,7 @@ export const STAGES = [
   { id: 'paid-prep', kind: 'prepare' },
   { id: 't0-check', kind: 'gate' },
   { id: 'post', kind: 'distribute' },
+  { id: 'post-communities', kind: 'distribute' },
   { id: 'send-emails', kind: 'distribute' },
   { id: 'send-creators', kind: 'distribute' },
   { id: 'paid-launch', kind: 'distribute' },
@@ -88,7 +90,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const st = readState(gameId);
     for (const s of STAGES) {
       const v = st.stages[s.id];
-      console.log(`${s.id.padEnd(14)} ${s.kind.padEnd(10)} ${v.status.padEnd(9)} ${v.at ?? ''} ${v.note ?? ''}`.trimEnd());
+      console.log(`${s.id.padEnd(16)} ${s.kind.padEnd(10)} ${v.status.padEnd(9)} ${v.at ?? ''} ${v.note ?? ''}`.trimEnd());
     }
   } else if (cmd === 'set') {
     setStage(gameId, rest[0], rest[1], rest.slice(2).join(' '));
