@@ -1,7 +1,7 @@
 {
   "game": "FlightHeros",
   "lang": "en",
-  "campaign": "safe-flight-20261115",
+  "campaign": "safe-flight-20261117",
   "hashtags": [
     "#browsergame",
     "#indiegame",
@@ -23,32 +23,40 @@
     "tiktok": {
       "network": "TikTok",
       "text": "The plane is going down and the cockpit is 30 rows away ✈️ Can you save the flight? Free browser game, link in bio #browsergame #indiegame #arcade #gaming",
-      "link": "https://toosoongames.app/safe-flight/?utm_source=tiktok&utm_medium=social&utm_campaign=safe-flight-20261115",
+      "link": "https://toosoongames.app/safe-flight/?utm_source=tiktok&utm_medium=social&utm_campaign=safe-flight-20261117",
       "profileLink": "https://toosoongames.app/?utm_source=tiktok&utm_medium=social&utm_campaign=profile",
       "clip": "hook",
       "chars": 154
     },
     "x": {
       "network": "X",
-      "text": "The plane is going down and the cockpit is 30 rows away ✈️\n\nFive short stages to save the flight. Our score is 7,960. Yours? https://toosoongames.app/safe-flight/?utm_source=x&utm_medium=social&utm_campaign=safe-flight-20261115",
-      "link": "https://toosoongames.app/safe-flight/?utm_source=x&utm_medium=social&utm_campaign=safe-flight-20261115",
+      "text": "The plane is going down and the cockpit is 30 rows away ✈️\n\nFive short stages to save the flight. Our score is 7,960. Yours? https://toosoongames.app/safe-flight/?utm_source=x&utm_medium=social&utm_campaign=safe-flight-20261117",
+      "link": "https://toosoongames.app/safe-flight/?utm_source=x&utm_medium=social&utm_campaign=safe-flight-20261117",
       "clip": "challenge",
       "chars": 148
     },
     "instagram": {
       "network": "Instagram Reels",
       "text": "The plane is going down and the cockpit is 30 rows away ✈️\nFive short stages to save the flight. Free browser game, no signup, link in bio.\n#browsergame #indiegame #arcade #gaming",
-      "link": "https://toosoongames.app/safe-flight/?utm_source=instagram&utm_medium=social&utm_campaign=safe-flight-20261115",
+      "link": "https://toosoongames.app/safe-flight/?utm_source=instagram&utm_medium=social&utm_campaign=safe-flight-20261117",
       "profileLink": "https://toosoongames.app/?utm_source=instagram&utm_medium=social&utm_campaign=profile",
       "clip": "hook",
       "chars": 179
     },
     "facebook": {
       "network": "Facebook Reels",
-      "text": "The plane is going down and the cockpit is 30 rows away ✈️ Five short stages to save the flight, then send your score to a friend. Free, no signup: https://toosoongames.app/safe-flight/?utm_source=facebook&utm_medium=social&utm_campaign=safe-flight-20261115",
-      "link": "https://toosoongames.app/safe-flight/?utm_source=facebook&utm_medium=social&utm_campaign=safe-flight-20261115",
+      "text": "The plane is going down and the cockpit is 30 rows away ✈️ Five short stages to save the flight, then send your score to a friend. Free, no signup: https://toosoongames.app/safe-flight/?utm_source=facebook&utm_medium=social&utm_campaign=safe-flight-20261117",
+      "link": "https://toosoongames.app/safe-flight/?utm_source=facebook&utm_medium=social&utm_campaign=safe-flight-20261117",
       "clip": "hook",
       "chars": 257
+    },
+    "youtube": {
+      "network": "YouTube Shorts",
+      "title": "The plane is going down. Can you save the flight?",
+      "text": "Not On My Flight: a free browser game. Run the aisle, break into the cockpit, stop the attacker and level the plane, in five short stages. Play free: https://toosoongames.app/safe-flight/?utm_source=youtube&utm_medium=social&utm_campaign=safe-flight-20261117 (link on our channel) #browsergame #indiegame #arcade",
+      "link": "https://toosoongames.app/safe-flight/?utm_source=youtube&utm_medium=social&utm_campaign=safe-flight-20261117",
+      "clip": "arc",
+      "chars": 312
     }
   }
 }

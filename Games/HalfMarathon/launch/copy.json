@@ -31,6 +31,11 @@
     "facebook": {
       "text": "One of our founders ran a half marathon in Cyprus, so we built a game about it 🏃 21.1 km, 29°C, halloumi and street cats. Finish before the course closes. Free, no signup: {link}",
       "clip": "hook"
+    },
+    "youtube": {
+      "title": "21.1 km, 29°C, and a baby at the finish line",
+      "text": "Half a Marathon, Whole Halloumi: a free browser game about one very hot half marathon in Cyprus. Five short stages, halloumi, street cats, and a sweeper bus right behind you. Play free: {link} (link on our channel) #browsergame #indiegame #running",
+      "clip": "arc"
     }
   }
 }

@@ -1,6 +1,6 @@
 # Copy: Not On My Flight
 
-Campaign `safe-flight-20261115`
+Campaign `safe-flight-20261117`
 
 **Description:** 174 passengers, a hijacked cockpit, a plane going down. Not On My Flight is a free browser game: five short stages from the aisle to the yoke. How fast can you save the flight?
 
@@ -18,7 +18,7 @@ Link for the profile, to the studio site (a caption link is not clickable there)
 
 The plane is going down and the cockpit is 30 rows away ✈️
 
-Five short stages to save the flight. Our score is 7,960. Yours? https://toosoongames.app/safe-flight/?utm_source=x&utm_medium=social&utm_campaign=safe-flight-20261115
+Five short stages to save the flight. Our score is 7,960. Yours? https://toosoongames.app/safe-flight/?utm_source=x&utm_medium=social&utm_campaign=safe-flight-20261117
 
 ### Instagram Reels · clip `hook` · 179 chars
 
@@ -30,7 +30,13 @@ Link for the profile, to the studio site (a caption link is not clickable there)
 
 ### Facebook Reels · clip `hook` · 257 chars
 
-The plane is going down and the cockpit is 30 rows away ✈️ Five short stages to save the flight, then send your score to a friend. Free, no signup: https://toosoongames.app/safe-flight/?utm_source=facebook&utm_medium=social&utm_campaign=safe-flight-20261115
+The plane is going down and the cockpit is 30 rows away ✈️ Five short stages to save the flight, then send your score to a friend. Free, no signup: https://toosoongames.app/safe-flight/?utm_source=facebook&utm_medium=social&utm_campaign=safe-flight-20261117
+
+### YouTube Shorts · clip `arc` · 312 chars
+
+**The plane is going down. Can you save the flight?**
+
+Not On My Flight: a free browser game. Run the aisle, break into the cockpit, stop the attacker and level the plane, in five short stages. Play free: https://toosoongames.app/safe-flight/?utm_source=youtube&utm_medium=social&utm_campaign=safe-flight-20261117 (link on our channel) #browsergame #indiegame #arcade
 
 ## Press
 

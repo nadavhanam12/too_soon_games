@@ -1,5 +1,10 @@
 {
-  "hashtags": ["#Nvidia", "#CEO", "#browsergame", "#indiegame"],
+  "hashtags": [
+    "#Nvidia",
+    "#CEO",
+    "#browsergame",
+    "#indiegame"
+  ],
   "description": "The chip CEO just resigned, and the floor is coming for him. Drop the Chip is a free one-minute browser game: keep falling, dodge the headlines, beat the leaderboard.",
   "press": {
     "headline": "Nvidia's CEO resigned. Now you can play the fall.",
@@ -21,8 +26,8 @@
       "clip": "hook"
     },
     "youtube": {
-      "title": "The CEO resigned. Keep him falling. #Shorts",
-      "text": "Drop the Chip: a free one-minute browser game about the week a chip CEO fell. Play: {link}",
+      "title": "The CEO resigned. Keep him falling.",
+      "text": "Drop the Chip: a free one-minute browser game about the week a chip CEO fell. Dodge the headlines, keep falling, beat the leaderboard. Play free: {link} (link on our channel) #browsergame #indiegame #Nvidia",
       "clip": "arc"
     },
     "x": {

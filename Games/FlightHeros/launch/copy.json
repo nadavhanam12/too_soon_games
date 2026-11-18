@@ -32,6 +32,11 @@
     "facebook": {
       "text": "The plane is going down and the cockpit is 30 rows away ✈️ Five short stages to save the flight, then send your score to a friend. Free, no signup: {link}",
       "clip": "hook"
+    },
+    "youtube": {
+      "title": "The plane is going down. Can you save the flight?",
+      "text": "Not On My Flight: a free browser game. Run the aisle, break into the cockpit, stop the attacker and level the plane, in five short stages. Play free: {link} (link on our channel) #browsergame #indiegame #arcade",
+      "clip": "arc"
     }
   }
 }

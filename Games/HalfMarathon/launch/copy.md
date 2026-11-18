@@ -1,6 +1,6 @@
 # Copy: Half a Marathon, Whole Halloumi
 
-Campaign `half-marathon-20261115`
+Campaign `half-marathon-20261117`
 
 **Description:** 21.1 km in Cyprus, 29°C in November, halloumi, street cats and a baby waiting at the finish. Half a Marathon, Whole Halloumi is a free browser game: five short stages, one race against the sweeper bus.
 
@@ -18,7 +18,7 @@ Link for the profile, to the studio site (a caption link is not clickable there)
 
 One of our founders ran a half marathon in Cyprus. We made it a game: 21.1 km, 29°C, halloumi, street cats 🏃
 
-Can you finish before the course closes? https://toosoongames.app/half-marathon/?utm_source=x&utm_medium=social&utm_campaign=half-marathon-20261115
+Can you finish before the course closes? https://toosoongames.app/half-marathon/?utm_source=x&utm_medium=social&utm_campaign=half-marathon-20261117
 
 ### Instagram Reels · clip `hook` · 204 chars
 
@@ -30,7 +30,13 @@ Link for the profile, to the studio site (a caption link is not clickable there)
 
 ### Facebook Reels · clip `hook` · 286 chars
 
-One of our founders ran a half marathon in Cyprus, so we built a game about it 🏃 21.1 km, 29°C, halloumi and street cats. Finish before the course closes. Free, no signup: https://toosoongames.app/half-marathon/?utm_source=facebook&utm_medium=social&utm_campaign=half-marathon-20261115
+One of our founders ran a half marathon in Cyprus, so we built a game about it 🏃 21.1 km, 29°C, halloumi and street cats. Finish before the course closes. Free, no signup: https://toosoongames.app/half-marathon/?utm_source=facebook&utm_medium=social&utm_campaign=half-marathon-20261117
+
+### YouTube Shorts · clip `arc` · 353 chars
+
+**21.1 km, 29°C, and a baby at the finish line**
+
+Half a Marathon, Whole Halloumi: a free browser game about one very hot half marathon in Cyprus. Five short stages, halloumi, street cats, and a sweeper bus right behind you. Play free: https://toosoongames.app/half-marathon/?utm_source=youtube&utm_medium=social&utm_campaign=half-marathon-20261117 (link on our channel) #browsergame #indiegame #running
 
 ## Press
 

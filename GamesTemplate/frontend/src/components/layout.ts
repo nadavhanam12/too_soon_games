@@ -135,8 +135,10 @@ function networks(ctx: SiteCtx): { key: keyof typeof icons; label: string; href:
  * "@toosoongames" on TikTok), and an address without a handle (facebook.com/profile.php?id=...) shows the studio's name.
  */
 function networkHandle(href: string, studioName: string): string {
-  const seg = new URL(href).pathname.split('/').filter(Boolean)[0] || '';
-  return !seg || seg.includes('.') ? studioName : '@' + seg.replace(/^@/, '');
+  // a handle is an address with exactly one path part (x.com/Name, tiktok.com/@name); anything longer or with a file
+  // name in it (youtube.com/channel/UC..., facebook.com/profile.php) is an id, not a name people know
+  const parts = new URL(href).pathname.split('/').filter(Boolean);
+  return parts.length !== 1 || parts[0]!.includes('.') ? studioName : '@' + parts[0]!.replace(/^@/, '');
 }
 
 /** Compact network buttons (the follow prompt on top of the home timeline). */

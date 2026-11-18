@@ -1,7 +1,7 @@
 {
   "game": "HalfMarathon",
   "lang": "en",
-  "campaign": "half-marathon-20261115",
+  "campaign": "half-marathon-20261117",
   "hashtags": [
     "#halfmarathon",
     "#running",
@@ -22,32 +22,40 @@
     "tiktok": {
       "network": "TikTok",
       "text": "21.1 km in Cyprus, 29°C in November, and a baby waiting at the finish 🏃 Can you make it before the course closes? Free game, link in bio #halfmarathon #running #browsergame #indiegame",
-      "link": "https://toosoongames.app/half-marathon/?utm_source=tiktok&utm_medium=social&utm_campaign=half-marathon-20261115",
+      "link": "https://toosoongames.app/half-marathon/?utm_source=tiktok&utm_medium=social&utm_campaign=half-marathon-20261117",
       "profileLink": "https://toosoongames.app/?utm_source=tiktok&utm_medium=social&utm_campaign=profile",
       "clip": "hook",
       "chars": 184
     },
     "x": {
       "network": "X",
-      "text": "One of our founders ran a half marathon in Cyprus. We made it a game: 21.1 km, 29°C, halloumi, street cats 🏃\n\nCan you finish before the course closes? https://toosoongames.app/half-marathon/?utm_source=x&utm_medium=social&utm_campaign=half-marathon-20261115",
-      "link": "https://toosoongames.app/half-marathon/?utm_source=x&utm_medium=social&utm_campaign=half-marathon-20261115",
+      "text": "One of our founders ran a half marathon in Cyprus. We made it a game: 21.1 km, 29°C, halloumi, street cats 🏃\n\nCan you finish before the course closes? https://toosoongames.app/half-marathon/?utm_source=x&utm_medium=social&utm_campaign=half-marathon-20261117",
+      "link": "https://toosoongames.app/half-marathon/?utm_source=x&utm_medium=social&utm_campaign=half-marathon-20261117",
       "clip": "challenge",
       "chars": 175
     },
     "instagram": {
       "network": "Instagram Reels",
       "text": "21.1 km in Cyprus, 29°C in November, and a baby waiting at the finish 🏃\nCan you make it before the course closes? Free browser game, no signup, link in bio.\n#halfmarathon #running #browsergame #indiegame",
-      "link": "https://toosoongames.app/half-marathon/?utm_source=instagram&utm_medium=social&utm_campaign=half-marathon-20261115",
+      "link": "https://toosoongames.app/half-marathon/?utm_source=instagram&utm_medium=social&utm_campaign=half-marathon-20261117",
       "profileLink": "https://toosoongames.app/?utm_source=instagram&utm_medium=social&utm_campaign=profile",
       "clip": "hook",
       "chars": 204
     },
     "facebook": {
       "network": "Facebook Reels",
-      "text": "One of our founders ran a half marathon in Cyprus, so we built a game about it 🏃 21.1 km, 29°C, halloumi and street cats. Finish before the course closes. Free, no signup: https://toosoongames.app/half-marathon/?utm_source=facebook&utm_medium=social&utm_campaign=half-marathon-20261115",
-      "link": "https://toosoongames.app/half-marathon/?utm_source=facebook&utm_medium=social&utm_campaign=half-marathon-20261115",
+      "text": "One of our founders ran a half marathon in Cyprus, so we built a game about it 🏃 21.1 km, 29°C, halloumi and street cats. Finish before the course closes. Free, no signup: https://toosoongames.app/half-marathon/?utm_source=facebook&utm_medium=social&utm_campaign=half-marathon-20261117",
+      "link": "https://toosoongames.app/half-marathon/?utm_source=facebook&utm_medium=social&utm_campaign=half-marathon-20261117",
       "clip": "hook",
       "chars": 286
+    },
+    "youtube": {
+      "network": "YouTube Shorts",
+      "title": "21.1 km, 29°C, and a baby at the finish line",
+      "text": "Half a Marathon, Whole Halloumi: a free browser game about one very hot half marathon in Cyprus. Five short stages, halloumi, street cats, and a sweeper bus right behind you. Play free: https://toosoongames.app/half-marathon/?utm_source=youtube&utm_medium=social&utm_campaign=half-marathon-20261117 (link on our channel) #browsergame #indiegame #running",
+      "link": "https://toosoongames.app/half-marathon/?utm_source=youtube&utm_medium=social&utm_campaign=half-marathon-20261117",
+      "clip": "arc",
+      "chars": 353
     }
   }
 }

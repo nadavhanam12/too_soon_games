@@ -1,6 +1,6 @@
 # Copy: Drop the Chip
 
-Campaign `chip-drop-20261115`
+Campaign `chip-drop-20261117`
 
 **Description:** The chip CEO just resigned, and the floor is coming for him. Drop the Chip is a free one-minute browser game: keep falling, dodge the headlines, beat the leaderboard.
 
@@ -22,27 +22,27 @@ Keep him falling as long as you can. Free browser game, no signup, link in bio.
 
 Link for the profile, to the studio site (a caption link is not clickable there): https://toosoongames.app/?utm_source=instagram&utm_medium=social&utm_campaign=profile
 
-### YouTube Shorts · clip `arc` · 188 chars
+### YouTube Shorts · clip `arc` · 304 chars
 
-**The CEO resigned. Keep him falling. #Shorts**
+**The CEO resigned. Keep him falling.**
 
-Drop the Chip: a free one-minute browser game about the week a chip CEO fell. Play: https://toosoongames.app/chip-drop/?utm_source=youtube&utm_medium=social&utm_campaign=chip-drop-20261115
+Drop the Chip: a free one-minute browser game about the week a chip CEO fell. Dodge the headlines, keep falling, beat the leaderboard. Play free: https://toosoongames.app/chip-drop/?utm_source=youtube&utm_medium=social&utm_campaign=chip-drop-20261117 (link on our channel) #browsergame #indiegame #Nvidia
 
 ### X · clip `challenge` · 154 chars
 
 The chip CEO resigned. We made it a game: keep him falling before the board meeting catches up 📉
 
-My record is 18 seconds. Yours? https://toosoongames.app/chip-drop/?utm_source=x&utm_medium=social&utm_campaign=chip-drop-20261115
+My record is 18 seconds. Yours? https://toosoongames.app/chip-drop/?utm_source=x&utm_medium=social&utm_campaign=chip-drop-20261117
 
 ### Facebook Reels · clip `hook` · 236 chars
 
-The chip CEO resigned, so we built a game about the fall 📉 Dodge the headlines, keep falling, beat your friends. Free, no signup: https://toosoongames.app/chip-drop/?utm_source=facebook&utm_medium=social&utm_campaign=chip-drop-20261115
+The chip CEO resigned, so we built a game about the fall 📉 Dodge the headlines, keep falling, beat your friends. Free, no signup: https://toosoongames.app/chip-drop/?utm_source=facebook&utm_medium=social&utm_campaign=chip-drop-20261117
 
 ### Threads · clip `challenge` · 205 chars
 
 Nvidia's CEO resigned. Three days later it was a game.
 
-Keep him falling. My record is 18 seconds 📉 https://toosoongames.app/chip-drop/?utm_source=threads&utm_medium=social&utm_campaign=chip-drop-20261115
+Keep him falling. My record is 18 seconds 📉 https://toosoongames.app/chip-drop/?utm_source=threads&utm_medium=social&utm_campaign=chip-drop-20261117
 
 ## Press
 
