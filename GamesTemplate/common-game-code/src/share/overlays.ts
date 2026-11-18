@@ -239,10 +239,12 @@ export function initOverlays(opts: { strings: Strings; preset: SharePreset; lang
   root = el('div', 'tsg-ov'); root.dir = lang === 'he' ? 'rtl' : 'ltr';
   root.append(shareBox, followBox, nickBox, srcLink, reportLink, moreLink, shareMenu);
   document.body.append(root, footer);
+  // the site counts which game, and which button, sent the visit (frontend layout.ts, page_view `from`)
   const home = (env.publicBase || '').replace(/\/$/, '') + '/';
+  const from = (via: string) => `${home}?from=${encodeURIComponent(location.pathname.split('/')[1] || '')}&via=${via}`;
   const arrow = lang === 'he' ? '←' : '→'; // points forward in the reading direction
-  footer.innerHTML = `<a href="${home}">${strs.moreGames} ${arrow}</a><span>Too Soon Games</span>`;
-  moreLink.href = home; moreLink.innerHTML = `<img src="${env.studioLogo}" alt="Too Soon Games"><span>${strs.moreGames} ${arrow}</span>`;
+  footer.innerHTML = `<a href="${from('footer')}">${strs.moreGames} ${arrow}</a><span>Too Soon Games</span>`;
+  moreLink.href = from('more'); moreLink.innerHTML = `<img src="${env.studioLogo}" alt="Too Soon Games"><span>${strs.moreGames} ${arrow}</span>`;
   hideAllOverlays();
   const layoutAll = () => { shareOverlay.layout(); followOverlay.layout(); nickOverlay.layout(); sourceOverlay.layout(); reportOverlay.layout(); moreGamesOverlay.layout(); layoutFooter(); };
   onResize(layoutAll);

@@ -27,7 +27,7 @@ export function layout(ctx: SiteCtx, meta: PageMeta, body: string): string {
     ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "${attr(studio.cfWebAnalyticsToken)}"}'></script>`
     : '';
   const current: NavKey | '' = meta.home ? 'home' : meta.path === '/about/' ? 'about' : '';
-  const data = JSON.stringify({ apiBase: studio.apiBase || '' });
+  const data = JSON.stringify({ apiBase: studio.apiBase || '', slugs: ctx.games.map((g) => g.slug) });
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -89,7 +89,7 @@ function navLinks(ctx: SiteCtx, current: NavKey | '', withLabels: boolean): stri
     .join('');
 }
 
-function rail(ctx: SiteCtx, current: NavKey | ''): string {
+export function rail(ctx: SiteCtx, current: NavKey | ''): string {
   const lead = defaultFeatured(ctx.games);
   return `<aside class="rail" aria-label="Site">
   <div class="rail-in">
@@ -155,7 +155,7 @@ export function netButtons(ctx: SiteCtx): string {
 const LEGAL = `<a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/contact/">Contact</a> · <a href="/accessibility/">Accessibility</a>`;
 const copyright = (ctx: SiteCtx) => `© ${new Date().getUTCFullYear()} ${esc(ctx.studio.name)}. Parody. Not affiliated with the real people or organizations.`;
 
-function sidebar(ctx: SiteCtx): string {
+export function sidebar(ctx: SiteCtx): string {
   const lead = defaultFeatured(ctx.games);
   const handle = studioHandle(ctx.studio.name);
   const follow = networks(ctx)
@@ -201,10 +201,14 @@ function phoneNav(ctx: SiteCtx, current: NavKey | ''): string {
 const CLIENT_JS = `
 (function(){
   var D={};
+  var slugs=[];
+  // "/<slug>/..." → the game's slug when it is one of ours, else ''
+  var gameOf=function(path){var p=String(path||'').split('#')[0].split('?')[0].split('/');return p.length>=2&&p.length<=3&&p[0]===''&&(p.length===2||p[2]==='')&&slugs.indexOf(p[1])>=0?p[1]:'';};
   try{D=JSON.parse((document.getElementById('site-data')||{}).textContent||'{}');}catch(e){/* malformed data block: run without the API */}
   var api=(D.apiBase||'').replace(/\\/$/,'');
   var fmt=function(n){return Number(n||0).toLocaleString('en-US');};
   var short=function(n){n=Number(n||0);return n>=10000?Math.round(n/1000)+'K':n>=1000?(n/1000).toFixed(1).replace(/\\.0$/,'')+'K':String(n);};
+  slugs=D.slugs||[];
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var all=function(sel){return Array.prototype.slice.call(document.querySelectorAll(sel));};
 
@@ -235,6 +239,7 @@ const CLIENT_JS = `
   all('.act.share').forEach(function(b){
     b.addEventListener('click',function(){
       var url=location.origin+b.getAttribute('data-url'),label=b.querySelector('span');
+      send('share_click',{channel:navigator.share?'system':'copy',where:'post',game:gameOf(b.getAttribute('data-url'))});
       if(navigator.share){navigator.share({title:b.getAttribute('data-title')||document.title,url:url}).catch(function(){/* the share sheet was closed: nothing to do */});return;}
       if(!navigator.clipboard)return;
       navigator.clipboard.writeText(url).then(function(){b.classList.add('copied');label.textContent='Link copied';setTimeout(function(){b.classList.remove('copied');label.textContent='Share';},1600);});
@@ -309,8 +314,21 @@ const CLIENT_JS = `
     // Access-Control-Allow-Credentials, so the browser drops the beacon while sendBeacon still returns true
     fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:body,keepalive:true}).catch(function(){/* counting a visit never breaks the page */});
   };
+  // a visit that came back from a game: ?from=<slug>&via=<button> on the game's own links (overlays.ts, game-chrome.ts),
+  // else the game page it came from (same-origin referrer). "<game>:<button>" goes into page_view.from
+  var refPath='';try{var ru=document.referrer?new URL(document.referrer):null;if(ru&&ru.host===location.host)refPath=ru.pathname;}catch(e){/* an unparsable referrer counts as none */}
+  var fromGame=slugs.indexOf(qs.get('from')||'')>=0?qs.get('from'):gameOf(refPath);
+  var from=fromGame?fromGame+':'+(clean(qs.get('via'))||'game'):'';
   if(first)send('session_start',{ref:refHost,utm_source:qs.get('utm_source')||'',utm_medium:qs.get('utm_medium')||'',utm_campaign:qs.get('utm_campaign')||'',utm_content:qs.get('utm_content')||'',lang:navigator.language,viewportW:innerWidth,viewportH:innerHeight,dpr:Math.round((window.devicePixelRatio||1)*10)/10,page:location.pathname});
+  send('page_view',{page:location.pathname,from:from});
   all('a[data-network]').forEach(function(a){a.addEventListener('click',function(){send('follow_click',{network:a.getAttribute('data-network')});});});
+  // which games the site sends players to, and from where on the page
+  document.addEventListener('click',function(e){
+    var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(!a)return;
+    var game=gameOf(a.getAttribute('href'));if(!game)return;
+    var where=a.closest('.nav,.bnav')?'nav':a.closest('.cta')?'rail':a.closest('.fab')?'fab':a.closest('.side')?'side':a.closest('.board')?'board':a.closest('.pinned')?'pinned':a.closest('.post')?'feed':'other';
+    send('game_click',{game:game,where:where});
+  });
 
   var board=document.getElementById('board'),side=document.getElementById('side-board');
   var noBoard=function(){if(board){board.hidden=true;board.removeAttribute('aria-busy');}};

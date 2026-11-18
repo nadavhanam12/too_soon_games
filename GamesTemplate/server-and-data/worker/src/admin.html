@@ -35,6 +35,7 @@ svg{width:100%;height:120px;display:block}
 #login{max-width:360px;margin:80px auto;background:var(--surface);padding:24px;border-radius:20px;text-align:center}
 #login input{width:100%;margin:12px 0}
 [hidden]{display:none!important}
+body.is-site section.g,body:not(.is-site) section.s{display:none}
 </style>
 </head>
 <body>
@@ -58,18 +59,26 @@ svg{width:100%;height:120px;display:block}
 </header>
 <main>
   <section class="wide"><h2>סיכום</h2><div class="tiles" id="tiles"></div></section>
-  <section><h2>משפך <span class="muted" id="funnelNote"></span></h2><div class="funnel" id="funnel"></div></section>
-  <section><h2>ערוצים <span class="muted">· UTM, ומקור שרשרת השיתוף (k = הגיעו משיתוף חלקי התחילו)</span></h2><div id="channels"></div></section>
+  <section class="s wide"><h2>האתר עצמו <span class="muted">· הדפים של האתר בלבד, לא מה שקורה בתוך המשחקים. "פתחו משחק" ו"נטשו" נספרים מאז שהתחלנו למדוד דפים</span></h2><div class="muted" id="siteNote" style="font-size:13px"></div></section>
+  <section class="s"><h2>לאיזה משחק נכנסו מהאתר</h2><table id="sTo"></table></section>
+  <section class="s"><h2>מאיפה בעמוד לחצו על משחק</h2><table id="sWhere"></table></section>
+  <section class="s"><h2>הגיעו לאתר מתוך משחק</h2><table id="sFrom"></table></section>
+  <section class="s"><h2>מאיפה הגיעו לאתר <span class="muted">· ערוץ</span></h2><table id="sChannels"></table></section>
+  <section class="s"><h2>עמוד ראשון בביקור</h2><table id="sLanding"></table></section>
+  <section class="s"><h2>עמודים שנצפו</h2><table id="sPages"></table></section>
+  <section class="s"><h2>שיתוף מהאתר</h2><table id="sShare"></table></section>
+  <section class="g"><h2>משפך <span class="muted" id="funnelNote"></span></h2><div class="funnel" id="funnel"></div></section>
+  <section class="g wide"><h2>ערוצים <span class="muted">· UTM, ומקור שרשרת השיתוף (k = הגיעו משיתוף חלקי התחילו)</span></h2><table id="channels"></table></section>
   <section><h2>ביקורים ליום</h2><svg id="daily" viewBox="0 0 600 120" preserveAspectRatio="none"></svg><div class="muted" id="dailyNote" style="font-size:12px"></div></section>
   <section><h2>מדינות</h2><table id="countries"></table></section>
-  <section><h2>ערים</h2><table id="cities"></table></section>
+  <section class="g"><h2>ערים</h2><table id="cities"></table></section>
   <section><h2>מכשירים</h2><table id="devices"></table></section>
-  <section><h2>שיתוף לפי ערוץ</h2><table id="share"></table></section>
-  <section><h2>הפסדים לפי שלב</h2><table id="over"></table></section>
-  <section><h2>הפניות (מי הביא חברים)</h2><table id="referrals"></table></section>
+  <section class="g"><h2>שיתוף לפי ערוץ</h2><table id="share"></table></section>
+  <section class="g"><h2>הפסדים לפי שלב</h2><table id="over"></table></section>
+  <section class="g"><h2>הפניות (מי הביא חברים)</h2><table id="referrals"></table></section>
   <section><h2>עקבו אחרינו</h2><table id="follows"></table></section>
-  <section class="wide"><h2>שגיאות אחרונות</h2><table id="errors"></table></section>
-  <section class="wide"><h2>לידרבורד <span class="muted">(מחיקה = טרול, בלי אישור נוסף)</span></h2><table id="board"></table></section>
+  <section class="g wide"><h2>שגיאות אחרונות</h2><table id="errors"></table></section>
+  <section class="g wide"><h2>לידרבורד <span class="muted">(מחיקה = טרול, בלי אישור נוסף)</span></h2><table id="board"></table></section>
   <section class="wide"><h2>כל האירועים בטווח</h2><table id="counts"></table></section>
 </main>
 </div>
@@ -109,6 +118,33 @@ async function loadGames(select){
 }
 const fmt=n=>Number(n||0).toLocaleString('en-US');
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'';
+const PLACE={nav:'תפריט',rail:'כפתור "Play the new game"',fab:'כפתור צף (טלפון)',side:'העמודה הימנית',board:'לוח בפוסט',pinned:'הפוסט המוצמד',feed:'פוסט בפיד',other:'אחר',post:'פוסט'};
+const VIA={more:'"More games" במסך הסיום',footer:'"More games" מתחת למשחק (מחשב)',columns:'העמודות ליד המשחק',game:'לא ידוע (חזרה מהמשחק)'};
+function renderSite(ae){
+  const c=ae.counts||{},v=ae.visits||{},x=ae.crossPlay||{},rt=ae.returning||{};
+  const back=(ae.fromGames||[]).reduce((a,r)=>a+r.visits,0);
+  $('#tiles').innerHTML=[
+    ['ביקורים באתר',fmt(c.session_start)],['אנשים',ae.uniques?fmt(ae.uniques.users):'-'],['צפיות בדפים',fmt(c.page_view)],
+    ['פתחו משחק מהאתר',v.tracked?pct(v.openedGame,v.tracked):'-'],['נטשו (דף אחד, בלי משחק)',v.tracked?pct(v.bounced,v.tracked):'-'],
+    ['הגיעו מתוך משחק',fmt(back)],['שיחקו 2+ משחקים',x.players?`${fmt(x.two+x.threePlus)} (${pct(x.two+x.threePlus,x.players)})`:'-'],
+    ['חזרו ביום אחר',rt.people?`${fmt(rt.returned)} (${pct(rt.returned,rt.people)})`:'-'],['לחיצות Follow',fmt(c.follow_click)],
+  ].map(([l,val])=>`<div class="tile"><b>${val}</b><span>${l}</span></div>`).join('');
+  $('#siteNote').textContent=`${fmt(v.tracked||0)} ביקורים נמדדו לפי דפים בטווח: ${fmt(v.openedGame||0)} פתחו משחק, ${fmt(v.bounced||0)} נטשו. שיחקו 2+ משחקים: מתוך ${fmt(x.players||0)} שחקנים בכל המשחקים, ${fmt(x.two||0)} שיחקו בשניים ו־${fmt(x.threePlus||0)} בשלושה ומעלה. חזרו: אנשים שנראו ביותר מיום אחד, באתר או בכל משחק.`;
+  table('#sTo',ae.toGames,['משחק','לחיצות','ביקורים'],r=>[esc(r.game),fmt(r.n),fmt(r.visits)]);
+  table('#sWhere',ae.toWhere,['מקום בעמוד','לחיצות'],r=>[esc(PLACE[r.place]||r.place||'?'),fmt(r.n)]);
+  table('#sFrom',ae.fromGames,['משחק','דרך','ביקורים'],r=>[esc(r.game),esc(VIA[r.via]||r.via),fmt(r.visits)]);
+  table('#sChannels',ae.channels,['ערוץ','ביקורים'],r=>[esc(r.ch||'(none)'),fmt(r.n)]);
+  table('#sLanding',ae.landing,['עמוד','ביקורים'],r=>[esc(r.page||'(לפני המדידה)'),fmt(r.n)]);
+  table('#sPages',ae.pages,['עמוד','צפיות','ביקורים'],r=>[esc(r.page),fmt(r.n),fmt(r.visits)]);
+  table('#sShare',ae.shares,['מקום','ערוץ','לחיצות'],r=>[esc(PLACE[r.place]||r.place||'?'),esc(r.channel||'?'),fmt(r.n)]);
+  const d=ae.daily||[],m=Math.max(1,...d.map(x=>+x.n)),w=600/Math.max(1,d.length);
+  $('#daily').innerHTML=d.map((x,i)=>`<rect x="${i*w+1}" y="${120-(+x.n/m*110)}" width="${Math.max(1,w-2)}" height="${+x.n/m*110}" fill="url(#g)"><title>${x.day}: ${fmt(x.n)}</title></rect>`).join('')+'<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4fd8"/><stop offset="1" stop-color="#8a3cff"/></linearGradient></defs>';
+  $('#dailyNote').textContent=d.length?`${d[0].day.slice(0,10)} → ${d[d.length-1].day.slice(0,10)}, שיא ${fmt(m)} ביום`:'אין נתונים';
+  table('#countries',ae.countries,['מדינה','ביקורים'],r=>[esc(r.country||'?'),fmt(r.n)]);
+  table('#devices',ae.devices,['מכשיר','ביקורים'],r=>[esc(r.device),fmt(r.n)]);
+  table('#follows',ae.follows,['רשת','לחיצות'],r=>[esc(r.network||'?'),fmt(r.n)]);
+  table('#counts',Object.entries(c).sort((a,b)=>b[1]-a[1]),['אירוע','כמות'],([k,val])=>[esc(k),fmt(val)]);
+}
 function table(sel,rows,cols,render){
   const t=$(sel);if(!rows||!rows.length){t.innerHTML='<tr><td class="muted">אין נתונים</td></tr>';return;}
   t.innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+render(r).map(v=>`<td>${v}</td>`).join('')+'</tr>').join('');
@@ -117,7 +153,9 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 async function load(){
   const game=$('#game').value;const days=$('#days').value;if(!game)return;
   const [s,b]=await Promise.all([api(`/v1/admin/games/${game}/stats?${days.startsWith('h')?`days=7&hours=${days.slice(1)}`:`days=${days}`}`),api(`/v1/admin/games/${game}/board?limit=50`)]);
-  const ae=s.ae,aeOk=!ae.error;
+  const ae=s.ae,aeOk=!ae.error,isSite=game==='site';
+  document.body.classList.toggle('is-site',isSite);
+  if(isSite&&aeOk){renderSite(ae);return;}
   const c=aeOk?ae.counts:{};
   $('#tiles').innerHTML=[
     ['שחקנים (סה"כ)',fmt(s.d1.players)],['שחקנים חדשים בטווח',fmt(s.d1.playersInRange)],['בלוח',fmt(s.d1.scores)],

@@ -11,6 +11,7 @@ import type { GameEntry, FeedEvent, Studio, SiteCtx } from './src/types';
 import { homePage } from './src/pages/home';
 import { aboutPage, privacyPage, termsPage, contactPage, accessibilityPage, notFoundPage } from './src/pages/text';
 import { sortGames, checkEventLimits } from './src/components/games';
+import { gameChromeJs } from './src/components/game-chrome';
 
 // run.mjs bundles this file into .cache/, so the frontend dir comes from the env it sets.
 const here = process.env.FRONTEND_DIR || resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -78,6 +79,9 @@ export async function main(args: string[]): Promise<void> {
     writeFileSync(join(out, rel), html);
   }
 
+  // the site's columns on the game pages (desktop): a fixed name the game pages load, so it is cached for 60 s only (/*)
+  writeFileSync(join(out, 'game-chrome.js'), gameChromeJs(ctx, css));
+
   // press kits (PublishGamesPipeline, stage press-kit): Games/<id>/launch/press/ → /press/<slug>/
   const pressSlugs: string[] = [];
   for (const g of games) {
@@ -137,7 +141,7 @@ export async function main(args: string[]): Promise<void> {
   // quota (100K a day on the free plan, roughly 40 per player). Static paths below are served directly.
   const exclude = [
     '/assets/*', '/press/*', '/.well-known/*', '/about/*', '/privacy/*', '/terms/*', '/contact/*', '/accessibility/*',
-    '/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/404.html',
+    '/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/404.html', '/game-chrome.js',
     ...games.flatMap((g) => [`/${g.slug}/assets/*`, `/${g.slug}/lazy/*`]),
   ];
   if (exclude.length > 99) throw new Error(`_routes.json allows 100 rules; ${exclude.length + 1} needed. Group game assets under one prefix.`);

@@ -130,19 +130,78 @@ async function stats(ctx: Ctx, game: string): Promise<Response> {
 
   let ae: Record<string, unknown> | { error: string };
   try {
-    ae = await aeStats(ctx, game, days, hours);
+    ae = game === 'site' ? await siteStats(ctx, days, hours) : await aeStats(ctx, game, days, hours);
   } catch (e) {
     ae = { error: (e as Error).message };
   }
   return json({ game, days, hours, d1, ae });
 }
 
-async function aeStats(ctx: Ctx, game: string, days: number, hours: number | null): Promise<Record<string, unknown>> {
-  const ds = ctx.env.EVENTS_DATASET;
-  // test traffic that was cleaned out of D1 (migrations/0003): its events stay in Analytics Engine, so leave them out here
+/** The analytics filter: the time window, without the test users that were cleaned out of D1 (migrations/0003). */
+async function windowSql(ctx: Ctx, days: number, hours: number | null): Promise<string> {
+  // their events stay in Analytics Engine, so leave them out here
   const ex = await ctx.env.DB.prepare('SELECT user_id FROM excluded_users').all<{ user_id: string }>();
   const notExcluded = ex.results.length ? ` AND blob3 NOT IN (${ex.results.map((r) => sqlStr(r.user_id)).join(',')})` : '';
-  const where = `index1 = ${sqlStr(game)} AND timestamp > NOW() - INTERVAL '${hours ?? days}' ${hours ? 'HOUR' : 'DAY'}${notExcluded}`;
+  return `timestamp > NOW() - INTERVAL '${hours ?? days}' ${hours ? 'HOUR' : 'DAY'}${notExcluded}`;
+}
+
+/**
+ * The studio site (game id "site", docs/EVENTS.md): its own pages, not the games. Visits and where they came from,
+ * the pages, which games the site sends players to (game_click) and which games send them back (page_view `from`),
+ * bounce, cross-play (one player, two games or more) and returning visitors (across the site and every game).
+ */
+async function siteStats(ctx: Ctx, days: number, hours: number | null): Promise<Record<string, unknown>> {
+  const ds = ctx.env.EVENTS_DATASET;
+  const win = await windowSql(ctx, days, hours);
+  const where = `index1 = 'site' AND ${win}`;
+  const q = (sql: string) => querySql(ctx, sql).then((r) => r.data);
+  const [byName, daily, countries, devices, channelRows, landing, pages, toGames, toWhere, fromGames, follows, shares, sessionsPv, sessionsGc, uniques, crossRows, dayRows] = await Promise.all([
+    q(`SELECT blob2 AS name, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} GROUP BY name ORDER BY n DESC`),
+    q(`SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY day ORDER BY day`),
+    q(`SELECT blob5 AS country, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY country ORDER BY n DESC LIMIT 12`),
+    q(`SELECT blob7 AS device, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY device ORDER BY n DESC`),
+    q(`SELECT blob11 AS ch, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY ch ORDER BY n DESC`),
+    q(`SELECT blob9 AS page, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'session_start' GROUP BY page ORDER BY n DESC LIMIT 12`),
+    q(`SELECT blob9 AS page, SUM(_sample_interval) AS n, COUNT(DISTINCT blob4) AS visits FROM ${ds} WHERE ${where} AND blob2 = 'page_view' GROUP BY page ORDER BY n DESC LIMIT 20`),
+    q(`SELECT blob9 AS game, SUM(_sample_interval) AS n, COUNT(DISTINCT blob4) AS visits FROM ${ds} WHERE ${where} AND blob2 = 'game_click' GROUP BY game ORDER BY n DESC`),
+    q(`SELECT blob13 AS place, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'game_click' GROUP BY place ORDER BY n DESC`),
+    q(`SELECT blob13 AS src, SUM(_sample_interval) AS n, COUNT(DISTINCT blob4) AS visits FROM ${ds} WHERE ${where} AND blob2 = 'page_view' AND blob13 != '' GROUP BY src ORDER BY n DESC`),
+    q(`SELECT blob9 AS network, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'follow_click' GROUP BY network ORDER BY n DESC`),
+    q(`SELECT blob13 AS place, blob9 AS channel, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'share_click' GROUP BY place, channel ORDER BY n DESC`),
+    // per visit: pages seen, and whether it opened a game (bounce = one page, no game)
+    q(`SELECT blob4 AS s, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} AND blob2 = 'page_view' GROUP BY s LIMIT 10000`),
+    q(`SELECT blob4 AS s FROM ${ds} WHERE ${where} AND blob2 = 'game_click' GROUP BY s LIMIT 10000`),
+    q(`SELECT COUNT(DISTINCT blob3) AS users, COUNT(DISTINCT blob4) AS sessions FROM ${ds} WHERE ${where} AND blob2 = 'session_start'`),
+    // cross-play: games started per player, over every game (not the site)
+    q(`SELECT blob3 AS u, COUNT(DISTINCT blob1) AS g FROM ${ds} WHERE ${win} AND index1 != 'site' AND blob2 = 'game_start' GROUP BY u LIMIT 10000`),
+    // returning: the days a person showed up, on the site or in any game
+    q(`SELECT blob3 AS u, toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day FROM ${ds} WHERE ${win} AND blob2 = 'session_start' GROUP BY u, day LIMIT 20000`),
+  ]);
+  const counts: Record<string, number> = {};
+  for (const r of byName) counts[String(r['name'])] = Number(r['n']);
+  const clicked = new Set(sessionsGc.map((r) => String(r['s'])));
+  const tracked = sessionsPv.length; // visits since page_view exists (older visits have only session_start)
+  const bounced = sessionsPv.filter((r) => Number(r['n']) <= 1 && !clicked.has(String(r['s']))).length;
+  const games = crossRows.map((r) => Number(r['g']));
+  const daysPer: Record<string, number> = {};
+  for (const r of dayRows) { const u = String(r['u']); daysPer[u] = (daysPer[u] ?? 0) + 1; }
+  const people = Object.values(daysPer);
+  return {
+    site: true,
+    counts, daily, countries, devices, landing, pages, toGames, toWhere, follows, shares,
+    channels: channelRows,
+    // "<game>:<button>" from the page_view `from` prop
+    fromGames: fromGames.map((r) => { const [g, via] = String(r['src']).split(':'); return { game: g, via: via || '', n: Number(r['n']), visits: Number(r['visits']) }; }),
+    uniques: uniques[0] ?? null,
+    visits: { tracked, openedGame: [...clicked].length, bounced },
+    crossPlay: { players: games.length, two: games.filter((g) => g === 2).length, threePlus: games.filter((g) => g >= 3).length },
+    returning: { people: people.length, returned: people.filter((d) => d >= 2).length },
+  };
+}
+
+async function aeStats(ctx: Ctx, game: string, days: number, hours: number | null): Promise<Record<string, unknown>> {
+  const ds = ctx.env.EVENTS_DATASET;
+  const where = `index1 = ${sqlStr(game)} AND ${await windowSql(ctx, days, hours)}`;
   const q = (sql: string) => querySql(ctx, sql).then((r) => r.data);
   const [byName, daily, countries, cities, devices, share, overByStage, referrals, follows, errors, uniques, channelRows, originRows, startedRows, endedRows] = await Promise.all([
     q(`SELECT blob2 AS name, SUM(_sample_interval) AS n FROM ${ds} WHERE ${where} GROUP BY name ORDER BY n DESC`),

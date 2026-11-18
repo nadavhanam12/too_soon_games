@@ -43,16 +43,58 @@ export function initCanvas(el: HTMLCanvasElement, maxWidth = W): void {
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
 }
 
+/** Logical height, scale and width of the canvas in an area of vw x vh CSS px. */
+function sizeFor(vw: number, vh: number): { H: number; scale: number; fullW: number } {
+  const H = Math.max(MIN_H, Math.min(MAX_H, Math.round((W * vh) / vw)));
+  const scale = Math.min(vw / W, vh / H);
+  // room left beside the phone column goes to the canvas, up to the game's limit (an even number: x0 stays whole)
+  const fullW = Math.max(W, Math.min(maxW, Math.floor(vw / scale / 2) * 2));
+  return { H, scale, fullW };
+}
+
+interface Chrome { rail: number; narrow: number; side: number; col: number }
+const desktop = typeof matchMedia === 'function' ? matchMedia('(hover: hover) and (pointer: fine)') : null;
+
+/**
+ * The site's columns beside the game (frontend src/components/game-chrome.ts sets window.TSG_CHROME once they are on
+ * the page; local builds have none). Desktop browsers only. Both columns when the game's own width leaves room for them
+ * (portrait games); else the narrow icon rail, which takes its width from the game (landscape games); none on phones,
+ * tablets and windows under 700 px. Returns the game's area: its left edge and width in CSS px.
+ */
+function placeChrome(vw: number, vh: number): { left: number; width: number } {
+  const c = (window as unknown as { TSG_CHROME?: Chrome }).TSG_CHROME;
+  const root = document.documentElement;
+  let mode = 'none', left = 0, width = vw;
+  if (c && desktop?.matches) {
+    const s = sizeFor(vw, vh), gameW = Math.max(s.fullW * s.scale, c.col);
+    const content = c.rail + gameW + c.side;
+    if (vw >= 1100 && vw >= content) {
+      mode = 'full';
+      const x = Math.floor((vw - content) / 2);
+      left = x + c.rail; width = gameW;
+      root.style.setProperty('--tsgc-l', x + 'px');
+      root.style.setProperty('--tsgc-r', Math.round(left + gameW) + 'px');
+    } else if (vw >= 700) {
+      mode = 'rail';
+      left = c.narrow; width = vw - c.narrow;
+      root.style.setProperty('--tsgc-l', '0px');
+    }
+  }
+  root.dataset.tsgc = mode;
+  const wrap = cv.parentElement;
+  if (wrap) { wrap.style.left = left + 'px'; wrap.style.right = 'auto'; wrap.style.width = width + 'px'; }
+  return { left, width };
+}
+
 export function fit(): void {
-  const vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight);
-  let H = Math.round((W * vh) / vw);
-  H = Math.max(MIN_H, Math.min(MAX_H, H));
+  const vh = Math.max(1, window.innerHeight);
+  const vw = Math.max(1, placeChrome(Math.max(1, window.innerWidth), vh).width);
+  const { H, scale, fullW } = sizeFor(vw, vh);
   view.H = H;
   view.top = Math.round((H - SAFE_H) / 2);
   view.bottom = view.top + SAFE_H;
-  view.scale = Math.min(vw / W, vh / H);
-  // room left beside the phone column goes to the canvas, up to the game's limit (an even number: x0 stays whole)
-  view.fullW = Math.max(W, Math.min(maxW, Math.floor(vw / view.scale / 2) * 2));
+  view.scale = scale;
+  view.fullW = fullW;
   view.x0 = -(view.fullW - W) / 2;
   view.dpr = Math.min(window.devicePixelRatio || 1, 3);
   const cssW = view.fullW * view.scale, cssH = H * view.scale;

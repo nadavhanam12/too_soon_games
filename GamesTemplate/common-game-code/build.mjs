@@ -98,6 +98,9 @@ function renderHtml(js) {
     ogTitle: esc(cfg.ogTitle || `${cfg.title} · Too Soon Games`), ogDescription: esc(cfg.ogDescription || cfg.tagline), ogImage: esc(og), url: esc(url),
     home: base ? base + '/' : '/', themeColor: esc(cfg.themeColor || '#140b24'), bg: esc(cfg.themeColor || '#140b24'), extraFonts: fonts,
     script: js.replace(/<\/script/gi, '<\\/script'),
+    // the site's columns beside the game on desktop (frontend src/components/game-chrome.ts). Only on the published
+    // page: the site serves the file, and local builds have no site. A missing file leaves the game as it was.
+    chrome: local ? '' : '<script src="/game-chrome.js" defer></script>',
   };
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => (k in vars ? vars[k] : ''));
 }

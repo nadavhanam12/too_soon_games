@@ -5,6 +5,7 @@
 //   blob10 props JSON (≤ 1KB)
 //   blob11 ch: the visit's channel, "medium:source" from UTM, or referral | ref:<host> | direct (same for every event of a visit)
 //   blob12 origin: the channel that started the share chain this visit came from (the `o` param), else = ch
+//   blob13 dim2: a second label (where on the site a game link was clicked, "<game>:<button>" a visit came back from)
 //   double1 value (score|timeS|rank|durationS), double2 client ts (ms)
 // Counting with sampling in mind: SUM(_sample_interval) instead of count().
 
@@ -18,7 +19,8 @@ export interface IncomingEvent {
   props?: Record<string, unknown>;
 }
 
-const DIM_KEYS = ['stage', 'channel', 'network', 'reason', 'fromUser', 'lastScreen'] as const;
+const DIM_KEYS = ['stage', 'channel', 'network', 'reason', 'fromUser', 'lastScreen', 'game', 'page'] as const;
+const DIM2_KEYS = ['where', 'from'] as const;
 const VALUE_KEYS = ['score', 'timeS', 'rank', 'durationS', 'theirScore', 'atS'] as const;
 
 export function writeEvent(ctx: Ctx, game: string, userId: string, version: string, e: IncomingEvent, ch = '', origin = ''): void {
@@ -27,6 +29,11 @@ export function writeEvent(ctx: Ctx, game: string, userId: string, version: stri
   for (const k of DIM_KEYS) {
     const v = p[k];
     if (v !== undefined && v !== null) { dim = String(v).slice(0, 64); break; }
+  }
+  let dim2 = '';
+  for (const k of DIM2_KEYS) {
+    const v = p[k];
+    if (v !== undefined && v !== null && v !== '') { dim2 = String(v).slice(0, 64); break; }
   }
   let value = 0;
   for (const k of VALUE_KEYS) {
@@ -37,7 +44,7 @@ export function writeEvent(ctx: Ctx, game: string, userId: string, version: stri
   try { propsJson = JSON.stringify(p).slice(0, 1024); } catch { /* ignore */ }
   ctx.env.EVENTS.writeDataPoint({
     indexes: [game],
-    blobs: [game, e.name, userId, e.sessionId, ctx.country, ctx.city, ctx.device, version, dim, propsJson, ch, origin],
+    blobs: [game, e.name, userId, e.sessionId, ctx.country, ctx.city, ctx.device, version, dim, propsJson, ch, origin, dim2],
     doubles: [value, e.ts],
   });
 }

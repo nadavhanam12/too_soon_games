@@ -64,6 +64,11 @@ export function initAnalytics(opts: { slug: string; version: string; lang: strin
       flush(true);
     }
   });
+  // the site's columns beside the game on desktop (frontend game-chrome.ts) have their own Follow buttons
+  document.addEventListener('click', (e) => {
+    const a = (e.target as Element | null)?.closest?.('.tsgc [data-network]');
+    if (a) track('follow_click', { network: a.getAttribute('data-network') || '', where: 'columns' });
+  });
   window.addEventListener('error', (e) => track('error', { msg: String(e.message || '').slice(0, 200), where: `${(e.filename || '').split('/').pop()}:${e.lineno}` }));
   window.addEventListener('unhandledrejection', (e) => track('error', { msg: String((e as PromiseRejectionEvent).reason || '').slice(0, 200), where: 'promise' }));
 }

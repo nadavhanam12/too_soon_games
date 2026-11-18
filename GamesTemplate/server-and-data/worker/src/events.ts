@@ -19,6 +19,9 @@ export const EVENT_NAMES = [
   'replay',
   'error',
   'session_end',
+  // the studio site only (game id "site", docs/EVENTS.md)
+  'page_view',
+  'game_click',
 ] as const;
 
 export type EventName = (typeof EVENT_NAMES)[number];
