@@ -9,7 +9,7 @@
       "tagline": "13 years of waiting. One boss, one store, one chase home. Get free for launch day.",
       "audience": "us",
       "lang": "en",
-      "version": "0.1.16",
+      "version": "0.1.18",
       "event": {
         "title": "Launch day of the most-awaited game in history",
         "headline": "The most-awaited game in history launches Thursday.",
@@ -37,7 +37,7 @@
       "ogImage": "assets/og.jpg",
       "status": "live",
       "themeColor": "#0b0b0f",
-      "publishedAt": "2026-11-17",
+      "publishedAt": "2026-11-18",
       "clip": "assets/clip.webm"
     },
     {
@@ -48,7 +48,7 @@
       "tagline": "21.1 km in Cyprus: halloumi, street cats, 29°C in November, and the baby waiting at the finish.",
       "audience": "us",
       "lang": "en",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "event": {
         "title": "A founder's half marathon, Cyprus",
         "headline": "One of our founders ran a half marathon today.",
@@ -62,7 +62,7 @@
       "status": "draft",
       "themeColor": "#0b2545",
       "music": true,
-      "publishedAt": "2026-11-17",
+      "publishedAt": "2026-11-18",
       "clip": "assets/clip.webm"
     },
     {
@@ -73,7 +73,7 @@
       "tagline": "174 passengers, a hijacked cockpit, a plane going down. How fast can you save the flight?",
       "audience": "us",
       "lang": "en",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "event": {
         "title": "Flydubai flight FZ1073, Dubai to Tel Aviv",
         "headline": "Flydubai FZ1073, Dubai to Tel Aviv.",
@@ -87,7 +87,7 @@
       "ogImage": "assets/og.png",
       "status": "draft",
       "themeColor": "#0f1a2b",
-      "publishedAt": "2026-11-17"
+      "publishedAt": "2026-11-18"
     },
     {
       "$schema": "../../GamesTemplate/common-game-code/game.schema.json",
@@ -97,7 +97,7 @@
       "tagline": "Icy Tower in reverse: how long can a CEO keep falling before the board meeting catches up?",
       "audience": "us",
       "lang": "en",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "event": {
         "title": "Nvidia CEO resignation, November 2026",
         "headline": "Nvidia's CEO resigns.",
@@ -114,7 +114,7 @@
         "Patrick Hand"
       ],
       "themeColor": "#161616",
-      "publishedAt": "2026-11-17"
+      "publishedAt": "2026-11-18"
     }
   ]
 }
