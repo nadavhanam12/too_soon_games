@@ -111,18 +111,23 @@ step "build client"
 ( cd "$TPL/common-game-code" && [ -d node_modules ] || npm install --no-audit --no-fund >/dev/null; npm run -s build -- "$GAME_ID" ) || fail "client build failed"
 [ -f "$TPL/dist/$SLUG/index.html" ] || fail "expected $TPL/dist/$SLUG/index.html after the client build"
 
-# 6ב. live-demo clip for the home page (decision 64): recorded from the built game when missing, then registered
+# 6ב. live-demo clip for the home page (decision 64): recorded from the built game when missing, then registered.
+# The file is game.json's "clip" (default assets/clip.webm). A hand-made clip gets its own name (e.g. Nice City's
+# assets/clip-hook.webm, from the launch hook video): a new name is a new URL, so it reaches returning visitors without
+# waiting for the next release (the media files are cached for a year under ?v=<version>, RULES 22ב).
 step "clip"
-if [ -f "$GAME_DIR/assets/clip.webm" ]; then echo "  Games/$GAME_ID/assets/clip.webm exists (delete it to record a new one)"
+CLIP="$(node -e "const j=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(j.clip||'assets/clip.webm')" "$GAME_JSON")"
+if [ -f "$GAME_DIR/$CLIP" ]; then echo "  Games/$GAME_ID/$CLIP exists (delete it to record a new one)"
 else
+  [ "$CLIP" = "assets/clip.webm" ] || fail "game.json clip is $CLIP but Games/$GAME_ID/$CLIP is missing (make-clip.mjs only records assets/clip.webm)"
   node "$TPL/other-services/assets/make-clip.mjs" "$GAME_ID" || warn "clip not recorded - the home page falls back to the cover image"
 fi
-if [ -f "$GAME_DIR/assets/clip.webm" ]; then
-  [ -f "$TPL/dist/$SLUG/assets/clip.webm" ] || cp "$GAME_DIR/assets/clip.webm" "$TPL/dist/$SLUG/assets/clip.webm"
-  node - "$GAME_JSON" "$REG_OUT" "$SLUG" <<'EOF2'
-const fs=require('fs');const [gj,reg,slug]=process.argv.slice(2);
+if [ -f "$GAME_DIR/$CLIP" ]; then
+  [ -f "$TPL/dist/$SLUG/$CLIP" ] || cp "$GAME_DIR/$CLIP" "$TPL/dist/$SLUG/$CLIP"
+  node - "$GAME_JSON" "$REG_OUT" "$SLUG" "$CLIP" <<'EOF2'
+const fs=require('fs');const [gj,reg,slug,clip]=process.argv.slice(2);
 for(const f of [gj,reg]){const j=JSON.parse(fs.readFileSync(f,'utf8'));
-  if(f===gj)j.clip=j.clip||'assets/clip.webm';else{const g=(j.games||[]).find(x=>x.slug===slug);if(g)g.clip=g.clip||'assets/clip.webm';}
+  if(f===gj)j.clip=clip;else{const g=(j.games||[]).find(x=>x.slug===slug);if(g)g.clip=clip;}
   fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n');}
 EOF2
 fi

@@ -60,6 +60,7 @@ body.is-site section.g,body:not(.is-site) section.s{display:none}
 </header>
 <main>
   <section class="wide"><h2>סיכום</h2><div class="tiles" id="tiles"></div></section>
+  <section class="wide"><h2>נרשמים <span class="muted" id="signupNote">· מכרטיס ההרשמה בעמוד הבית, לכל האתר (לא לפי משחק)</span></h2><table id="signups"></table></section>
   <section class="s wide"><h2>האתר עצמו <span class="muted">· הדפים של האתר בלבד, לא מה שקורה בתוך המשחקים. "פתחו משחק" ו"נטשו" נספרים מאז שהתחלנו למדוד דפים</span></h2><div class="muted" id="siteNote" style="font-size:13px"></div></section>
   <section class="s"><h2>לאיזה משחק נכנסו מהאתר</h2><table id="sTo"></table></section>
   <section class="s"><h2>מאיפה בעמוד לחצו על משחק</h2><table id="sWhere"></table></section>
@@ -109,6 +110,19 @@ $('#newGame').onclick=async()=>{
   const minDurationS=Number(prompt('זמן משחק מינימלי בשניות (0 = בלי בדיקה):','5'));
   try{await api('/v1/admin/games/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify({name,maxScore,minDurationS})});await loadGames(id);}catch(e){alert(e.message);}
 };
+// sign-ups: the whole site's list (not per game); the newest 50 on the page, all of them in the CSV
+const PROVIDER={email:'אימייל',google:'Google',apple:'Apple'};
+async function loadSignups(){
+  try{
+    const {rows}=await api('/v1/admin/emails');
+    const day=new Date(Date.now()-864e5).toISOString().replace('T',' ').slice(0,19);
+    const recent=rows.filter(r=>String(r.created_at).replace('T',' ')>day).length;
+    $('#signupNote').textContent=`· ${fmt(rows.length)} נרשמים, ${fmt(rows.filter(r=>r.notify).length)} רוצים מיילים, ${fmt(recent)} ב־24 השעות האחרונות. לכל האתר, לא לפי משחק`+(rows.length>50?'. מוצגים 50 האחרונים, כולם ב־CSV':'');
+    table('#signups',rows.slice(0,50),['אימייל','דרך','מאומת','מיילים','מדינה','נרשם'],r=>[
+      esc(r.email),esc(PROVIDER[r.provider]||r.provider),r.verified?'כן':'<span class="muted">הוקלד</span>',
+      r.notify?'כן':'<span class="muted">הסיר</span>',esc(r.country||''),esc(String(r.created_at).replace('T',' ').slice(0,16))]);
+  }catch(e){$('#signups').innerHTML=`<tr><td><div class="err">${esc(e.message)}</div></td></tr>`;}
+}
 $('#emails').onclick=async()=>{
   try{
     const {rows}=await api('/v1/admin/emails');
@@ -163,6 +177,7 @@ function table(sel,rows,cols,render){
 }
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function load(){
+  loadSignups();
   const game=$('#game').value;const days=$('#days').value;if(!game)return;
   const [s,b]=await Promise.all([api(`/v1/admin/games/${game}/stats?${days.startsWith('h')?`days=7&hours=${days.slice(1)}`:`days=${days}`}`),api(`/v1/admin/games/${game}/board?limit=50`)]);
   const ae=s.ae,aeOk=!ae.error,isSite=game==='site';

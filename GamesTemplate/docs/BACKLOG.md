@@ -47,7 +47,7 @@
 | קובץ וקטורי של הלוגו (SVG/AI), אם קיים | favicon ואייקונים חדים | FRONTEND.md |
 | החלטה על דגימת אירועים (אחרי קריאת הקיבולת ב־EVENTS.md) | רשת ביטחון מול מכסת האנליטיקה | EVENTS.md |
 | גישה ל־Gal ו־Or ל־Cloudflare ול־GitHub | עבודת צוות | הצעה 2 למעלה |
-| הרשמה: Google client id, (אופציונלי) Apple | בלי client id אין כפתור Google/Apple באתר החי; ההרשמה באימייל עובדת גם בלעדיהם | SETUP-CLOUDFLARE.md, "הרשמה" |
+| **חסר (2026-11-18): Google client id**, ו־(אופציונלי, 99$ לשנה) Apple Services ID. האתר באוויר בלעדיהם: הכרטיס מציג רק אימייל, ואימייל מוקלד לא שומר ניקוד בין מכשירים, אז "Your scores are saved on every device" בכרטיס עוד לא נכון. כשמגיע ה־id: `studio.json` → `googleClientId`, `wrangler.toml` → `GOOGLE_CLIENT_ID`, ואז `/deploy-server` ופריסת האתר. לא נדרש כרטיס אשראי (נבדק בתיעוד של Google) | בלי client id אין כפתור Google/Apple באתר החי | SETUP-CLOUDFLARE.md, "הרשמה" |
 | מפתח אדמין חזק יותר לפני שהאתר ציבורי | המפתח הנוכחי קצר; מגן על מחיקת ניקודים וקריאת דאטה | `wrangler secret put ADMIN_KEY` |
 
 ## נפתח בבנייה (2026-11-14, אחרי שהקוד נכתב)
