@@ -56,7 +56,8 @@ for (const [i, c] of list.entries()) {
   const hit = isSuppressed(supp, c.contact, c.handle, c.post?.url);
   if (status === 'ok' && hit) { status = 'skip'; why = `on the suppression list (${hit})`; }
   if (status === 'ok' && c.followers > MAX_FOLLOWERS) { status = 'skip'; why = `${c.followers} followers: nano and micro only (up to ${MAX_FOLLOWERS})`; }
-  if (status === 'ok' && eventDay && c.post?.date && new Date(c.post.date) < new Date(eventDay.getTime() - 864e5)) { status = 'skip'; why = `the post (${c.post.date}) is from before the event`; }
+  // a post from the event's run-up is a note, not a skip (Nadav, 2026-11-18: the 48-hour rule is not iron)
+  if (status === 'ok' && eventDay && c.post?.date && new Date(c.post.date) < new Date(eventDay.getTime() - 864e5)) why = `older post (${c.post.date}): mention a newer one of theirs if there is`;
   const link = trackedLink(gameId, copy.campaign, { source: slug(c.handle.replace(/^@/, '')), medium: 'creator', content: c.network });
   out.push({ ...c, status, ...(why ? { why } : {}), link, text: c.message.replace('{link}', link), tier: c.followers <= 10_000 ? 'nano' : c.followers <= MAX_FOLLOWERS ? 'micro' : 'too big' });
 }

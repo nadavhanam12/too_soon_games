@@ -12,7 +12,9 @@
 //   "channel": "tip-form" | "dm" | "email",
 //   "contact": "https://outlet.com/tips" | "@handle on X" | "name@outlet.com",
 //   "openToPitches": "https://... (bio or page that says they take pitches; required for dm)",
-//   "lang": "en" | "he"                  // optional, defaults by country
+//   "lang": "en" | "he",                 // optional, defaults by country
+//   "how": "...",                        // optional: what their page says about reaching them (which address, a form rule)
+//   "source": "calcalist"                // the link's utm_source when the outlet's name has no Latin letters
 // }]
 // Channel order, lowest risk first (slide 14): 1 tip-form/news desk, 2 dm to someone who invites pitches,
 // 3 email, only when config.legal.coldEmailApproved and the country is in coldEmailCountries, never in noEmailCountries.
@@ -52,12 +54,15 @@ for (const [i, j] of list.entries()) {
     else if (!conf.legal.coldEmailApproved) { status = 'blocked'; why = 'cold email is off until the lawyer check (config.legal.coldEmailApproved): use the tip form or a dm'; }
     else if (!conf.legal.coldEmailCountries.includes(country)) { status = 'blocked'; why = `cold email is cleared only for ${conf.legal.coldEmailCountries.join(', ')}`; }
   }
-  if (j.article?.date && eventDay && new Date(j.article.date) < new Date(eventDay.getTime() - 864e5)) {
-    status = status === 'ok' ? 'skip' : status; why ||= `the article (${j.article.date}) is from before the event (${cfg.event.date})`;
-  }
-  const source = slug(j.outlet);
+  // An article from before the event is not a reason to skip (Nadav, 2026-11-18: "the 48-hour rule is not iron"): the row
+  // stays in, with a note to swap in a fresher article of theirs if one is out by the time of sending.
+  let note = '';
+  if (j.article?.date && eventDay && new Date(j.article.date) < new Date(eventDay.getTime() - 864e5)) note = `older article (${j.article.date}): use a launch-day one of theirs if out by then`;
+  // the link's utm_source: from the outlet's name, or "source" when the name has no Latin letters (כלכליסט → "calcalist")
+  const source = j.source || slug(j.outlet);
+  if (!source) errors.push(`${at}: the outlet's name gives no utm_source (no Latin letters): add "source"`);
   out.push({
-    ...j, country, lang: j.lang || (country === 'IL' ? 'he' : 'en'), rank: RANK[j.channel], status, ...(why ? { why } : {}),
+    ...j, country, lang: j.lang || (country === 'IL' ? 'he' : 'en'), rank: RANK[j.channel], status, ...(why ? { why } : {}), ...(note ? { note } : {}),
     link: trackedLink(gameId, copy.campaign, { source, medium: 'press', content: slug(j.name) }),
   });
 }
@@ -69,9 +74,14 @@ if (ok.length > conf.outreach.maxPerGame) for (const j of ok.slice(conf.outreach
 
 writeFileSync(join(L, 'private', 'journalists.checked.json'), JSON.stringify(out, null, 2) + '\n');
 const ch = { 'tip-form': 'tip form', dm: 'DM', email: 'email' };
+// how to reach them: an address = write to it; a URL = fill the form there; a handle = DM; then the row's own "how"
+const reach = (j) => {
+  const c = String(j.contact), base = /^https?:/.test(c) ? `form: ${c}` : c.includes('@') && !c.startsWith('@') ? `write to ${c}` : `DM ${c}`;
+  return j.how ? `${base}. ${j.how}` : base;
+};
 const md = [`# Journalists: ${cfg.title}`, '', `${out.filter((j) => j.status === 'ok').length} to contact · ${out.filter((j) => j.status === 'blocked').length} blocked · ${out.filter((j) => j.status === 'skip').length} skipped`, '',
-  '| # | who | outlet | country | channel | article | status |', '|---|---|---|---|---|---|---|',
-  ...out.map((j, i) => `| ${i + 1} | ${j.name} | ${j.outlet} | ${j.country} | ${ch[j.channel]} | [${j.article.date}](${j.article.url}) | ${j.status}${j.why ? `: ${j.why}` : ''} |`), ''];
+  '| # | who | outlet | country | channel | how to reach them | article | status |', '|---|---|---|---|---|---|---|---|',
+  ...out.map((j, i) => `| ${i + 1} | ${j.name} | ${j.outlet} | ${j.country} | ${ch[j.channel]} | ${reach(j)} | [${j.article.date}](${j.article.url}) | ${j.status}${j.why ? `: ${j.why}` : ''}${j.note ? ` (${j.note})` : ''} |`), ''];
 writeFileSync(join(L, 'private', 'journalists.md'), md.join('\n'));
 console.log(`[journalists] ${md[2]} → launch/private/journalists.md`);
 if (!existsSync(join(L, 'press', 'index.html'))) console.log('[journalists] note: no press kit yet; the pitches link to it');

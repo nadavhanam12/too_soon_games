@@ -77,9 +77,11 @@ if (!todo.length) { console.log(room ? '[send] everything is sent' : `[send] tod
 const outbox = join(L, 'private', 'outbox');
 mkdirSync(outbox, { recursive: true });
 console.log(`[send] ${todo.length} to send now (${sentToday} sent today, limit ${conf.outreach.dailyLimitPerSender}). Space them a few minutes apart.${dry ? ' (dry run)' : ''}\n`);
+// a tip form that is an address (an outlet's tips inbox) is sent as an email too: it gets a draft like a cold email
+const isAddress = (c) => /^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(String(c));
 for (const [n, it] of todo.entries()) {
   console.log(`${n + 1}. ${it.who} · ${it.channel}${it.channel === 'dm' && it.network ? ` on ${it.network}` : ''}`);
-  if (it.channel === 'email') {
+  if (it.channel === 'email' || isAddress(it.contact)) {
     const eml = join(outbox, `${String(n + 1).padStart(2, '0')}-${slug(it.who)}.eml`);
     const subj = it.subject || '';
     writeFileSync(eml, [`From: ${conf.senderName} <${st.email}>`, `To: ${it.contact}`, `Subject: =?UTF-8?B?${Buffer.from(subj).toString('base64')}?=`, 'X-Unsent: 1', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: 8bit', '', it.text, ''].join('\r\n'));
@@ -90,4 +92,26 @@ for (const [n, it] of todo.entries()) {
     console.log('   text:\n' + it.text.split('\n').map((l) => '   | ' + l).join('\n'));
   }
   console.log(`   then: node PublishGamesPipeline/stages/send/send.mjs ${gameId} ${kind} --mark-sent "${it.contact}"\n`);
+}
+// outbox/batch.html: the batch as one local page to send from (copy buttons; a mailto: link opens the default mail app
+// with the draft, for a Gmail mailbox, which does not open .eml files). Local only: it stays in launch/private.
+{
+  const esc = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // the GIF goes into the page once (a data URL a script hands to every card): it shows wherever the page is opened,
+  // also as a copy outside the folder, where a relative path to launch/videos would break
+  const gifFile = join(L, 'videos', 'email.gif');
+  const gifData = existsSync(gifFile) ? `data:image/gif;base64,${readFileSync(gifFile).toString('base64')}` : '';
+  const gif = gifData ? '' : null;   // the cards' img src is set by the script below
+  const copy = (label, val) => `<button onclick="navigator.clipboard.writeText(this.nextElementSibling.textContent);this.textContent='Copied'">${label}</button><pre>${esc(val)}</pre>`;
+  const card = (it, i) => {
+    const mail = it.channel === 'email' || isAddress(it.contact);
+    const go = mail ? `<a class="go" href="mailto:${encodeURIComponent(it.contact)}?subject=${encodeURIComponent(it.subject || '')}&amp;body=${encodeURIComponent(it.text)}">Open as an email</a>`
+      : /^https?:/.test(it.contact) ? `<a class="go" href="${esc(it.contact)}" target="_blank" rel="noopener">Open the form</a>` : `<span class="go">DM ${esc(it.contact)}</span>`;
+    // the email GIF (videos stage): dragged into the email body it shows the game's colours at once (inline, not an
+    // attachment: a cold pitch with attachments is opened less and filtered more); a form that takes an image gets it too
+    const media = gif !== null ? `<figure><img class="gif" alt="" width="150" draggable="true"><figcaption>${mail ? 'Drag this GIF into the email, under the text' : /^https?:/.test(it.contact) ? 'If the form takes an image, upload this GIF' : 'Send this GIF with the message'}</figcaption></figure>` : '';
+    return `<section><h2>${i + 1}. ${esc(it.who)} <small>${esc(it.channel)}</small></h2>${go}${media}${copy('Copy address', it.contact)}${it.subject ? copy('Copy subject', it.subject) : ''}${copy('Copy text', it.text)}<code>node PublishGamesPipeline/stages/send/send.mjs ${gameId} ${kind} --mark-sent "${esc(it.contact)}"</code></section>`;
+  };
+  writeFileSync(join(outbox, 'batch.html'), `<!doctype html><meta charset="utf-8"><title>${kind} batch · ${gameId}</title><style>body{font:15px system-ui;max-width:760px;margin:24px auto;padding:0 16px;background:#111;color:#eee}section{border:1px solid #333;border-radius:10px;padding:12px 16px;margin:14px 0}h2{font-size:17px;margin:0 0 8px}small{color:#999;font-weight:400}pre{white-space:pre-wrap;background:#1c1c1c;padding:8px;border-radius:6px;margin:4px 0 10px}button{background:#333;color:#fff;border:0;border-radius:6px;padding:4px 10px;cursor:pointer}a.go,span.go{display:inline-block;background:#ffcc00;color:#111;font-weight:700;border-radius:999px;padding:6px 14px;margin:0 0 10px;text-decoration:none}code{color:#999;font-size:12px}figure{float:right;margin:0 0 8px 12px;text-align:center}figcaption{font-size:12px;color:#bbb;max-width:150px}img{border-radius:8px;cursor:grab}</style><h1>${esc(kind)}: ${todo.length} to send</h1><p>Send each one, then tell Claude (or run its mark-sent line). A few minutes apart.</p>${todo.map(card).join('')}${gifData ? `<script>const g=${JSON.stringify(gifData)};for(const i of document.querySelectorAll('img.gif'))i.src=g;</script>` : ''}`);
+  console.log(`[send] one page to send from: ${join(outbox, 'batch.html')}`);
 }

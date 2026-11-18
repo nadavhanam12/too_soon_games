@@ -48,7 +48,10 @@ const readJsonIf = (f) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) :
   const links = new Map();
   const put = (who, link) => { if (link) links.set(link, who); };
   const copy = readJsonIf(join(L, 'copy.final.json'));
-  for (const [net, p] of Object.entries(copy?.posts || {})) { put(`post ${net}`, p.link); put(`profile ${net}`, p.profileLink); }
+  // a network's profile links to the studio site, not to one game (copy stage: build-copy.mjs profileLink)
+  const siteUrl = `${(st.publicBase || '').replace(/\/$/, '')}/`;
+  const profiles = new Set();
+  for (const [net, p] of Object.entries(copy?.posts || {})) { put(`post ${net}`, p.link); put(`profile ${net}`, p.profileLink); if (p.profileLink) profiles.add(p.profileLink); }
   for (const j of readJsonIf(join(L, 'private', 'journalists.checked.json')) || []) if (j.status === 'ok') put(`journalist ${j.outlet}`, j.link);
   for (const c of readJsonIf(join(L, 'private', 'creators.checked.json')) || []) if (c.status === 'ok') put(`creator ${c.handle}`, c.link);
   for (const a of readJsonIf(join(L, 'paid.json'))?.ads || []) put(`ad ${a.name}`, a.link);
@@ -56,12 +59,14 @@ const readJsonIf = (f) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) :
   for (const [link, who] of links) {
     const u = new URL(link);
     if (!u.searchParams.get('utm_source') || !u.searchParams.get('utm_medium') || !u.searchParams.get('utm_campaign')) { bad.push(`${who}: missing utm`); continue; }
-    if (!link.startsWith(gameUrl)) { bad.push(`${who}: not the game URL`); continue; }
+    if (profiles.has(link) ? !link.startsWith(siteUrl) : !link.startsWith(gameUrl)) { bad.push(`${who}: not the ${profiles.has(link) ? 'studio site' : 'game'} URL`); continue; }
     const r = await get(link, { method: 'GET' });
     if (!r.ok) bad.push(`${who}: ${r.status}`);
   }
-  const sources = new Set([...links.keys()].map((l) => new URL(l).searchParams.get('utm_source') + '|' + new URL(l).searchParams.get('utm_content')));
-  if (sources.size !== links.size) bad.push('two recipients share the same utm_source + utm_content');
+  // two recipients must not be counted as one in the admin: their utm tags (source, medium, campaign, content) differ
+  const tags = (l) => ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].map((k) => new URL(l).searchParams.get(k)).join('|');
+  const sources = new Set([...links.keys()].map(tags));
+  if (sources.size !== links.size) bad.push('two recipients share the same utm tags');
   add(2, 'UTM link per recipient', links.size > 0 && !bad.length, links.size ? (bad.length ? bad.slice(0, 4).join('; ') : `${links.size} links, all open`) : 'no links yet: run copy, journalists and creators');
 }
 
@@ -126,8 +131,17 @@ const readJsonIf = (f) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) :
   if (img) {
     const r = await get(img);
     const b = Buffer.from(await r.arrayBuffer());
+    // PNG, or JPEG (a game may ship a JPEG card to stay under WhatsApp's ~300 KB limit: Nice City's og.jpg)
     if (r.ok && b.length > 24 && b.toString('ascii', 1, 4) === 'PNG') dims = `${b.readUInt32BE(16)}x${b.readUInt32BE(20)}`;
-    else if (r.ok) dims = 'not a PNG';
+    else if (r.ok && b[0] === 0xff && b[1] === 0xd8) {
+      for (let i = 2; i + 9 < b.length;) {   // walk the segments to the frame header (SOF0..SOF15, not DHT/JPG/DAC)
+        if (b[i] !== 0xff) break;
+        const m = b[i + 1], len = b.readUInt16BE(i + 2);
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) { dims = `${b.readUInt16BE(i + 7)}x${b.readUInt16BE(i + 5)}`; break; }
+        i += 2 + len;
+      }
+      if (!dims) dims = 'a JPEG without a readable size';
+    } else if (r.ok) dims = 'not a PNG or JPEG';
   }
   const ch = await get(`${gameUrl}?c=42&n=TZero`);
   const chTitle = ch.ok ? og(await ch.text(), 'title') || '' : '';

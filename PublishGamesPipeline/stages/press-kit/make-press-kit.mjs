@@ -35,7 +35,7 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(join(OUT, 'media'), { recursive: true });
 const log = (...a) => console.log('[press-kit]', ...a);
 
-// ---------- screenshots: title and result from the real game, gameplay from the videos capture ----------
+// ---------- screenshots: the title from the real game; gameplay and result from the videos capture (a real run) ----------
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.mp3': 'audio/mpeg', '.webm': 'video/webm' };
 const server = createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
@@ -58,16 +58,37 @@ const shot = async (name) => {
   writeFileSync(join(OUT, 'media', name), Buffer.from(url.slice(url.indexOf(',') + 1), 'base64'));
 };
 await shot('screenshot-1-title.jpg');
-await page.evaluate(() => { window.__go('result'); window.__advance(2); });
-await shot('screenshot-3-result.jpg');
 await browser.close(); server.close();
-// gameplay: the middle frame of the arc clip, already captured at 1080x1920
-const arc = videos.clips.find((c) => c.name === 'arc');
-const seg = arc.segments[Math.floor(arc.segments.length / 2)];
-const frames = join(LAUNCH, '.work', 'videos', 'frames');
-const want = Math.round(((seg[0] + seg[1]) / 2) * videos.fps);
-const pick = readdirSync(frames).map((f) => Number(f.slice(0, 6))).sort((a, b) => Math.abs(a - want) - Math.abs(b - want))[0];
-copyFileSync(join(frames, `${String(pick).padStart(6, '0')}.jpg`), join(OUT, 'media', 'screenshot-2-gameplay.jpg'));
+// gameplay: the middle shot of the arc clip that is a frame of a run (not a still), from the run that clip is cut from
+// (captions.json clipRun / a shot's own run); result: the main run's result screen, its real score (opening the result
+// screen without a run shows the template's made-up one: "42")
+const capFile = join(LAUNCH, 'videos', 'captions.json'), cap = existsSync(capFile) ? JSON.parse(readFileSync(capFile, 'utf8')) : {};
+const runFrames = (run) => join(LAUNCH, '.work', run ? `videos-${run}` : 'videos', 'frames');
+const nearest = (dir, t) => { const want = Math.round(t * videos.fps); const f = readdirSync(dir).map((x) => Number(x.slice(0, 6))).sort((a, b) => Math.abs(a - want) - Math.abs(b - want))[0]; return join(dir, `${String(f).padStart(6, '0')}.jpg`); };
+// captions.json "pressGameplay": a picture in launch/videos chosen for it (Nice City: a staged chase made with make-videos
+// --still, the police right behind you under the helicopter's light); else the arc's middle shot, which is often a car
+// alone on a road (Nadav: "not exciting")
+if (cap.pressGameplay) {
+  const f = join(LAUNCH, 'videos', cap.pressGameplay);
+  if (!existsSync(f)) { console.error(`captions.json pressGameplay: ${cap.pressGameplay} not found in launch/videos`); process.exit(1); }
+  const out = join(OUT, 'media', 'screenshot-2-gameplay.jpg');
+  if (/\.jpe?g$/i.test(f)) copyFileSync(f, out);
+  else { // e.g. a PNG still from make-videos --still: the file must be the JPEG its name says (the full ffmpeg from .video-tools)
+    const ffDir = join(REPO, '.video-tools', 'imageio_ffmpeg', 'binaries');
+    const FF = existsSync(ffDir) ? readdirSync(ffDir).filter((x) => x.startsWith('ffmpeg')).map((x) => join(ffDir, x)).pop() : '';
+    if (!FF) { console.error(`ffmpeg not found in ${ffDir}: cannot turn ${cap.pressGameplay} into a JPEG`); process.exit(1); }
+    const r = spawnSync(FF, ['-y', '-loglevel', 'error', '-i', f, '-q:v', '2', out], { encoding: 'utf8' });
+    if (r.status !== 0) { console.error(`ffmpeg failed on ${cap.pressGameplay}: ${r.stderr}`); process.exit(1); }
+  }
+} else {
+  const arc = videos.clips.find((c) => c.name === 'arc');
+  const live = arc.segments.filter((g) => !g[2]?.image);
+  if (!live.length) { console.error('the arc clip has no shot from a run to take the gameplay screenshot from'); process.exit(1); }
+  const seg = live[Math.floor(live.length / 2)];
+  copyFileSync(nearest(runFrames(seg[2]?.run ?? cap.clipRun?.arc ?? null), (seg[0] + seg[1]) / 2), join(OUT, 'media', 'screenshot-2-gameplay.jpg'));
+}
+if (videos.run.endScene !== 'result') { console.error(`the videos capture ended on "${videos.run.endScene}", not the result screen: no result screenshot`); process.exit(1); }
+copyFileSync(nearest(runFrames(null), videos.run.endsAt + 1), join(OUT, 'media', 'screenshot-3-result.jpg'));
 
 // ---------- media ----------
 const V = join(LAUNCH, 'videos');
@@ -91,6 +112,9 @@ const T = he ? {
   contact: 'Contact', event: 'The event', source: 'Source', parody: 'Parody. Not affiliated with the people or companies in the event. Everything here may be used to cover the game.',
 };
 const shots = ['screenshot-1-title.jpg', 'screenshot-2-gameplay.jpg', 'screenshot-3-result.jpg'];
+// each screenshot's alt says what it is, and that the game is a parody; captions.json "pressGameplayAlt" names the middle one
+T.parodyGame = he ? ' (משחק פרודיה)' : ' (parody game)';
+T.shotAlt = he ? ['מסך הפתיחה', cap.pressGameplayAlt || 'מתוך המשחק', 'מסך התוצאה'] : ['the title screen', cap.pressGameplayAlt || 'gameplay', 'the result screen'];
 const html = `<!doctype html><html lang="${cfg.lang}" dir="${he ? 'rtl' : 'ltr'}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(cfg.title)} · ${T.kit} · ${esc(studio.name)}</title>
@@ -133,7 +157,7 @@ a{color:inherit}
   </div>
 </div>
 <h2>${T.shots}</h2>
-<div class="shots">${shots.map((s) => `<a href="media/${s}"><img src="media/${s}" alt="${esc(cfg.title)}" loading="lazy"></a>`).join('')}</div>
+<div class="shots">${shots.map((s, i) => `<a href="media/${s}"><img src="media/${s}" alt="${esc(`${cfg.title}${T.parodyGame}: ${T.shotAlt[i]}`)}" loading="lazy"></a>`).join('')}</div>
 <h2>${T.dl}</h2>
 <div class="dl">
   <a href="${cfg.slug}-press-kit.zip" download>${T.all}</a>

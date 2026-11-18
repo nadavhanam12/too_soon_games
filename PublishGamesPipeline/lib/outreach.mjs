@@ -39,7 +39,8 @@ export function isSuppressed(list, ...values) {
   }));
 }
 
-export const slug = (s) => String(s).normalize('NFKD').replace(/[^\w\s-]/g, '').trim().toLowerCase().replace(/[\s_]+/g, '-').replace(/-+/g, '-').slice(0, 40);
+// no dash at either end: "@Jorski__" → "jorski", not "jorski-"
+export const slug = (s) => String(s).normalize('NFKD').replace(/[^\w\s-]/g, '').trim().toLowerCase().replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
 /** The game link with UTM. utm_source is what the admin funnel groups by (an outlet, a creator), medium the channel type. */
 export function trackedLink(gameId, campaign, { source, medium, content }) {

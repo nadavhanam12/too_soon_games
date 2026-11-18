@@ -134,7 +134,8 @@ build the site into a temp folder (`node GamesTemplate/frontend/run.mjs --out <t
 browser pane; send a screenshot.
 
 ### journalists
-Research with web search who covered the event since it happened, in the event's country first (playbook slide 8),
+Research with web search who covered the event (its run-up counts too: an older article is a note, not a skip; Nadav,
+2026-11-18: the 48-hour rule is not iron), in the event's country first (playbook slide 8),
 aiming at 15-25. For each: the article (url, date, one concrete detail from it that is not an unverified claim), and
 the lowest-risk channel that exists (slide 14): the outlet's own tip form or published news/tips inbox (`tip-form`),
 a DM only to someone whose bio or page says they take pitches (`dm`, with that page in `openToPitches`), and `email`
@@ -142,7 +143,7 @@ to a personal address only when `PublishGamesPipeline/config.json` → `legal.co
 outlet or the person published for this purpose; never guess an address or use a bought list. Write
 `Games/<GameId>/launch/private/journalists.json` (shape in the header of
 `PublishGamesPipeline/stages/journalists/check-journalists.mjs`) and run that script: it applies the suppression list
-and the channel rules, and gives each journalist a tracked link. Show the table from `journalists.md`. Names and
+and the channel rules, and gives each journalist a tracked link. Give each row a `how` (what the outlet's own page says about reaching them). Show the table from `journalists.md`. Names and
 contacts stay in `launch/private/`: show them in chat, never copy them into a tracked file.
 
 ### emails
