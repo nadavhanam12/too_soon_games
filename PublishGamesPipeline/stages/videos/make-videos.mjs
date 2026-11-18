@@ -48,11 +48,15 @@ const FRAMES = join(WORK, 'frames');
 mkdirSync(OUT, { recursive: true });
 
 const FPS = 30, TICK = 1 / FPS;
+// Caption (Nadav, 2026-11-18): it starts low, where it reads at once, and after CAP_MOVE_AT slides up to CAP_END over
+// CAP_MOVE_S, off the faces and the action. captions.json "captionTop" / "captionEndTop": { <clip>: css px } override.
+const CAP_START = 262, CAP_END = 14, CAP_MOVE_AT = 1.0, CAP_MOVE_S = 0.4;
+const CAP_SLIDE = 22, CAP_IN_S = 0.25, CAP_OUT_S = 0.2;   // a caption in a sequence: css px it travels, in / out seconds
 const VW = 360, VH = 640, DPR = 3;             // CSS viewport and scale: the canvas comes out 1080x1920
 const W = VW * DPR, H = VH * DPR;
 const MAX_RUN_S = Number(opt('--max-seconds', 600));
 const END_HOLD_S = 1.2;                        // keep filming this long after the run ends (the lose/result screen)
-const CARD_S = 2.5;                            // end card length
+const CARD_S = 3;                              // end card length (its animations need ~1.6 s, then it holds)
 const rtl = cfg.lang === 'he';
 const log = (...a) => console.log('[videos]', ...a);
 
@@ -247,8 +251,10 @@ if (!flag('--reuse')) {
     const realPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
       const g = routed.get(this);
-      // looped elements are music.files: the template routes them through Web Audio too (RULES 13ד), but they are laid
-      // into music.wav from the files below, so taking them here would put the music into sfx.wav a second time
+      // Looped elements are music.files: the template routes them through Web Audio too (RULES 13ד), but each clip lays
+      // its one music track in from the file, so they stay out of sfx.wav. They really play, so the element is not
+      // paused: when they were taken here instead, the template called play() on every tick and each call stacked one
+      // more copy of the track until it clipped (the loud noise in the first Nice City clips, 2026-11-18).
       if (!g || this.loop) return realPlay.call(this);
       const c = g.context, at = c.currentTime, url = this.currentSrc || this.src;
       if (!decoded.has(url)) decoded.set(url, fetch(url).then((r) => r.arrayBuffer()).then((b) => c.decodeAudioData(b)));
@@ -292,34 +298,28 @@ if (!flag('--reuse')) {
   head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22); head.writeUInt32LE(audio.rate, 24); head.writeUInt32LE(audio.rate * 2, 28);
   head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34); head.write('data', 36); head.writeUInt32LE(pcm.length, 40);
   writeFileSync(join(WORK, 'synth.wav'), Buffer.concat([head, pcm]));
-  // Two stems, so a clip can play the music throughout and let the game's sound effects in only where they help
-  // (Nadav, 2026-11-18: engine, bumps, typing and pickups got in the way). sfx.wav = the offline context (synth sounds,
-  // car sounds, file effects routed through Web Audio); its bass is cut and everything above 1.2 kHz lifted, since it
-  // is mostly under 200 Hz and a phone speaker cannot play that (a clip of synth alone sounded silent there).
-  // music.wav = music a game plays from files (music.files), laid in from the files themselves: each track over the
-  // game seconds its mode was on, at the volume the game reached, with the game's own fade speed (1.2 per second),
-  // every track starting from its beginning as the game does after a pause. A game whose music is the synth sequencer
-  // has no music.wav: its music is inside sfx.wav, so there the effects cannot be left out (stems.json says so).
+  // Sound comes in two parts, so a clip plays one music track throughout and lets the game's sound effects in only where
+  // they help (Nadav, 2026-11-18: the music jumped at every cut, and engine, bumps, typing and pickups got in the way).
+  // sfx.wav = the offline context (synth sounds, car sounds, file effects routed through Web Audio); its bass is cut
+  // and everything above 1.2 kHz lifted, since it is mostly under 200 Hz and a phone speaker cannot play that (a clip of
+  // synth alone sounded silent there). Music a game plays from files (music.files) is not in it: stems.json lists the
+  // files, the loudness the game gave each, and how many seconds each was on. A game whose music is the synth
+  // sequencer has no such files: its music is inside sfx.wav, so there the effects cannot be left out.
   const SYNTH_EQ = 'highpass=f=180,bass=g=-8:f=250,treble=g=9:f=1200';
-  ff(['-i', join(WORK, 'synth.wav'), '-af', SYNTH_EQ, '-ac', '1', '-ar', String(audio.rate), join(WORK, 'sfx.wav')], 'sfx stem');
-  const keys = Object.keys(heard);
-  const ins = ['-f', 'lavfi', '-t', String(timeline.duration), '-i', `anullsrc=r=${audio.rate}:cl=mono`], parts = [], mix = ['[0:a]'];
+  // float, not 16-bit: the treble lift pushes short hits past full scale, which 16 bits would clip (the encode's loudnorm
+  // brings the level back down)
+  ff(['-i', join(WORK, 'synth.wav'), '-af', SYNTH_EQ, '-ac', '1', '-ar', String(audio.rate), '-c:a', 'pcm_f32le', join(WORK, 'sfx.wav')], 'sfx stem');
+  const tracks = {};
   modes.forEach((m, i) => {
-    const k = keys.indexOf(m.mode); if (k < 0) return; // 'off', or a synth-sequencer mode
-    const vol = heard[m.mode];
-    if (!vol) throw new Error(`music track "${m.mode}" never played during the capture (the browser refused it, or the file is missing): the clip would lack the game's music`);
+    if (!(m.mode in heard)) return; // 'off', or a synth-sequencer mode
+    if (!heard[m.mode]) throw new Error(`music track "${m.mode}" never played during the capture (the browser refused it, or the file is missing)`);
     const file = join(DIST, decodeURIComponent(new URL(srcs[m.mode], base).pathname));
     if (!existsSync(file)) throw new Error(`music file not found: ${file}`);
-    const len = (modes[i + 1]?.t ?? timeline.duration) - m.t + vol / 1.2, fade = (vol / 1.2).toFixed(3);
-    ins.push('-stream_loop', '-1', '-i', file);
-    const n = mix.length;
-    parts.push(`[${n}:a]atrim=0:${len.toFixed(3)},asetpts=PTS-STARTPTS,aresample=${audio.rate},pan=mono|c0=0.5*c0+0.5*c1,volume=${vol},afade=t=in:d=${fade},afade=t=out:st=${(len - vol / 1.2).toFixed(3)}:d=${fade},adelay=${Math.round(m.t * 1000)}[m${n}]`);
-    mix.push(`[m${n}]`);
+    const tr = tracks[m.mode] ||= { file, volume: heard[m.mode], seconds: 0 };
+    tr.seconds += (modes[i + 1]?.t ?? timeline.duration) - m.t;
   });
-  if (mix.length > 1) ff([...ins, '-filter_complex', `${parts.join(';')};${mix.join('')}amix=inputs=${mix.length}:normalize=0:duration=first[out]`, '-map', '[out]', '-ac', '1', '-ar', String(audio.rate), join(WORK, 'music.wav')], 'music stem');
-  else rmSync(join(WORK, 'music.wav'), { force: true });
-  writeFileSync(join(WORK, 'stems.json'), JSON.stringify({ musicFromFiles: mix.length > 1 }) + '\n');
-  if (mix.length > 1) log(`music from files: ${modes.filter((m) => keys.includes(m.mode)).map((m) => `${m.mode} from ${m.t.toFixed(1)} s`).join(', ')}`);
+  writeFileSync(join(WORK, 'stems.json'), JSON.stringify({ musicFromFiles: Object.keys(tracks).length > 0, tracks }, null, 2) + '\n');
+  if (Object.keys(tracks).length) log(`music files heard: ${Object.entries(tracks).map(([k, v]) => `${k} ${v.seconds.toFixed(0)} s`).join(', ')}`);
   if (Math.abs(replay.end.t - timeline.end.t) > 1e-3) throw new Error(`the replay ended at ${replay.end.t} s, pass 1 at ${timeline.end.t} s: the run is not deterministic (a bot that reads the wall clock or Math.random?)`);
   writeFileSync(tlFile, JSON.stringify(timeline, null, 2));
   log(`pass 2: ${n} frames at ${size[0]}x${size[1]}, ${((Date.now() - t0) / 1000).toFixed(0)} s wall`);
@@ -358,7 +358,7 @@ const shell = (body, opaque) => `<!doctype html><html lang="${cfg.lang}" dir="${
 <link rel="stylesheet" href="${fontLink}"><style>
 html,body{margin:0;width:${VW}px;height:${VH}px;overflow:hidden;background:${opaque ? bg : 'transparent'}}
 body{font-family:${fontFamily},system-ui,sans-serif;color:#fff;position:relative}
-.cap{position:absolute;left:18px;right:18px;top:100px;text-align:center}
+.cap{position:absolute;left:18px;right:18px;top:${CAP_START}px;text-align:center}
 .cap span{display:inline;font-weight:900;font-size:27px;line-height:1.38;padding:3px 10px;background:#fff;color:#111;
   -webkit-box-decoration-break:clone;box-decoration-break:clone;border-radius:6px}
 .card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:0 28px}
@@ -375,22 +375,71 @@ async function renderPng(html, file, opaque) {
   await ovPage.evaluate(() => document.fonts.ready);
   await ovPage.screenshot({ path: file, omitBackground: !opaque });
 }
-const capPng = {};
+// A clip's caption is a string, or a sequence that follows the story (Nadav, 2026-11-18): [{ "text", "shot" }], each
+// starting on that shot of the clip's "clips" list (0 = the first) and leaving when the next one comes in.
+const capSeq = {}, capRise = {};
 for (const k of ['hook', 'arc', 'challenge']) {
-  capPng[k] = join(WORK, `cap-${k}.png`);
-  // captions.json "captionTop": { <clip>: css px from the top of the 360x640 frame } moves a caption off the game's
-  // faces (Nice City's portraits sit right under the default 100)
-  const top = captions.captionTop?.[k];
-  if (top !== undefined && !(top >= 0 && top <= VH - 60)) throw new Error(`captions.json captionTop.${k}: ${top} is outside 0..${VH - 60}`);
-  await renderPng(shell(`<div class="cap"${top !== undefined ? ` style="top:${top}px"` : ''}><span>${esc(captions[k])}</span></div>`, false), capPng[k], false);
+  const spec = captions[k];
+  const seq = Array.isArray(spec) ? spec : [{ text: spec, shot: 0 }];
+  if (!seq.length || seq[0].shot !== 0) throw new Error(`captions.json ${k}: the first caption must start on shot 0`);
+  seq.forEach((c, j) => {
+    if (typeof c.text !== 'string' || !c.text) throw new Error(`captions.json ${k}[${j}]: no text`);
+    if (!Number.isInteger(c.shot) || c.shot >= clips[k].length || (j && c.shot <= seq[j - 1].shot)) throw new Error(`captions.json ${k}[${j}]: shot ${c.shot} must be a shot of clips.${k} (0..${clips[k].length - 1}) after the caption before it`);
+  });
+  const top = captions.captionTop?.[k] ?? CAP_START, end = captions.captionEndTop?.[k] ?? CAP_END;
+  for (const [key, v] of [['captionTop', top], ['captionEndTop', end]]) if (!(v >= 0 && v <= VH - 60)) throw new Error(`captions.json ${key}.${k}: ${v} is outside 0..${VH - 60}`);
+  capRise[k] = (top - end) * DPR; // px of the 1080x1920 frame the first caption travels up
+  capSeq[k] = [];
+  for (const [j, c] of seq.entries()) {
+    const file = join(WORK, `cap-${k}-${j}.png`);
+    await renderPng(shell(`<div class="cap" style="top:${end}px"><span>${esc(c.text)}</span></div>`, false), file, false);
+    capSeq[k].push({ ...c, file });
+  }
 }
-const cardPng = join(WORK, 'endcard.png');
-await renderPng(shell(`<div class="glow"></div><div class="card">${logo ? `<img src="${logo}" alt="">` : ''}<h1>${esc(captions.endTitle)}</h1>
-<p>${esc(captions.endLine)}</p><div class="cta">${esc(captions.endCta)}</div><div class="url">${esc(playUrl)}</div></div>`, true), cardPng, true);
+
+// End card (Nadav, 2026-11-18): animated, and "Follow us" with every network the studio is on (studio.json) at the
+// bottom. The icons are the site's own (frontend/src/components/icons.ts). Rendered frame by frame: the CSS
+// animations are paused and set to each frame's time, so the card is the same on every run.
+const iconSrc = readFileSync(join(TEMPLATE, 'frontend', 'src', 'components', 'icons.ts'), 'utf8');
+const NETS = ['tiktok', 'instagram', 'youtube', 'x', 'facebook'].filter((n) => studio[n]);
+const iconPath = (n) => { const m = iconSrc.match(new RegExp(`\\n\\s*${n}: wrap\\('([^']+)'`)); if (!m) throw new Error(`icons.ts has no icon "${n}"`); return m[1]; };
+const followUs = rtl ? 'עקבו אחרינו' : 'Follow us';
+const cardDir = join(WORK, 'card'); rmSync(cardDir, { recursive: true, force: true }); mkdirSync(cardDir, { recursive: true });
+const pop = (name, at, dur = 0.45) => `animation:${name} ${dur}s cubic-bezier(.2,1.4,.4,1) ${at}s both`;
+await ovPage.setContent(shell(`<style>
+@keyframes popIn{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes rise{from{transform:translateY(26px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes glowB{0%,100%{opacity:.7}50%{opacity:1}}
+.rays{position:absolute;left:50%;top:34%;width:1100px;height:1100px;margin:-550px 0 0 -550px;opacity:.13;
+  background:repeating-conic-gradient(#fff 0 7deg,transparent 7deg 22deg);animation:spin 14s linear infinite;
+  -webkit-mask:radial-gradient(circle,#000 0,transparent 60%);mask:radial-gradient(circle,#000 0,transparent 60%)}
+.glow{animation:glowB 1.6s ease-in-out infinite}
+.card{justify-content:flex-start;padding-top:96px}
+.card img{${pop('popIn', 0, 0.55)}}
+.card h1{${pop('rise', 0.25)}}
+.card p{${pop('rise', 0.4)}}
+.cta{${pop('popIn', 0.55)}}
+.cta span{display:inline-block;animation:pulse .9s ease-in-out 1.1s infinite}
+.url{${pop('rise', 0.7)}}
+.follow{position:absolute;left:0;right:0;bottom:44px;text-align:center}
+.follow b{display:block;font-size:20px;font-weight:900;letter-spacing:.04em;margin-bottom:12px;${pop('rise', 0.95)}}
+.nets{display:flex;justify-content:center;gap:14px}
+.nets i{display:flex;width:46px;height:46px;border-radius:50%;background:#fff;color:#111;align-items:center;justify-content:center}
+.nets svg{width:25px;height:25px}
+</style><div class="rays"></div><div class="glow"></div><div class="card">${logo ? `<img src="${logo}" alt="">` : ''}<h1>${esc(captions.endTitle)}</h1>
+<p>${esc(captions.endLine)}</p><div class="cta"><span>${esc(captions.endCta)}</span></div><div class="url">${esc(playUrl)}</div></div>
+<div class="follow"><b>${followUs}</b><div class="nets">${NETS.map((n, j) => `<i style="${pop('popIn', 1.1 + j * 0.09)}"><svg viewBox="0 0 24 24"><path fill="currentColor" d="${iconPath(n)}"/></svg></i>`).join('')}</div></div>`, true), { waitUntil: 'load' });
+await ovPage.evaluate(() => document.fonts.ready);
+for (let f = 0; f < Math.round(CARD_S * FPS); f++) {
+  await ovPage.evaluate((ms) => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = ms; } }, (f * 1000) / FPS);
+  await ovPage.screenshot({ path: join(cardDir, `${String(f).padStart(5, '0')}.jpg`), type: 'jpeg', quality: 92 });
+}
 
 // ---------- encode ----------
 const made = [];
-const sfxWav = join(WORK, 'sfx.wav'), musicWav = join(WORK, 'music.wav'), stemsFile = join(WORK, 'stems.json');
+const sfxWav = join(WORK, 'sfx.wav'), stemsFile = join(WORK, 'stems.json');
 if (!existsSync(stemsFile)) { console.error('--reuse: the last capture has no sound stems (launch/.work/videos/stems.json): rerun without --reuse, with --seed ' + SEED); process.exit(1); }
 const stems = JSON.parse(readFileSync(stemsFile, 'utf8'));
 // captions.json "sfx": { <clip>: [[from, to, gain?], ...] } in game seconds = where the game's sound effects are heard
@@ -404,6 +453,15 @@ for (const [name, w] of Object.entries(sfxWin)) {
 }
 if (!stems.musicFromFiles && Object.keys(sfxWin).length) log('note: this game plays its music through the synth, so the sound effects cannot be separated: captions.json "sfx" is ignored');
 const RAMP = 0.06; // seconds an effects window takes to open and close (no click)
+// captions.json "music": a track name, or { <clip>: name }: the one track a clip plays from its first frame through the
+// end card. Default: the track the run played longest.
+const musicFor = (name) => {
+  if (!stems.musicFromFiles) return null;
+  const pick = typeof captions.music === 'string' ? captions.music : captions.music?.[name];
+  const k = pick ?? Object.entries(stems.tracks).sort((x, y) => y[1].seconds - x[1].seconds)[0][0];
+  if (!stems.tracks[k]) throw new Error(`captions.json music: "${k}" was not heard in this run (heard: ${Object.keys(stems.tracks).join(', ')})`);
+  return { name: k, ...stems.tracks[k] };
+};
 const onlyClip = opt('--clip');
 if (onlyClip && !(onlyClip in clips)) { console.error(`--clip: unknown clip "${onlyClip}" (hook, arc, challenge)`); process.exit(2); }
 for (const [name, segs] of Object.entries(clips)) {
@@ -418,29 +476,55 @@ for (const [name, segs] of Object.entries(clips)) {
     }
   }
   const out = join(OUT, `${name}.mp4`);
-  // sound: the same seconds of the run as the frames, short fades at each cut (a hard cut clicks), a longer fade into
-  // the end card, which is silent. A compressor brings the music up toward the loud one-shot effects, and loudnorm
-  // sets the level the feeds expect (-14 LUFS). The run's sound itself (music.wav + sfx.wav) is built after the capture.
+  // Sound. Effects: the same seconds of the run as the frames, short fades at each cut (a hard cut clicks); with file
+  // music only inside the clip's "sfx" windows. Music: one track, from its start, unbroken across the cuts and under
+  // the end card, at the loudness the game gave it, fading out at the very end. A compressor brings the music up toward
+  // the loud one-shot effects, and loudnorm sets the level the feeds expect (-14 LUFS).
+  const total = i / FPS + CARD_S, music = musicFor(name);
   const cuts = segs.map(([a, b], k) => {
-    const s = Math.round(a * FPS) / FPS, len = Math.round(b * FPS) / FPS - s, out = k === segs.length - 1 ? 0.4 : 0.04;
-    const trim = (inp) => `${inp}atrim=${s}:${s + len},asetpts=PTS-STARTPTS`;
+    const s = Math.round(a * FPS) / FPS, len = Math.round(b * FPS) / FPS - s, out = !music && k === segs.length - 1 ? 0.4 : 0.04;
     const fades = `afade=t=in:d=0.03,afade=t=out:st=${(len - out).toFixed(3)}:d=${out}`;
-    if (!stems.musicFromFiles) return `${trim('[3:a]')},${fades}[s${k}]`;
-    // the effects' gain inside this segment: 1 in each window, ramping over RAMP at its edges, 0 elsewhere
+    const trim = `[SFX:a]atrim=${s}:${s + len},asetpts=PTS-STARTPTS`;
+    if (!music) return `${trim},${fades}[s${k}]`;
+    // the effects' gain inside this segment: g in each window, ramping over RAMP at its edges, 0 elsewhere
     const open = (sfxWin[name] || []).map(([x, y, g = 1]) => [x - s, y - s, g]).filter(([x, y]) => y > 0 && x < len);
     const gain = open.length ? open.map(([x, y, g]) => `${g}*max(0,min(1,min((t-(${x.toFixed(3)}))/${RAMP},(${y.toFixed(3)}-t)/${RAMP})))`).join('+') : '0';
-    return `${trim('[3:a]')}[mu${k}];${trim('[5:a]')},volume='min(1,${gain})':eval=frame[fx${k}];[mu${k}][fx${k}]amix=inputs=2:normalize=0,${fades}[s${k}]`;
+    return `${trim},volume='min(1,${gain})':eval=frame,${fades}[s${k}]`;
   });
-  ff(['-framerate', String(FPS), '-i', join(dir, '%05d.jpg'), '-i', capPng[name], '-loop', '1', '-framerate', String(FPS), '-t', String(CARD_S), '-i', cardPng,
-    '-i', stems.musicFromFiles ? musicWav : sfxWav, '-f', 'lavfi', '-t', String(CARD_S), '-i', 'anullsrc=r=44100:cl=mono',
-    ...(stems.musicFromFiles ? ['-i', sfxWav] : []),
+  const fx = `${cuts.join(';')};${segs.map((_, k) => `[s${k}]`).join('')}[NULL:a]concat=n=${segs.length + 1}:v=0:a=1`;
+  const mixed = music
+    ? `${fx}[fx];[MUSIC:a]atrim=0:${total.toFixed(3)},asetpts=PTS-STARTPTS,aresample=44100,pan=mono|c0=0.5*c0+0.5*c1,volume=${music.volume},afade=t=in:d=0.15,afade=t=out:st=${(total - 1.2).toFixed(3)}:d=1.2[mu];[mu][fx]amix=inputs=2:normalize=0:duration=first`
+    : fx;
+  // Captions. Each one comes in on its shot (rises CAP_SLIDE px while fading in over CAP_IN_S) and leaves the same way
+  // up over CAP_OUT_S, ending as the next one starts; the last leaves as the end card comes. The first starts low and
+  // slides up to the top after CAP_MOVE_AT (smoothstep over CAP_MOVE_S), as a single caption always did.
+  const play = i / FPS;
+  const shotAt = []; { let acc = 0; for (const [a, b] of segs) { shotAt.push(acc); acc += (Math.round(b * FPS) - Math.round(a * FPS)) / FPS; } }
+  const seq = capSeq[name].map((c, j, all) => ({ ...c, a: shotAt[c.shot], b: j + 1 < all.length ? shotAt[all[j + 1].shot] : play }));
+  const smooth = (x) => `(${x})*(${x})*(3-2*(${x}))`;
+  const SL = CAP_SLIDE * DPR;
+  let vchain = `[0:v]scale=${W}:${H}:flags=lanczos,setsar=1[v0]`;
+  seq.forEach((c, j) => {
+    const pin = `clip((t-${c.a.toFixed(3)})/${CAP_IN_S},0,1)`, pout = `clip((t-${(c.b - CAP_OUT_S).toFixed(3)})/${CAP_OUT_S},0,1)`;
+    const rise = j === 0 ? `+${capRise[name]}*(1-${smooth(`clip((t-${(c.a + CAP_MOVE_AT).toFixed(3)})/${CAP_MOVE_S},0,1)`)})` : '';
+    const y = `${SL}*(1-${smooth(pin)})-${SL}*(${pout})*(${pout})${rise}`;
+    const inp = 1 + j;
+    vchain += `;[${inp}:v]format=rgba,fade=t=in:st=${c.a.toFixed(3)}:d=${CAP_IN_S}:alpha=1,fade=t=out:st=${(c.b - CAP_OUT_S).toFixed(3)}:d=${CAP_OUT_S}:alpha=1[c${j}]` +
+      `;[v${j}][c${j}]overlay=x=0:y='${y}':eval=frame:shortest=1:enable='between(t,${c.a.toFixed(3)},${c.b.toFixed(3)})'[v${j + 1}]`;
+  });
+  const n = seq.length, iCard = 1 + n, iSfx = 2 + n, iNull = 3 + n, iMusic = 4 + n;
+  ff(['-framerate', String(FPS), '-i', join(dir, '%05d.jpg'),
+    ...seq.flatMap((c) => ['-loop', '1', '-framerate', String(FPS), '-t', play.toFixed(3), '-i', c.file]),
+    '-framerate', String(FPS), '-i', join(cardDir, '%05d.jpg'),
+    '-i', sfxWav, '-f', 'lavfi', '-t', String(CARD_S), '-i', 'anullsrc=r=44100:cl=mono',
+    ...(music ? ['-stream_loop', '-1', '-i', music.file] : []),
     '-filter_complex',
-    `[0:v]scale=${W}:${H}:flags=lanczos,setsar=1[g];[g][1:v]overlay=0:0,format=yuv420p[a];` +
-    `[2:v]scale=${W}:${H},setsar=1,format=yuv420p,fade=t=in:st=0:d=0.25[c];[a][c]concat=n=2:v=1:a=0[v];` +
-    `${cuts.join(';')};${segs.map((_, k) => `[s${k}]`).join('')}[4:a]concat=n=${segs.length + 1}:v=0:a=1,acompressor=threshold=-28dB:ratio=6:attack=5:release=150:makeup=10,loudnorm=I=-14:TP=-1:LRA=7,aresample=44100[au]`,
+    `${vchain};[v${n}]format=yuv420p[a];` +
+    `[${iCard}:v]scale=${W}:${H},setsar=1,format=yuv420p[c];[a][c]concat=n=2:v=1:a=0[v];` +
+    `${mixed.replaceAll('[SFX:a]', `[${iSfx}:a]`).replaceAll('[NULL:a]', `[${iNull}:a]`).replaceAll('[MUSIC:a]', `[${iMusic}:a]`)},acompressor=threshold=-28dB:ratio=6:attack=5:release=150:makeup=10,loudnorm=I=-14:TP=-1:LRA=7,aresample=44100[au]`,
     '-map', '[v]', '-map', '[au]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(FPS),
     '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-movflags', '+faststart', out], name);
-  made.push({ name, file: `${name}.mp4`, seconds: +(i / FPS + CARD_S).toFixed(1), caption: captions[name], sfx: stems.musicFromFiles ? (sfxWin[name] || []) : 'always', segments: segs.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]) });
+  made.push({ name, file: `${name}.mp4`, seconds: +(i / FPS + CARD_S).toFixed(1), caption: capSeq[name].map(({ text, shot }) => ({ text, shot })), music: musicFor(name)?.name ?? 'synth', sfx: stems.musicFromFiles ? (sfxWin[name] || []) : 'always', segments: segs.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]) });
   log(`${name}.mp4  ${(i / FPS + CARD_S).toFixed(1)} s  ${(statSync(out).size / 1e6).toFixed(1)} MB`);
 }
 

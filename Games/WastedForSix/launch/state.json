@@ -1,0 +1,49 @@
+{
+  "game": "WastedForSix",
+  "createdAt": "2026-11-18T12:13:17.548Z",
+  "stages": {
+    "videos": {
+      "status": "ready",
+      "at": "2026-11-18T12:13:17.548Z"
+    },
+    "copy": {
+      "status": "pending"
+    },
+    "press-kit": {
+      "status": "pending"
+    },
+    "journalists": {
+      "status": "pending"
+    },
+    "emails": {
+      "status": "pending"
+    },
+    "creators": {
+      "status": "pending"
+    },
+    "paid-prep": {
+      "status": "pending"
+    },
+    "t0-check": {
+      "status": "pending"
+    },
+    "post": {
+      "status": "pending"
+    },
+    "send-emails": {
+      "status": "pending"
+    },
+    "send-creators": {
+      "status": "pending"
+    },
+    "paid-launch": {
+      "status": "pending"
+    },
+    "gates": {
+      "status": "pending"
+    },
+    "summary": {
+      "status": "pending"
+    }
+  }
+}
